@@ -1,29 +1,14 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QComboBox, QWidget, QVBoxLayout, QPushButton
-import pyaudio
-import matplotlib.pyplot as plt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QComboBox, QWidget, QVBoxLayout
+from PyQt5.QtCore import QTimer
+import pyqtgraph as pg
 import numpy as np
-import time
+import audio_handling
 
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 44100
-p = pyaudio.PyAudio()
-
-# AUDIO PROCESSING
-
-# Get number of connected audio devices, then populate an array
-# with the names of every input device.
-NUM_DEVICES = p.get_host_api_info_by_index(0).get('deviceCount') 
-input_devices = []
-for i in range(NUM_DEVICES):
-    if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-        input_devices.append(p.get_device_info_by_host_api_device_index(0, i).get('name'))
+a = audio_handling.AudioInput()
 
 
 class MainWindow(QMainWindow):
-    in_dev_idx = 0
 
     def __init__(self):
         super().__init__()
@@ -38,73 +23,67 @@ class MainWindow(QMainWindow):
 
     # Create widgets
     def UiComponents(self):
+        waveform = self.initialisePlot()
+        
         # Dropdown list of input devices
         input_cbox = QComboBox()
-        for i in range(len(input_devices)):
-            input_cbox.addItem(input_devices[i])
-        
-        record_button = QPushButton()
-        record_button.setText("Record")
+        for i in range(len(a.input_devices)):
+            input_cbox.addItem(a.input_devices[i])
 
         # Record method uses device selected from combo box
         input_cbox.activated.connect(self.changeInputDevice)
-        record_button.clicked.connect(self.record)
 
         layout = QVBoxLayout()
+        layout.addWidget(waveform)
         layout.addWidget(input_cbox)
-        layout.addWidget(record_button)
-
+        
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-    # Update input device index
-    def changeInputDevice(self, idx):
-        self.in_dev_idx = idx
-    
-    # Record 5 seconds of audio from input device
-    def record(self):
-        stream = p.open(
-            format=FORMAT,
-            channels=CHANNELS,
-            rate=RATE,
-            input=True,
-            output=True,
-            frames_per_buffer=CHUNK,
-            input_device_index=self.in_dev_idx
+    # Create audio input waveform plot
+    def initialisePlot(self):
+        wf_plot = pg.PlotWidget()
+
+        wf_plot.setXRange(0, a.CHUNK, padding=0)
+        wf_plot.setYRange(-2**15, 2**15, padding=0)
+        self.x_vals = np.arange(0, a.CHUNK, 1)
+
+        self.stream = a.openStream(0)
+        data = self.stream.read(a.CHUNK)
+        data_np = np.frombuffer(data, dtype=np.int16)
+
+        self.wf_line = wf_plot.plot(
+            self.x_vals,
+            data_np,
+            pen=pg.mkPen(color=(255, 0, 0))
         )
 
-        # Plot the waveform
+        # Update waveform every 10 ms
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.updateWaveform)
+        self.timer.start(10)
 
-        fig, ax = plt.subplots()
-        x = np.arange(0, CHUNK, 1)
-        line, = ax.plot(x, np.random.rand(CHUNK))
-        ax.set_ylim(-2**15, 2**15)
-        ax.set_xlim(0, CHUNK)
-        plt.show()
+        return wf_plot
 
-        endTime = time.time() + 5
-        
-        print("Recording started...")
-
-        while time.time() < endTime:
-            data = stream.read(CHUNK)
-            data_np = np.frombuffer(data, dtype=np.int16)
-            line.set_ydata(data_np)
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-
-        print("Recording stopped")
-
-        stream.stop_stream()
-        stream.close()
+    # Update input device index
+    def changeInputDevice(self, idx):
+        # Close current stream before opening new one
+        self.stream.stop_stream()
+        self.stream.close()
+        self.stream = a.openStream(idx)
+    
+    # Update waveform plot with new data 
+    def updateWaveform(self):
+        data = self.stream.read(a.CHUNK)
+        data_np = np.frombuffer(data, dtype=np.int16)
+        self.wf_line.setData(self.x_vals, data_np)
 
 
 def main():
-
     app = QApplication(sys.argv)
     window = MainWindow()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
