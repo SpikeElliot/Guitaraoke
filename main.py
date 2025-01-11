@@ -5,7 +5,7 @@ import pyqtgraph as pg
 import numpy as np
 import audio_handling
 
-a = audio_handling.AudioInput()
+a = audio_handling.AudioInputHandler()
 
 
 class MainWindow(QMainWindow):
@@ -45,17 +45,16 @@ class MainWindow(QMainWindow):
     def initialisePlot(self):
         wf_plot = pg.PlotWidget()
 
+        # Set plot axes
         wf_plot.setXRange(0, a.CHUNK, padding=0)
-        wf_plot.setYRange(-2**15, 2**15, padding=0)
+        wf_plot.setYRange(-1.0, 1.0, padding=0)
         self.x_vals = np.arange(0, a.CHUNK, 1)
+        self.plot_data = a.data_np
 
-        self.stream = a.openStream(0)
-        data = self.stream.read(a.CHUNK)
-        data_np = np.frombuffer(data, dtype=np.int16)
-
+        # Initial plot of waveform
         self.wf_line = wf_plot.plot(
             self.x_vals,
-            data_np,
+            self.plot_data,
             pen=pg.mkPen(color=(255, 0, 0))
         )
 
@@ -66,18 +65,15 @@ class MainWindow(QMainWindow):
 
         return wf_plot
 
-    # Update input device index
+    # Open new stream with updated input device index
     def changeInputDevice(self, idx):
-        # Close current stream before opening new one
-        self.stream.stop_stream()
-        self.stream.close()
-        self.stream = a.openStream(idx)
+        a.closeStream() # Close current stream before opening new one
+        a.openStream(idx)
     
-    # Update waveform plot with new data 
+    # Refresh waveform plot with new data 
     def updateWaveform(self):
-        data = self.stream.read(a.CHUNK)
-        data_np = np.frombuffer(data, dtype=np.int16)
-        self.wf_line.setData(self.x_vals, data_np)
+        self.plot_data = a.data_np # Get data from AudioInputHandler
+        self.wf_line.setData(self.x_vals, self.plot_data)
 
 
 def main():
