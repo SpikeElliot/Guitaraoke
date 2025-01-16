@@ -5,7 +5,7 @@ import pyqtgraph as pg
 import numpy as np
 import audio_handling
 
-a = audio_handling.AudioInputHandler()
+a = audio_handling.AudioHandler()
 
 
 class MainWindow(QMainWindow):
@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
             input_cbox.addItem(a.input_devices[i])
 
         # Record method uses device selected from combo box
-        input_cbox.activated.connect(self.changeInputDevice)
+        # input_cbox.activated.connect(self.changeInputDevice)
 
         layout = QVBoxLayout()
         layout.addWidget(waveform)
@@ -46,10 +46,14 @@ class MainWindow(QMainWindow):
         wf_plot = pg.PlotWidget()
 
         # Set plot axes
-        wf_plot.setXRange(0, a.CHUNK, padding=0)
-        wf_plot.setYRange(-1.0, 1.0, padding=0)
-        self.x_vals = np.arange(0, a.CHUNK, 1)
-        self.plot_data = a.data_np
+        # wf_plot.setXRange(0, a.CHUNK, padding=0)
+        # wf_plot.setYRange(-1.0, 1.0, padding=0)
+        # self.x_vals = np.arange(0, a.CHUNK, 1)
+        # self.plot_data = a.data_np
+
+        # Plot the resampled waveform data
+        self.x_vals = np.arange(0, len(a.plot_frames))
+        self.plot_data = a.plot_frames
 
         # Initial plot of waveform
         self.wf_line = wf_plot.plot(
@@ -59,9 +63,9 @@ class MainWindow(QMainWindow):
         )
 
         # Update waveform every 10 ms
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.updateWaveform)
-        self.timer.start(10)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.updateWaveform)
+        # self.timer.start(10)
 
         return wf_plot
 

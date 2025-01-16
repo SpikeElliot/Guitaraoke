@@ -1,22 +1,33 @@
 import pyaudio
 import numpy as np
+import librosa
 
 
-class AudioInputHandler():
+class AudioHandler():
     
     def __init__(self):
         self.CHUNK = 1024 * 2
         self.FORMAT = pyaudio.paFloat32
         self.CHANNELS = 1
         self.RATE = 44100
+
+        self.frames, sr = librosa.load(path='Rift.mp3', sr=self.RATE)
+        self.duration = len(self.frames) / float(sr)
+
+        # New rate to resample loaded song to for 11025 plotted points.
+        # In the Librosa documentation, this is the default maximum number
+        # of points for the display.waveshow function.
+        plot_sr = int(11025/self.duration)
+
+        self.plot_frames = librosa.resample(y=self.frames, orig_sr=self.RATE, target_sr=plot_sr)
         
-        self.p = None
-        self.stream = None
-        self.data_np = None
-        self.openStream(0)
+        # self.p = None
+        # self.stream = None
+        # self.data_np = None
+        # self.openStream(0)
 
         self.input_devices = []
-        self.getNumDevices()
+        # self.getNumDevices()
 
     # Get number of connected audio devices, then populate an array
     # with the names of every input device.
