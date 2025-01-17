@@ -27,14 +27,21 @@ class WaveformPlot():
             w_maxes.append(np.max(w))
             w_mins.append(np.min([0, np.min(w)]))
         
-        # Convert lists to np arrays for graphing
+        # Convert lists to np arrays for data processing
         self.max_windows = np.array(w_maxes)
         self.min_windows = np.array(w_mins)
 
-        # Set y-axis limits based on range of amplitudes in frames
-        self.max_ylim = np.max(self.max_windows) * 2
-        self.min_ylim = np.min(self.min_windows) * 2
-        self.plot.setYRange(self.min_ylim, self.max_ylim, padding=0)
+        # Get y-axis limits based on range of amplitudes from windows
+        self.max_ylim = np.max(self.max_windows)
+        self.min_ylim = np.min(self.min_windows)
+
+        # Scale the data (0 to 1 for pos vals, 0 to -1 for neg vals)
+        self.max_windows /= self.max_ylim
+        self.min_windows /= abs(self.min_ylim)
+
+        # Set axis ranges for plot
+        self.plot.setYRange(-1, 1, padding=0)
+        self.plot.setXRange(0, self.num_points, padding=0)
 
         self.drawPlot()
 

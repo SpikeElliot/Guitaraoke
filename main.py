@@ -13,7 +13,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Test App")
 
-        self.setGeometry(0, 0, 960, 490)
+        self.setGeometry(0, 0, int(1920*0.9), 100)
 
         self.UiComponents()
 
