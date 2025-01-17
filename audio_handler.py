@@ -13,3 +13,7 @@ class AudioHandler():
 
         self.frames = librosa.load(path='Rift.mp3', sr=self.RATE)[0]
         self.duration = len(self.frames) / float(self.RATE) # Song length in seconds
+
+        self.pitches, self.magnitudes = librosa.piptrack(y=self.frames,
+                                                         sr=self.RATE)
+        
