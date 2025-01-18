@@ -11,9 +11,8 @@ class AudioHandler():
         self.CHANNELS = 1
         self.RATE = 44100
 
-        self.frames = librosa.load(path='Rift.mp3', sr=self.RATE)[0]
+        self.frames = librosa.load(path='elecguitar_chromatic_scale.wav', sr=self.RATE)[0]
         self.duration = len(self.frames) / float(self.RATE) # Song length in seconds
 
-        self.pitches, self.magnitudes = librosa.piptrack(y=self.frames,
-                                                         sr=self.RATE)
-        
+        C = librosa.cqt(y=self.frames, sr=self.RATE)
+        self.C_db = librosa.amplitude_to_db(np.abs(C), ref=np.max)

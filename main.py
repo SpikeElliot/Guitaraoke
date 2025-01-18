@@ -2,7 +2,6 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from audio_handler import AudioHandler
 from waveform_plot import WaveformPlot
-from pitch_plot import PitchPlot
 
 a = AudioHandler()
 
@@ -26,11 +25,9 @@ class MainWindow(QMainWindow):
     def UiComponents(self):
         waveform = WaveformPlot(a).plot
         waveform.setMaximumHeight(100)
-        pitchgraph = PitchPlot(a).plot
 
         layout = QVBoxLayout()
         layout.addWidget(waveform)
-        layout.addWidget(pitchgraph)
         
         container = QWidget()
         container.setLayout(layout)
