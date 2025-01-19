@@ -22,7 +22,7 @@ class WaveformPlot():
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(y=audio.frames,
                                        orig_sr=audio.RATE,
-                                       target_sr=audio.RATE/64
+                                       target_sr=audio.RATE/16
         )
         w_size = int(len(plot_frames) / self.num_points)
         self.x_vals = np.arange(0, self.num_points)

@@ -1,5 +1,4 @@
 import pyaudio
-import numpy as np
 import librosa
 from tinytag import TinyTag
 import pygame
@@ -23,16 +22,12 @@ class AudioHandler():
 
         # Get song metadata
         metadata = TinyTag.get(self.PATH)
-        self.title = metadata.title
-        self.artist = metadata.artist
+        self.title = metadata.title or "Unknown"
+        self.artist = metadata.artist or "Unknown"
 
         # Get song frames and length
         self.frames = librosa.load(path=self.PATH, sr=self.RATE)[0]
         self.duration = len(self.frames) / float(self.RATE) # In seconds
-
-        # Get song frequency data for spectrogram plot
-        C = librosa.cqt(y=self.frames, sr=self.RATE)
-        self.C_db = librosa.amplitude_to_db(np.abs(C), ref=np.max)
 
     # Play or unpause song
     def play(self):
