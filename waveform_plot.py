@@ -14,6 +14,7 @@ class WaveformPlot():
         self.plot.showAxes(False)
         self.plot.hideButtons()
         self.plot.setMouseEnabled(False, False)
+        self.plot.setBackground((255,255,255))
 
         # One point represents a window of ~100 ms
         self.num_points = np.max([1000, int(audio.duration * 10)])
@@ -52,7 +53,7 @@ class WaveformPlot():
         self.drawPlot()
 
     # Draw plot of max and min waveform lines, filling between points.  
-    def drawPlot(self, c=(0, 187, 255)):
+    def drawPlot(self, c=(0, 0, 0)):
         self.plot.clear()
 
         self.pen=pg.mkPen(color=c)
