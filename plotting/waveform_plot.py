@@ -6,8 +6,6 @@ import librosa
 class WaveformPlot():
 
     def __init__(self, audio):
-        super().__init__()
-
         self.plot = pg.PlotWidget()
 
         # Set plot properties

@@ -1,11 +1,13 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt, QTimer
-from audio_handler import AudioHandler
-from waveform_plot import WaveformPlot
+from audio_handling.audio_load_handler import AudioLoadHandler
+from audio_handling.audio_stream_handler import AudioStreamHandler
+from plotting.waveform_plot import WaveformPlot
 from utils import timeFormat
 
-a = AudioHandler()
+song = AudioLoadHandler()
+input = AudioStreamHandler()
 
 class MainWindow(QMainWindow):
 
@@ -41,17 +43,17 @@ class MainWindow(QMainWindow):
         # SONG METADATA DISPLAY
 
         self.song_artist = QLabel()
-        self.song_artist.setText(a.artist)
+        self.song_artist.setText(song.artist)
 
         self.song_title = QLabel()
-        self.song_title.setText(a.title)
+        self.song_title.setText(song.title)
 
         self.song_duration = QLabel()
-        self.song_duration.setText(f"00:00.00 / {timeFormat(a.duration)}")
+        self.song_duration.setText(f"00:00.00 / {timeFormat(song.duration)}")
 
         # WAVEFORM DISPLAY
 
-        self.waveform = WaveformPlot(a).plot
+        self.waveform = WaveformPlot(song).plot
         self.waveform.setMaximumHeight(100)
         self.waveform.setMinimumWidth(self.WIDTH)
         self.waveform_width = self.waveform.geometry().width()
@@ -93,16 +95,16 @@ class MainWindow(QMainWindow):
 
     # Updates current song time label and playhead every 10ms
     def update_songpos(self):
-        songpos = a.getPos()
+        songpos = song.getPos()
         
         if songpos > 0:
-            self.song_duration.setText(f"{timeFormat(songpos)} / {timeFormat(a.duration)}")
+            self.song_duration.setText(f"{timeFormat(songpos)} / {timeFormat(song.duration)}")
         else: # Stop time progressing when song ends
             self.pause_button_pressed()
-            self.song_duration.setText(f"00:00.00 / {timeFormat(a.duration)}")
-            a.ended = True
+            self.song_duration.setText(f"00:00.00 / {timeFormat(song.duration)}")
+            song.ended = True
 
-        playhead_pos = int((songpos / a.duration) * self.waveform_width)
+        playhead_pos = int((songpos / song.duration) * self.waveform_width)
         self.playhead.move(playhead_pos, 0)
 
         # Show playhead first time play button is clicked (temporary solution)
@@ -113,14 +115,14 @@ class MainWindow(QMainWindow):
     def play_button_pressed(self):
         self.play_button.hide()
         self.pause_button.show()
-        a.play()
+        song.play()
         self.songpos_timer.start()
     
     # Pause button action
     def pause_button_pressed(self):
         self.pause_button.hide()
         self.play_button.show()
-        a.pause()
+        song.pause()
         self.songpos_timer.stop()
 
 

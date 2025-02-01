@@ -1,32 +1,36 @@
-import pyaudio
 import librosa
 from tinytag import TinyTag
 import pygame
 
 
-class AudioHandler():
+class AudioLoadHandler():
     
-    def __init__(self):
+    def __init__(self, path='./assets/elecguitar_chromatic_scale.wav'):
         pygame.mixer.init()
         
-        self.CHUNK = 1024 * 2
-        self.FORMAT = pyaudio.paFloat32
+        self.CHUNK = 2048
         self.CHANNELS = 1
         self.RATE = 44100
-        self.PATH = 'Rift.mp3'
+        self.path = path
+        
+        self.load(self.path)
+        
+    # Load song data from a given path
+    def load(self, path):
+        self.path = path
         self.paused = False
         self.ended = True
 
         # Load song for playback
-        pygame.mixer.music.load(self.PATH)
+        pygame.mixer.music.load(self.path)
 
         # Get song metadata
-        metadata = TinyTag.get(self.PATH)
+        metadata = TinyTag.get(self.path)
         self.title = metadata.title or "Unknown"
         self.artist = metadata.artist or "Unknown"
 
         # Get song frames and length
-        self.frames = librosa.load(path=self.PATH, sr=self.RATE)[0]
+        self.frames = librosa.load(path=self.path, sr=self.RATE)[0]
         self.duration = len(self.frames) / float(self.RATE) # In seconds
 
     # Play or unpause song
