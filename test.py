@@ -9,7 +9,7 @@ test_audio = AudioLoadHandler()
 
 note_pred = NotePredictor()
 
-test_predictions = note_pred.predict(test_audio)
+test_predictions = note_pred.predict(test_audio, save_data=True)
 
 # Temporary way to check note predictions
 for pred in test_predictions:
@@ -23,6 +23,6 @@ for pred in test_predictions:
     freqs.append(pred["frequency"])
     notes.append(pred["note"])
 
-plt.plot(times, freqs)
+plt.plot(times, freqs, linewidth=3)
 plt.yticks(freqs, labels=notes)
 plt.show()

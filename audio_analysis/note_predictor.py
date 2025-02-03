@@ -1,6 +1,7 @@
 import librosa
 import crepe
 import numpy as np
+import csv
 
 
 class NotePredictor():
@@ -11,7 +12,7 @@ class NotePredictor():
         self.model_capacity= model_capacity
     
 
-    def predict(self, audio):
+    def predict(self, audio, save_data=False):
         # Use crepe model to get pitch estimations from audio frames
         times, frequencies, confidences, activations = crepe.predict(
             audio.frames, 
@@ -77,5 +78,12 @@ class NotePredictor():
             preds[0]["note"] = librosa.hz_to_note(median_freq)
 
             note_predictions.append(preds[0])
+
+        if save_data:
+            keys = note_predictions[0].keys()
+            with open(f"{audio.filename}_PITCHES.csv", 'w', encoding="utf8", newline='') as output_file:
+                dict_writer = csv.DictWriter(output_file, keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(note_predictions)
         
         return note_predictions
