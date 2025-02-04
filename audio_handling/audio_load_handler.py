@@ -28,7 +28,8 @@ class AudioLoadHandler():
         metadata = TinyTag.get(self.path)
         self.title = metadata.title or "Unknown"
         self.artist = metadata.artist or "Unknown"
-        self.filename = metadata.filename.split(".")[1].split("/")[-1]
+        fn_split = metadata.filename.split(".")
+        self.filename, self.filetype = fn_split[1].split("/")[-1], fn_split[2]
 
         # Get song frames and length
         self.frames = librosa.load(path=self.path, sr=self.RATE)[0]

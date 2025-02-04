@@ -1,5 +1,4 @@
 import pyaudio
-import librosa
 import numpy as np
 
 
@@ -11,7 +10,7 @@ class AudioStreamHandler():
         self.CHUNK = int(self.RATE * 0.02) # 20 ms buffer size
         self.FORMAT = pyaudio.paFloat32
 
-        self.p = None
+        self.p = pyaudio.PyAudio()
         self.stream = None
         self.data_np = None
         self.openStream(1)
@@ -29,7 +28,6 @@ class AudioStreamHandler():
 
     # Open audio stream with input device index parameter
     def openStream(self, idx):
-        self.p = pyaudio.PyAudio()
         self.stream = self.p.open(
             format=self.FORMAT,
             channels=self.CHANNELS,

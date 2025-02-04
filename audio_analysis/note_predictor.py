@@ -79,11 +79,15 @@ class NotePredictor():
 
             note_predictions.append(preds[0])
 
+        # Save loaded audio file's "note map" as a CSV file
         if save_data:
-            keys = note_predictions[0].keys()
-            with open(f"{audio.filename}_PITCHES.csv", 'w', encoding="utf8", newline='') as output_file:
-                dict_writer = csv.DictWriter(output_file, keys)
-                dict_writer.writeheader()
-                dict_writer.writerows(note_predictions)
+            try:
+                keys = note_predictions[0].keys()
+                with open(f"{audio.filename}_PITCHES.csv", 'w', encoding="utf8", newline='') as output_file:
+                    dict_writer = csv.DictWriter(output_file, keys)
+                    dict_writer.writeheader()
+                    dict_writer.writerows(note_predictions)
+            except: # Case: attempting to save pitch data of audio stream buffer
+                print("Error: Audio input stream has no filename.")
         
         return note_predictions

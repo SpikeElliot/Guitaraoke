@@ -14,13 +14,15 @@ class WaveformPlot():
         self.plot.setMouseEnabled(False, False)
         self.plot.setBackground((255,255,255))
 
-        # One point represents a window of ~100 ms
+        # Preserves a minimum number of 1000 points on the graph if audio file
+        # is too short, otherwise one point represents a window of ~100 ms
         self.num_points = np.max([1000, int(audio.duration * 10)])
 
         # Downsampling for better performance when plotting waveform
-        plot_frames = librosa.resample(y=audio.frames,
-                                       orig_sr=audio.RATE,
-                                       target_sr=audio.RATE/16
+        plot_frames = librosa.resample(
+            y=audio.frames,
+            orig_sr=audio.RATE,
+            target_sr=audio.RATE/16
         )
         w_size = int(len(plot_frames) / self.num_points)
         self.x_vals = np.arange(0, self.num_points)
@@ -57,17 +59,20 @@ class WaveformPlot():
         self.pen=pg.mkPen(color=c)
         self.brush=pg.mkBrush(color=c)
 
-        self.max_line = pg.PlotCurveItem(self.x_vals,
-                                         self.max_windows,
-                                         pen=self.pen
+        self.max_line = pg.PlotCurveItem(
+            self.x_vals,
+            self.max_windows,
+            pen=self.pen
         )
-        self.min_line = pg.PlotCurveItem(self.x_vals,
-                                         self.min_windows,
-                                         pen=self.pen
+        self.min_line = pg.PlotCurveItem(
+            self.x_vals,
+            self.min_windows,
+            pen=self.pen
         )
-        fill = pg.FillBetweenItem(self.max_line,
-                                  self.min_line,
-                                  brush=self.brush
+        fill = pg.FillBetweenItem(
+            self.max_line,
+            self.min_line,
+            brush=self.brush
         )
 
         self.plot.addItem(self.max_line)
