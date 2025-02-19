@@ -8,9 +8,9 @@ class AudioLoadHandler():
     def __init__(self, path='./assets/elecguitar_chromatic_scale.wav'):
         pygame.mixer.init()
         
-        self.CHUNK = 2048
         self.CHANNELS = 1
         self.RATE = 44100
+        self.CHUNK = 2048
         self.path = path
         
         self.load(self.path)

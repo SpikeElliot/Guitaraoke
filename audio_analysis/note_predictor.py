@@ -4,29 +4,27 @@ import numpy as np
 import csv
 import torch
 
-
 class NotePredictor():
 
     def __init__(self, fmin=41, fmax=2006, hop_length_in_ms=5,
-                 model_capacity="full", device="cuda"):
+                 model_capacity="full", device="cuda:0"):
         self.fmin = fmin
         self.fmax = fmax
         self.hop_length_in_ms = hop_length_in_ms
-        self.model_capacity= model_capacity
+        self.model_capacity = model_capacity
         self.device = device
     
 
-    def predict(self, song, save_data=False):
+    def predict(self, song, threshold=.21, drop_nan=False, save_data=False):
         # Convert hop length from ms to number of frames for torchcrepe predict
         hop_length = int(song.RATE / (1000/self.hop_length_in_ms))
 
         # Create a PyTorch tensor from the audio's frames ndarray and
         # reshape it to the format torchcrepe expects for input tensors
-        audio = torch.from_numpy(song.frames)
-        audio = torch.reshape(audio, (1, -1))
+        audio = torch.reshape(torch.from_numpy(song.frames), (1, -1))
 
         # Use torchcrepe model to get pitch estimations from audio frames
-        predictions = torchcrepe.predict(
+        pitches, periodicities = torchcrepe.predict(
             audio,
             song.RATE, 
             hop_length=hop_length,
@@ -38,21 +36,36 @@ class NotePredictor():
             return_periodicity=True
         )
 
-        times = np.arange(0, predictions[0].size(dim=1), dtype="float32")
-        times *= self.hop_length_in_ms
+        # An ndarray containing all times a prediction was made in seconds
+        times = np.arange(0, pitches.size(dim=1), dtype="float32")
+        times *= self.hop_length_in_ms / 1000
 
-        pitches = torch.Tensor.numpy(
-            torch.reshape(
-                predictions[0], (-1,)
-            )
+        # Window of 3 * hop length (15ms by default)
+        win_length = 3 
+
+        # Filtering out less reliable pitch estimations by periodicity
+        periodicities = torchcrepe.filter.median(periodicities, win_length)
+        periodicities = torchcrepe.threshold.Silence(-60)(
+            periodicities,
+            audio,
+            song.RATE,
+            hop_length
         )
+        pitches = torchcrepe.threshold.At(threshold)(pitches, periodicities)
 
-        periodicities = torch.Tensor.numpy(
-            torch.reshape(
-                predictions[1], (-1,)
+        # Flatten predictions into rank 1 tensors then convert to ndarrays
+        pitches = torch.Tensor.numpy(torch.flatten(pitches))
+        periodicities = torch.Tensor.numpy(torch.flatten(periodicities))
+
+        # Drop all predictions where pitch is nan
+        if drop_nan:
+            filtered_preds = list(zip(pitches, periodicities, times))
+            filtered_preds = list(
+                filter(lambda pred: not np.isnan(pred[0]), filtered_preds)
             )
-        )
+            pitches, periodicities, times = zip(*filtered_preds)
 
+        # Convert all pitches to their nearest musical note
         notes = librosa.hz_to_note(pitches)
 
         # Put prediction data into a list of dictionaries
