@@ -1,9 +1,11 @@
 import demucs.separate
 
+
 class GuitarSeparator():
 
     def __init__(self):
         pass
+
 
     def separate(self, audio):
         try:
@@ -13,8 +15,8 @@ class GuitarSeparator():
                 "-o", "separated_tracks", # Output folder of separated audio files
                 "-d", "cuda", # Specifies to use CUDA instead of CPU
                 "--float32", # Saves the wav file as a float32 instead of int24
-                f"./assets/{audio.filename}.{audio.filetype}" # Input file
+                audio.path # Input file path
             ]
             demucs.separate.main(separation_args)
         except:
-            print("Error: unsupported file type or file name not found")
+            print("Error: unsupported file type or file not found")

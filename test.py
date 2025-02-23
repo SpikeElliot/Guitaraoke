@@ -2,7 +2,7 @@ from audio_handling.audio_load_handler import AudioLoadHandler
 from audio_analysis.note_predictor import NotePredictor
 from audio_separation.guitar_separator import GuitarSeparator
 
-test_audio = AudioLoadHandler()
+test_audio = AudioLoadHandler(path="./separated_tracks/htdemucs_6s/sweetchildomine/guitar.wav")
 
 
 # ---------------------- PITCH DETECTION TESTING ----------------------
@@ -15,8 +15,8 @@ notePredictorTest()
 
 # ---------------------- GUITAR SEPARATION TESTING ----------------------
 
-def guitarSeparatorTest():
-    guitar_sep = GuitarSeparator()
-    guitar_sep.separate(test_audio)
+# def guitarSeparatorTest():
+#     guitar_sep = GuitarSeparator()
+#     guitar_sep.separate(test_audio)
 
 # guitarSeparatorTest()

@@ -22,5 +22,7 @@ class NotePredictor():
             save_model_outputs=False,
             save_notes=True,
             model_or_model_path=ICASSP_2022_MODEL_PATH,
+            minimum_note_length=20,
+            multiple_pitch_bends=True,
             sonification_samplerate=audio.RATE
         )
