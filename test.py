@@ -9,12 +9,7 @@ test_audio = AudioLoadHandler()
 
 def notePredictorTest():
     note_pred = NotePredictor()
-
-    preds = note_pred.predict(test_audio, threshold=0, drop_nan=True, save_data=True)
-
-    # Temporary way to check note predictions
-    for p in preds:
-        print(f"Time: {p['time']:.3f}s | Pitch: {p['pitch']:.2f}Hz | Note: {p['note']} | Periodicity: {p['periodicity']:.2f}")
+    note_pred.predict(test_audio)
 
 notePredictorTest()
 
