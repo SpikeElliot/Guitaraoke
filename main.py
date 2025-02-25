@@ -1,10 +1,10 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt, QTimer
-from audio_handling.audio_load_handler import AudioLoadHandler
-from audio_handling.audio_stream_handler import AudioStreamHandler
-from plotting.waveform_plot import WaveformPlot
-from utils import timeFormat
+from audio_load_handler import AudioLoadHandler
+from audio_stream_handler import AudioStreamHandler
+from waveform_plot import WaveformPlot
+from utils import time_format
 
 song = AudioLoadHandler()
 input = AudioStreamHandler()
@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         self.song_title.setText(song.title)
 
         self.song_duration = QLabel()
-        self.song_duration.setText(f"00:00.00 / {timeFormat(song.duration)}")
+        self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
 
         # WAVEFORM DISPLAY
 
@@ -95,13 +95,13 @@ class MainWindow(QMainWindow):
 
     # Updates current song time label and playhead every 10ms
     def update_songpos(self):
-        songpos = song.getPos()
+        songpos = song.get_pos()
         
         if songpos > 0:
-            self.song_duration.setText(f"{timeFormat(songpos)} / {timeFormat(song.duration)}")
+            self.song_duration.setText(f"{time_format(songpos)} / {time_format(song.duration)}")
         else: # Stop time progressing when song ends
             self.pause_button_pressed()
-            self.song_duration.setText(f"00:00.00 / {timeFormat(song.duration)}")
+            self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
             song.ended = True
 
         playhead_pos = int((songpos / song.duration) * self.waveform_width)

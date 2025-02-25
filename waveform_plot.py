@@ -2,7 +2,6 @@ import pyqtgraph as pg
 import numpy as np
 import librosa
 
-
 class WaveformPlot():
 
     def __init__(self, audio):
@@ -50,10 +49,10 @@ class WaveformPlot():
         self.plot.setYRange(-1, 1, padding=0)
         self.plot.setXRange(0, self.num_points, padding=0)
 
-        self.drawPlot()
+        self.draw_plot()
 
     # Draw plot of max and min waveform lines, filling between points.  
-    def drawPlot(self, c=(0, 0, 0)):
+    def draw_plot(self, c=(0, 0, 0)):
         self.plot.clear()
 
         self.pen=pg.mkPen(color=c)

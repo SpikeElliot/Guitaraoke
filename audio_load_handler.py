@@ -2,7 +2,6 @@ import librosa
 from tinytag import TinyTag
 import pygame
 
-
 class AudioLoadHandler():
     
     def __init__(self, path='./assets/elecguitar_chromatic_scale.wav'):
@@ -30,6 +29,8 @@ class AudioLoadHandler():
         self.artist = metadata.artist or "Unknown"
         fn_split = metadata.filename.split(".")
         self.filename, self.filetype = fn_split[1].split("/")[-1], fn_split[2]
+        self.filedir = fn_split[1].split("/")[-2]
+
 
         # Get song frames and length
         self.frames = librosa.load(path=self.path, sr=self.RATE)[0]
@@ -51,10 +52,10 @@ class AudioLoadHandler():
             self.paused = True
 
     # Return current time position of song in seconds
-    def getPos(self):
+    def get_pos(self):
         pos = pygame.mixer.music.get_pos() / 1000
         return pos
     
     # Set time position of song (converts from seconds to milliseconds)
-    def setPos(self, pos):
+    def set_pos(self, pos):
         pygame.mixer.music.set_pos(pos * 1000)
