@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
     # Create and add widgets to window
     def UiComponents(self):
         
-        # SONG METADATA DISPLAY
+        # -------------------------- SONG METADATA DISPLAY --------------------------
 
         self.song_artist = QLabel()
         self.song_artist.setText(song.artist)
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self.song_duration = QLabel()
         self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
 
-        # WAVEFORM DISPLAY
+        # -------------------------- WAVEFORM DISPLAY --------------------------
 
         self.waveform = WaveformPlot(song).plot
         self.waveform.setMaximumHeight(100)
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         waveform_layout = QHBoxLayout(self.waveform)
         waveform_layout.addWidget(self.playhead, alignment=Qt.AlignLeft)
         
-        # AUDIO PLAYBACK CONTROLS
+        # -------------------------- AUDIO PLAYBACK CONTROLS --------------------------
 
         self.play_button = QPushButton()
         self.play_button.setText("Play")
@@ -79,7 +79,13 @@ class MainWindow(QMainWindow):
         self.pause_button.clicked.connect(self.pause_button_pressed)
         self.pause_button.hide()
 
-        # MAIN LAYOUT
+        # -------------------------- RECORD BUTTON (TESTING) --------------------------
+
+        self.record_button = QPushButton()
+        self.record_button.setText("Record")
+        self.record_button.clicked.connect(self.record_button_pressed)
+
+        # -------------------------- MAIN LAYOUT --------------------------
         
         layout = QVBoxLayout()
         layout.addWidget(self.song_artist, alignment=Qt.AlignCenter)
@@ -88,6 +94,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.waveform)
         layout.addWidget(self.play_button)
         layout.addWidget(self.pause_button)
+        layout.addWidget(self.record_button)
         
         container = QWidget()
         container.setLayout(layout)
@@ -125,6 +132,10 @@ class MainWindow(QMainWindow):
         song.pause()
         self.songpos_timer.stop()
 
+    # Record button action
+    def record_button_pressed(self):
+        name = input.record()
+        print(name)
 
 def main():
     app = QApplication(sys.argv)

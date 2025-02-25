@@ -10,6 +10,6 @@ from pitch_detection import save_song_pitches
 
 # -------------------------- TESTING --------------------------
 
-test_audio = AudioLoadHandler(path="./separated_tracks/htdemucs_6s/sweetchildomine/guitar.wav")
+test_audio = AudioLoadHandler(path="./separated_tracks/htdemucs_6s/backinblack/guitar.wav")
 
 save_song_pitches(test_audio)

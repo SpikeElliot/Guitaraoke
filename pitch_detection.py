@@ -11,7 +11,7 @@ def save_song_pitches(audio):
     # Save audio file's predicted MIDI data and note events
     predict_and_save(
         [audio.path], # Input file path
-        f"./pitch_predictions/songs/{audio.filedir}", # Output folder
+        f"./pitch_predictions/{audio.filedir}", # Output folder
         save_midi=True, # Save MIDI file of predicted notes
         sonify_midi=True, # Save wav file of sonified MIDI for testing
         save_model_outputs=False, # Model outputs are not necessary
