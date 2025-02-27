@@ -2,9 +2,27 @@ import pyqtgraph as pg
 import numpy as np
 import librosa
 
-class WaveformPlot():
 
+class WaveformPlot():
+    """
+    A waveform representation of audio data plotted using PyQtGraph.
+
+    Attributes
+    ----------
+    plot : PlotWidget
+        The PyQt widget containing the plot to be shown in the GUI.
+    
+    """
     def __init__(self, audio):
+        """
+        The constructor for the WaveformPlot class.
+
+        Parameters
+        ----------
+        audio : AudioLoadHandler
+            The AudioLoadHandler object whose path property will be used to
+            access the audio file.
+        """
         self.plot = pg.PlotWidget()
 
         # Set plot properties
@@ -15,7 +33,7 @@ class WaveformPlot():
 
         # Preserves a minimum number of 1000 points on the graph if audio file
         # is too short, otherwise one point represents a window of ~100 ms
-        self.num_points = np.max([1000, int(audio.duration * 10)])
+        num_points = np.max([1000, int(audio.duration * 10)])
 
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
@@ -23,57 +41,58 @@ class WaveformPlot():
             orig_sr=audio.RATE,
             target_sr=audio.RATE/16
         )
-        w_size = int(len(plot_frames) / self.num_points)
-        self.x_vals = np.arange(0, self.num_points)
+        w_size = int(len(plot_frames) / num_points)
+        x_vals = np.arange(0, num_points)
 
         # Get max and min values for each window
         w_maxes, w_mins = [], []
-        for i in range(self.num_points):
+        for i in range(num_points):
             w = plot_frames[i*w_size : i*w_size + w_size]
             w_maxes.append(np.max(w))
             w_mins.append(np.min([0, np.min(w)]))
         
         # Convert lists to np arrays for data processing
-        self.max_windows = np.array(w_maxes)
-        self.min_windows = np.array(w_mins)
+        max_windows = np.array(w_maxes)
+        min_windows = np.array(w_mins)
 
         # Get y-axis limits based on range of amplitudes from windows
-        self.max_ylim = np.max(self.max_windows)
-        self.min_ylim = np.min(self.min_windows)
+        max_ylim = np.max(max_windows)
+        min_ylim = np.min(min_windows)
 
         # Scale the data (0 to 1 for pos vals, 0 to -1 for neg vals)
-        self.max_windows /= self.max_ylim
-        self.min_windows /= abs(self.min_ylim)
+        max_windows /= max_ylim
+        min_windows /= abs(min_ylim)
 
         # Set axis ranges for plot
         self.plot.setYRange(-1, 1, padding=0)
-        self.plot.setXRange(0, self.num_points, padding=0)
+        self.plot.setXRange(0, num_points, padding=0)
 
-        self.draw_plot()
+        self._draw_plot(x_vals, min_windows, max_windows)
 
-    # Draw plot of max and min waveform lines, filling between points.  
-    def draw_plot(self, c=(0, 0, 0)):
-        self.plot.clear()
+    def _draw_plot(self, x_vals, min_windows, max_windows, colour=(0,0,0)):
+        """
+        Draw the plot of max and min waveform lines, filling between the points.
 
-        self.pen=pg.mkPen(color=c)
-        self.brush=pg.mkBrush(color=c)
+        Parameters
+        ----------
+        x_vals : ndarray
+            The values to plot along the x-axis.
+        min_windows : ndarray
+            The minimum amplitude of each window from the audio data, used as
+            y-coordinates for the min waveform line.
+        max_windows: ndarray
+            The maximum amplitude of each window from the audio data, used as
+            y-coordinates for the max waveform line.
+        colour : tuple of int, default=(0,0,0)
+            The RGB values to use for the plot's fill colour.
+        """
+        pen=pg.mkPen(colour)
+        brush=pg.mkBrush(colour)
 
-        self.max_line = pg.PlotCurveItem(
-            self.x_vals,
-            self.max_windows,
-            pen=self.pen
-        )
-        self.min_line = pg.PlotCurveItem(
-            self.x_vals,
-            self.min_windows,
-            pen=self.pen
-        )
-        fill = pg.FillBetweenItem(
-            self.max_line,
-            self.min_line,
-            brush=self.brush
-        )
+        max_line = pg.PlotCurveItem(x_vals, max_windows, pen=pen)
+        min_line = pg.PlotCurveItem(x_vals, min_windows, pen=pen)
+        fill = pg.FillBetweenItem(max_line, min_line, brush=brush)
 
-        self.plot.addItem(self.max_line)
-        self.plot.addItem(self.min_line)
+        self.plot.addItem(max_line)
+        self.plot.addItem(min_line)
         self.plot.addItem(fill)

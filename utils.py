@@ -1,7 +1,8 @@
 import math
 
-# Takes time in seconds and converts to MM:SS.CC format
-def time_format(time):
+
+def time_format(time: float):
+    """Takes time in seconds and returns a time string converted to MM:SS.CC format."""
     mins = math.floor(time / 60)
     secs = math.floor(time % 60)
     cents = int((time - math.floor(time)) * 100)
