@@ -3,40 +3,55 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 import os
 
 
-def save_song_pitches(audio):
+def save_pitches(audio):
     """
     Saves the MIDI file, note events CSV file, and rendered MIDI audio WAV file
     from Spotify's Basic Pitch model prediction run on a given audio file.
 
     Parameters
     ----------
-    audio : AudioLoadHandler
+    audio : AudioLoadHandler or str
         The AudioLoadHandler object whose path property will be used to
-        access the audio file.
+        access the audio file, or a path to the audio file in the case
+        the user's audio input recording is being predicted.
 
     Returns
     -------
-    guitar_pitches_path : str
+    pitches_midi_path : str
         The file path to the resultant MIDI file from the pitch prediction.
     """
-    # Make subdirectory for audio file in note_predictions
-    os.makedirs(f"./pitch_predictions/{audio.filedir}", exist_ok=True)
+    output_folder = "./pitch_predictions"
+    audio_path = ""
+    audio_filename = ""
 
-    # Save audio file's predicted MIDI data and note events
+    # Case: audio is the user's audio input recording file path string
+    if type(audio) == str:
+        os.makedirs( # Make directory for audio input predictions if not exists
+            f"./pitch_predictions/temp",
+            exist_ok=True
+        )
+        output_folder += "/temp"
+        audio_path = audio
+        audio_filename = audio.split(".")[0].split("\\")[-1]
+    # Case: audio is an AudioLoadHandler object
+    else:
+        os.makedirs( # Make directory for song pitch predictions
+            f"./pitch_predictions/songs/{audio.filedir}",
+            exist_ok=True
+        )
+        output_folder += f"/songs/{audio.filedir}"
+        audio_path = audio.path
+        audio_filename = audio.filename
+
     predict_and_save(
-        [audio.path], # Input file path
-        f"./pitch_predictions/{audio.filedir}", # Output folder
+        [audio_path], # Input file path
+        output_folder, # Directory resultant files will be saved to
         save_midi=True, # Save MIDI file of predicted notes
-        sonify_midi=True, # Save wav file of sonified MIDI for testing
+        sonify_midi=False, # Save wav file of sonified MIDI for testing
         save_model_outputs=False, # Model outputs are not necessary
-        save_notes=True, # Save note events in CSV file
+        save_notes=False, # Save note events in CSV file
         model_or_model_path=ICASSP_2022_MODEL_PATH, # Default model
         minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
         multiple_pitch_bends=True, # More accurate to bending of guitar notes
-        sonification_samplerate=audio.RATE # Match sample rate of input
     )
-    return f"./pitch_predictions/{audio.filedir}/guitar_basic_pitch.mid"
-
-# TODO Real-time pitch detection of user's audio input stream
-def predict_input_pitches(audio):
-    pass
+    return f"{output_folder}/{audio_filename}_basic_pitch.mid"

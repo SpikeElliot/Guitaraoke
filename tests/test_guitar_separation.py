@@ -9,5 +9,4 @@ from guitar_separation import separate_guitar
 
 
 test_audio = AudioLoadHandler(path="./assets/sweetchildomine.wav")
-
 separate_guitar(test_audio)

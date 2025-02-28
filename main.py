@@ -1,14 +1,15 @@
 import sys
+import threading
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QThread
 from audio_load_handler import AudioLoadHandler
-from audio_stream_handler import AudioStreamHandler
+from audio_input_handler import AudioInputHandler
 from waveform_plot import WaveformPlot
 from utils import time_format
 
 
-song = AudioLoadHandler()
-input = AudioStreamHandler()
+song = AudioLoadHandler(path="./assets/sweetchildomine.wav")
+input = AudioInputHandler()
 
 class MainWindow(QMainWindow):
     """
@@ -66,10 +67,12 @@ class MainWindow(QMainWindow):
 
         # WAVEFORM DISPLAY
 
-        self.waveform = WaveformPlot(song).plot
-        self.waveform.setMaximumHeight(100)
-        self.waveform.setMinimumWidth(self.WIDTH)
-        self.waveform_width = self.waveform.geometry().width()
+        self.waveform = WaveformPlot(
+            audio=song,
+            width=int(self.WIDTH*0.9)
+        )
+        # Allow detection of mouse click events
+        self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
         self.playhead = QWidget(self.waveform)
@@ -104,7 +107,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.song_artist, alignment=Qt.AlignCenter)
         layout.addWidget(self.song_title, alignment=Qt.AlignCenter)
         layout.addWidget(self.song_duration, alignment=Qt.AlignCenter)
-        layout.addWidget(self.waveform)
+        layout.addWidget(self.waveform, alignment=Qt.AlignCenter)
         layout.addWidget(self.play_button)
         layout.addWidget(self.pause_button)
         layout.addWidget(self.record_button)
@@ -115,16 +118,15 @@ class MainWindow(QMainWindow):
 
     def _update_songpos(self):
         """Update song_duration label and playhead every 10ms."""
-        songpos = song.get_pos()
+        song_pos = song.get_pos()
         
-        if songpos > 0:
-            self.song_duration.setText(f"{time_format(songpos)} / {time_format(song.duration)}")
-        else: # Stop time progressing when song ends
-            self.pause_button_pressed()
+        if song.ended: # Stop time progressing when song ends
+            self._pause_button_pressed()
             self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
-            song.ended = True
+        else:
+            self.song_duration.setText(f"{time_format(song_pos)} / {time_format(song.duration)}")
 
-        playhead_pos = int((songpos / song.duration) * self.waveform_width)
+        playhead_pos = int((song_pos / song.duration) * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
 
         # Show playhead first time play button is clicked (temporary solution)
@@ -147,8 +149,28 @@ class MainWindow(QMainWindow):
 
     def _record_button_pressed(self):
         """Start an audio input stream recording when record button clicked."""
-        name = input.record()
-        print(name)
+        # TODO Learn to use QThreads instead
+        threading.Thread(target=input.record_process_loop).start()
+
+    def _waveform_pressed(self, mouseClickEvent):
+        """Skip to song position relative to mouse x position in waveform plot when clicked."""
+        mouse_x_pos = mouseClickEvent.scenePos()[0]
+
+        if mouseClickEvent.button() != 1 or mouse_x_pos > self.waveform.width:
+            return
+        
+        if mouse_x_pos < 0: # Prevent negative pos value
+            mouse_x_pos = 0
+        new_song_pos = (mouse_x_pos / self.waveform.width) * song.duration
+        
+        song.set_pos(new_song_pos)
+        print(f"Song skipped to: {time_format(new_song_pos)}")
+        print("x pos: {} button: {}".format(mouseClickEvent.pos()[0], mouseClickEvent.button()))
+
+        # Update playhead and time display to skipped position
+        playhead_pos = int(mouse_x_pos)
+        self.playhead.move(playhead_pos, 0)
+        self.song_duration.setText(f"{time_format(new_song_pos)} / {time_format(song.duration)}")
 
 
 def main():

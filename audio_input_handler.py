@@ -1,9 +1,12 @@
+import os
+import threading
 import sounddevice as sd
 import tempfile
 from scipy.io.wavfile import write
+from pitch_detection import save_pitches
 
 
-class AudioStreamHandler():
+class AudioInputHandler():
     """
     Handles operations relating to audio input such as streaming and recording.
 
@@ -24,7 +27,7 @@ class AudioStreamHandler():
         Save a WAV file recording of the audio input stream.
     """
     def __init__(self):
-        """The constructor for the AudioStreamHandler class."""
+        """The constructor for the AudioInputHandler class."""
         self.CHANNELS = 1
         self.RATE = 44100
         self.DTYPE = "float32" # Datatype used by audio processing libraries
@@ -53,16 +56,11 @@ class AudioStreamHandler():
         
         Returns
         -------
-        str
+        recording_path : str
             The file path to the newly-created temp file.
-        
-        Examples
-        --------
-        >>> input = AudioStreamHandler()
-        >>> input.record(12.5, 1)
-        C:/Users/user/AppData/Local/Temp/tmpez5ms7vo.wav # Windows
         """
-        print(f"Recording {duration}s of input audio...")
+        print(f"Recording {duration:.1f}s of input audio...")
+
         audio_data = sd.rec(
             int(duration * self.RATE),
             samplerate=self.RATE,
@@ -76,3 +74,21 @@ class AudioStreamHandler():
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
         write(temp_file.name, self.RATE, audio_data)
         return temp_file.name
+
+    def process_recorded_audio(self, path):
+        pitches_path = save_pitches(path)
+
+        # TODO Call midi file comparison logic function here to get a score
+
+        os.remove(pitches_path) # Delete file when processing complete
+
+    def record_process_loop(self):
+        while True:
+            recording_path = self.record()
+
+            # Process recorded audio in separate thread to prevent blocking
+            # while recording next batch of audio.
+            threading.Thread(
+                target=self.process_recorded_audio, 
+                args=(recording_path,)
+            ).start()

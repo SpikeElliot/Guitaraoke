@@ -3,17 +3,16 @@ import numpy as np
 import librosa
 
 
-class WaveformPlot():
+class WaveformPlot(pg.PlotWidget):
     """
-    A waveform representation of audio data plotted using PyQtGraph.
+    A waveform representation of audio data plotted using PyQtGraph. Inherits from PlotWidget class.
 
-    Attributes
-    ----------
-    plot : PlotWidget
-        The PyQt widget containing the plot to be shown in the GUI.
-    
+    Methods
+    -------
+    clicked_connect(function)
+        Add a mouse click connection to the plot widget.
     """
-    def __init__(self, audio):
+    def __init__(self, audio, width):
         """
         The constructor for the WaveformPlot class.
 
@@ -23,13 +22,17 @@ class WaveformPlot():
             The AudioLoadHandler object whose path property will be used to
             access the audio file.
         """
-        self.plot = pg.PlotWidget()
+        super().__init__()
 
         # Set plot properties
-        self.plot.showAxes(False)
-        self.plot.hideButtons()
-        self.plot.setMouseEnabled(False, False)
-        self.plot.setBackground((255,255,255))
+        self.showAxes(False)
+        self.hideButtons()
+        self.setMouseEnabled(False, False)
+        self.setBackground((255,255,255))
+        self.setMaximumHeight(100)
+        self.width = width
+        self.setMaximumWidth(self.width)
+        self.setMinimumWidth(self.width)
 
         # Preserves a minimum number of 1000 points on the graph if audio file
         # is too short, otherwise one point represents a window of ~100 ms
@@ -64,8 +67,8 @@ class WaveformPlot():
         min_windows /= abs(min_ylim)
 
         # Set axis ranges for plot
-        self.plot.setYRange(-1, 1, padding=0)
-        self.plot.setXRange(0, num_points, padding=0)
+        self.setYRange(-1, 1, padding=0)
+        self.setXRange(0, num_points, padding=0)
 
         self._draw_plot(x_vals, min_windows, max_windows)
 
@@ -93,6 +96,9 @@ class WaveformPlot():
         min_line = pg.PlotCurveItem(x_vals, min_windows, pen=pen)
         fill = pg.FillBetweenItem(max_line, min_line, brush=brush)
 
-        self.plot.addItem(max_line)
-        self.plot.addItem(min_line)
-        self.plot.addItem(fill)
+        self.addItem(max_line)
+        self.addItem(min_line)
+        self.addItem(fill)
+        
+    def clicked_connect(self, function):
+        self.scene().sigMouseClicked.connect(function)
