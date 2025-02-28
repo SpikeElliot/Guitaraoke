@@ -1,6 +1,6 @@
 import sys
 import threading
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QThread
 from audio_load_handler import AudioLoadHandler
 from audio_input_handler import AudioInputHandler
@@ -30,13 +30,13 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.WIDTH = 1440
-        self.HEIGHT = 400
+        self.HEIGHT = 500
 
         # CSS Styling of main window
         self.setStyleSheet(
         """
-        background-color: black;
-        color: white;
+        background-color: rgb(255,255,255);
+        color: rgb(0,0,0);
         font-size: 20px;
         """
         )
@@ -54,7 +54,9 @@ class MainWindow(QMainWindow):
 
     def _UI_components(self):
         """Initialise all widgets add them to the main window."""
-        # SONG METADATA DISPLAY
+        # SONG INFORMATION DISPLAY
+
+        song_info_layout = QGridLayout()
 
         self.song_artist = QLabel()
         self.song_artist.setText(song.artist)
@@ -63,22 +65,39 @@ class MainWindow(QMainWindow):
         self.song_title.setText(song.title)
 
         self.song_duration = QLabel()
-        self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
+        self.song_duration_color = "#462aff"
+        self.song_duration.setText(f"<font color='{self.song_duration_color}'>00:00.00</font> / {time_format(song.duration)}")
+
+        song_info_layout.addWidget(self.song_artist, 0, 0, alignment=Qt.AlignCenter)
+        song_info_layout.addWidget(self.song_title, 1, 0, alignment=Qt.AlignCenter)
+        song_info_layout.addWidget(self.song_duration, 2, 0, alignment=Qt.AlignCenter)
 
         # WAVEFORM DISPLAY
 
         self.waveform = WaveformPlot(
             audio=song,
-            width=int(self.WIDTH*0.9)
+            width=int(self.WIDTH*0.9),
+            height=100
         )
         # Allow detection of mouse click events
         self.waveform.clicked_connect(self._waveform_pressed)
+        self.waveform.setStyleSheet(
+            """
+            border: 2px solid rgb(0,0,0);
+            border-radius: 4px;
+            """
+        )
 
         # Song playhead
         self.playhead = QWidget(self.waveform)
-        self.playhead.setStyleSheet("background-color:red")
-        self.playhead.setFixedSize(3, 100)
+        self.playhead.setFixedSize(3, self.waveform.height)
         self.playhead.hide()
+        self.playhead.setStyleSheet(
+            """
+            background-color: rgb(255,0,0);
+            border: none;
+            """
+        )
 
         # Waveform layout containing song playhead
         waveform_layout = QHBoxLayout(self.waveform)
@@ -86,31 +105,45 @@ class MainWindow(QMainWindow):
         
         # AUDIO PLAYBACK CONTROLS
 
+        button_stylesheet = """
+        background-color: rgb(70,42,255);
+        color: rgb(255,255,255);
+        border-radius: 16px;
+        padding: 8px 0px;
+        """
+
+        button_width = 100
         self.play_button = QPushButton()
         self.play_button.setText("Play")
         self.play_button.clicked.connect(self._play_button_pressed)
+        self.play_button.setFixedWidth(button_width)
+        self.play_button.setStyleSheet(button_stylesheet)
 
         self.pause_button = QPushButton()
         self.pause_button.setText("Pause")
         self.pause_button.clicked.connect(self._pause_button_pressed)
         self.pause_button.hide()
+        self.pause_button.setFixedWidth(button_width)
+        self.pause_button.setStyleSheet(button_stylesheet)
 
-        # RECORD BUTTON (TESTING)
-
+        # Record button (TESTING)
         self.record_button = QPushButton()
         self.record_button.setText("Record")
         self.record_button.clicked.connect(self._record_button_pressed)
+        self.record_button.setFixedWidth(button_width)
+        self.record_button.setStyleSheet(button_stylesheet)
+
+        controls_layout = QGridLayout()
+        controls_layout.addWidget(self.play_button, 0, 0)
+        controls_layout.addWidget(self.pause_button, 0, 0)
+        controls_layout.addWidget(self.record_button, 1, 0)
 
         # MAIN LAYOUT
         
         layout = QVBoxLayout()
-        layout.addWidget(self.song_artist, alignment=Qt.AlignCenter)
-        layout.addWidget(self.song_title, alignment=Qt.AlignCenter)
-        layout.addWidget(self.song_duration, alignment=Qt.AlignCenter)
+        layout.addLayout(song_info_layout)
         layout.addWidget(self.waveform, alignment=Qt.AlignCenter)
-        layout.addWidget(self.play_button)
-        layout.addWidget(self.pause_button)
-        layout.addWidget(self.record_button)
+        layout.addLayout(controls_layout)
         
         container = QWidget()
         container.setLayout(layout)
@@ -122,9 +155,9 @@ class MainWindow(QMainWindow):
         
         if song.ended: # Stop time progressing when song ends
             self._pause_button_pressed()
-            self.song_duration.setText(f"00:00.00 / {time_format(song.duration)}")
+            self.song_duration.setText(f"<font color='{self.song_duration_color}'>00:00.00</font> / {time_format(song.duration)}")
         else:
-            self.song_duration.setText(f"{time_format(song_pos)} / {time_format(song.duration)}")
+            self.song_duration.setText(f"<font color='{self.song_duration_color}'>{time_format(song_pos)}</font> / {time_format(song.duration)}")
 
         playhead_pos = int((song_pos / song.duration) * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
@@ -154,9 +187,10 @@ class MainWindow(QMainWindow):
 
     def _waveform_pressed(self, mouseClickEvent):
         """Skip to song position relative to mouse x position in waveform plot when clicked."""
-        mouse_x_pos = mouseClickEvent.scenePos()[0]
+        mouse_x_pos = int(mouseClickEvent.scenePos()[0])
+        mouse_button = mouseClickEvent.button()
 
-        if mouseClickEvent.button() != 1 or mouse_x_pos > self.waveform.width:
+        if mouse_button != 1 or mouse_x_pos > self.waveform.width:
             return
         
         if mouse_x_pos < 0: # Prevent negative pos value
@@ -165,12 +199,12 @@ class MainWindow(QMainWindow):
         
         song.set_pos(new_song_pos)
         print(f"Song skipped to: {time_format(new_song_pos)}")
-        print("x pos: {} button: {}".format(mouseClickEvent.pos()[0], mouseClickEvent.button()))
+        print("x pos: {} button: {}".format(mouse_x_pos, mouse_button))
 
         # Update playhead and time display to skipped position
         playhead_pos = int(mouse_x_pos)
         self.playhead.move(playhead_pos, 0)
-        self.song_duration.setText(f"{time_format(new_song_pos)} / {time_format(song.duration)}")
+        self.song_duration.setText(f"<font color='{self.song_duration_color}'>{time_format(new_song_pos)}</font> / {time_format(song.duration)}")
 
 
 def main():

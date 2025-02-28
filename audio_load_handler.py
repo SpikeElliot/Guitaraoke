@@ -109,7 +109,7 @@ class AudioLoadHandler():
             data = self.frames[self.position:new_pos].reshape(-1,1)
             outdata[:frames_per_buffer] = data
         # Case: not enough frames from data compared to buffer size
-        except ValueError as e: 
+        except ValueError as e:
             # Add padded zeros to data to match expected shape
             zero_padded_data = data.copy().resize(frames_per_buffer,1)
             outdata[:frames_per_buffer] = zero_padded_data

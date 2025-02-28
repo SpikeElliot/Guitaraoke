@@ -12,7 +12,14 @@ class WaveformPlot(pg.PlotWidget):
     clicked_connect(function)
         Add a mouse click connection to the plot widget.
     """
-    def __init__(self, audio, width):
+    def __init__(
+            self, 
+            audio, 
+            width,
+            height,
+            background_colour=(255,255,255),
+            colour=(70,42,255)
+        ):
         """
         The constructor for the WaveformPlot class.
 
@@ -21,18 +28,29 @@ class WaveformPlot(pg.PlotWidget):
         audio : AudioLoadHandler
             The AudioLoadHandler object whose path property will be used to
             access the audio file.
+        width : int
+            The fixed width of the PlotWidget.
+        height : int
+            The fixed height of the PlotWidget.
+        background_colour : tuple of int, default=(255,255,255)
+            The RGB values to use for the plot's background colour.
+        colour : tuple of int, default=(70,42,255)
+            The RGB values to use for the plot's fill colour.
         """
         super().__init__()
+
+        self.width = width
+        self.height = height
+        self.background_colour = background_colour
+        self.colour = colour
+        self.setBackground(self.background_colour)
+        self.setFixedHeight(self.height)
+        self.setFixedWidth(self.width)
 
         # Set plot properties
         self.showAxes(False)
         self.hideButtons()
         self.setMouseEnabled(False, False)
-        self.setBackground((255,255,255))
-        self.setMaximumHeight(100)
-        self.width = width
-        self.setMaximumWidth(self.width)
-        self.setMinimumWidth(self.width)
 
         # Preserves a minimum number of 1000 points on the graph if audio file
         # is too short, otherwise one point represents a window of ~100 ms
@@ -72,7 +90,7 @@ class WaveformPlot(pg.PlotWidget):
 
         self._draw_plot(x_vals, min_windows, max_windows)
 
-    def _draw_plot(self, x_vals, min_windows, max_windows, colour=(0,0,0)):
+    def _draw_plot(self, x_vals, min_windows, max_windows):
         """
         Draw the plot of max and min waveform lines, filling between the points.
 
@@ -86,11 +104,9 @@ class WaveformPlot(pg.PlotWidget):
         max_windows: ndarray
             The maximum amplitude of each window from the audio data, used as
             y-coordinates for the max waveform line.
-        colour : tuple of int, default=(0,0,0)
-            The RGB values to use for the plot's fill colour.
         """
-        pen=pg.mkPen(colour)
-        brush=pg.mkBrush(colour)
+        pen=pg.mkPen(self.colour)
+        brush=pg.mkBrush(self.colour)
 
         max_line = pg.PlotCurveItem(x_vals, max_windows, pen=pen)
         min_line = pg.PlotCurveItem(x_vals, min_windows, pen=pen)
