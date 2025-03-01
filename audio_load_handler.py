@@ -2,6 +2,7 @@ import librosa
 from tinytag import TinyTag
 import sounddevice as sd
 import numpy as np
+from pitch_detection import save_pitches
 
 
 class AudioLoadHandler():
@@ -14,6 +15,28 @@ class AudioLoadHandler():
         Specifies whether the audio channel is mono (1) or stereo (2).
     RATE : int
         The sample rate of the audio.
+    metronome_data : ndarray
+        The loaded metronome sound's audio time series.
+    paused : bool
+        Whether audio playback is paused or not.
+    ended : bool
+        Whether audio playback has finished or not.
+    stream : OutputStream
+        The song's sounddevice output stream for audio playback.
+    position : int
+        The current position of audio playback in frames.
+    title : str
+        The title found in metadata from a loaded audio file.
+    artist : str
+        The artist found in metadata from a loaded audio file.
+    data : ndarray
+        The loaded song's audio time series.
+    duration : float
+        The length of the loaded song in seconds.
+    bpm : float
+        The estimated tempo of the song found using Librosa's beat_track.
+    first_beat : float
+        The first detected beat of the song found using Librosa's beat_track.
 
     Methods
     -------
@@ -21,6 +44,8 @@ class AudioLoadHandler():
         Load the frame data from an audio file.
     play()
         Play or unpause audio playback.
+    play_metronome()
+        Play a metronome sound effect.
     pause()
         Pause audio playback.
     get_pos()
@@ -39,12 +64,19 @@ class AudioLoadHandler():
         """
         self.CHANNELS = 1
         self.RATE = 44100
+        sd.default.samplerate = self.RATE
+        self.metronome_data = librosa.load( # Load metronome sound effect
+            path="./assets/Perc_MetronomeQuartz_lo.wav",
+            sr=self.RATE
+        )[0]
         self.load(path)
 
     def load(self, path):
         """
-        Get an audio file's frame data, metadata, song length, as well as
-        preparing it for playback by loading into the Pygame.mixer.music module.
+        Get information from an audio file such as an audio time series,
+        metadata, song length, tempo, and the position of the first detected
+        beat. This function also initialises attributes related to the song's
+        playback status, such as stream and position.
 
         Parameters
         ----------
@@ -52,7 +84,7 @@ class AudioLoadHandler():
             The file path of the audio file to load.
         """
         self.path = path
-        self.paused = False
+        self.paused = True
         self.ended = True
         self.stream = None
         self.position = 0
@@ -66,25 +98,34 @@ class AudioLoadHandler():
         self.filedir = fn_split[1].split("/")[-2]
             
         # Get song frames and length
-        self.frames = librosa.load(path=self.path, sr=self.RATE)[0]
-        self.duration = len(self.frames) / float(self.RATE) # In seconds
+        self.data = librosa.load(path=self.path, sr=self.RATE)[0]
+        self.duration = len(self.data) / float(self.RATE) # In seconds
+
+        # Get song tempo and position of first detected beat
+        tempo, beats = librosa.beat.beat_track(y=self.data, sr=self.RATE)
+        self.bpm = tempo[0]
+        self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
 
     def play(self):
         """Play or unpause audio playback."""
         if self.ended:
             self.position = 0
-
         self.paused, self.ended = False, False
-
+        self.stream.start()
+    
+    def play_metronome(self):
+        """Use sounddevice to play a metronome sound effect once."""
+        # Open an output stream for song if played for the first time
         if not self.stream:
             self.stream = sd.OutputStream(
                 samplerate=self.RATE,
                 channels=self.CHANNELS,
-                callback=self.callback
+                callback=self._callback
             )
-        self.stream.start()
+        sd.play(self.metronome_data)
+        sd.wait()
 
-    def callback(self, outdata, frames, time, status):
+    def _callback(self, outdata, frames, time, status):
         """
         The callback function called by the sounddevice output stream. 
         Generates output audio data.
@@ -94,25 +135,22 @@ class AudioLoadHandler():
 
         # Set outdata to zeros if audio should not be playing
         if self.paused or self.ended:
-            outdata[:frames_per_buffer] = np.zeros(
-                outdata[:frames_per_buffer].shape
-            )
+            outdata[:frames_per_buffer] = np.zeros((frames_per_buffer,1))
             return
         
         # Set ended bool to True if end reached
-        if new_pos >= len(self.frames):
-            new_pos = len(self.frames)
+        if new_pos >= len(self.data):
+            new_pos = len(self.data)
             self.ended = True
 
         # Set outdata to next frames of loaded audio
         try:
-            data = self.frames[self.position:new_pos].reshape(-1,1)
-            outdata[:frames_per_buffer] = data
+            audio_data = self.data[self.position:new_pos].reshape(-1,1)
+            outdata[:frames_per_buffer] = audio_data
         # Case: not enough frames from data compared to buffer size
         except ValueError as e:
-            # Add padded zeros to data to match expected shape
-            zero_padded_data = data.copy().resize(frames_per_buffer,1)
-            outdata[:frames_per_buffer] = zero_padded_data
+            # Set outdata to zeros
+            outdata[:frames_per_buffer] = np.zeros((frames_per_buffer,1))
 
         self.position = new_pos # Update song position
 
