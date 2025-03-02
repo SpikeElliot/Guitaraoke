@@ -1,14 +1,17 @@
-import os
+from PyQt5.QtCore import QThread, pyqtSignal
 import threading
+import time
+import os
 import sounddevice as sd
 import tempfile
 from scipy.io.wavfile import write
 from pitch_detection import save_pitches
 
 
-class AudioInputHandler():
+class AudioInputHandler(QThread):
     """
     Handles operations relating to audio input such as streaming and recording.
+    Inherits from PyQt5 QThread.
 
     Attributes
     ----------
@@ -20,18 +23,27 @@ class AudioInputHandler():
         Specifies the audio's datatype.
     input_devices : list of dicts
         A list of available audio input devices.
+    record_duration : int
+        The length of time of the recording in seconds.
+    recording : bool
+        Whether the audio input is currently being recorded or not.
 
     Methods
     -------
-    record(duration=5., in_dev_idx=0)
+    record(input_dev_idx=0)
         Save a WAV file recording of the audio input stream.
     """
+    score_processed = pyqtSignal(int)
+
     def __init__(self):
         """The constructor for the AudioInputHandler class."""
+        super().__init__()
         self.CHANNELS = 1
         self.RATE = 44100
         self.DTYPE = "float32" # Datatype used by audio processing libraries
         self.input_devices = self._get_input_devices()
+        self.record_duration = 5
+        self.recording = False
 
     def _get_input_devices(self):
         """Return a list of available audio input devices."""
@@ -42,16 +54,14 @@ class AudioInputHandler():
                 input_devs.append(d)
         return input_devs
 
-    def record(self, duration=5., in_dev_idx=0):
+    def record(self, input_dev_idx=0):
         """
         Record an audio input stream for a given duration in seconds using a
         given input device's index, saving the data to a temporary WAV file.
 
         Parameters
         ----------
-        duration : float, default=5
-            The length of time of the recording in seconds.
-        input_device_idx : int, default=0
+        input_dev_idx : int, default=0
             The index of the input device.
         
         Returns
@@ -59,12 +69,13 @@ class AudioInputHandler():
         recording_path : str
             The file path to the newly-created temp file.
         """
-        print(f"Recording {duration:.1f}s of input audio...")
+        print(f"Recording {self.record_duration:.1f}s of input audio...")
+        self.recording = True
 
         audio_data = sd.rec(
-            int(duration * self.RATE),
+            int(self.record_duration * self.RATE),
             samplerate=self.RATE,
-            device=in_dev_idx,
+            device=input_dev_idx,
             channels=self.CHANNELS,
             dtype=self.DTYPE
         )
@@ -78,17 +89,24 @@ class AudioInputHandler():
     def process_recorded_audio(self, path):
         pitches_path = save_pitches(path)
 
-        # TODO Call midi file comparison logic function here to get a score
+        # TODO Call comparison logic function here to get a score
+        score = 0
 
         os.remove(pitches_path) # Delete file when processing complete
+        self.score_processed.emit(score)
 
-    def record_process_loop(self):
-        while True:
-            recording_path = self.record()
+    def run(self):
+        while self.recording:
+            recording = self.record()
 
-            # Process recorded audio in separate thread to prevent blocking
-            # while recording next batch of audio.
             threading.Thread(
-                target=self.process_recorded_audio, 
-                args=(recording_path,)
+                target=self.process_recorded_audio,
+                args=(recording,)
             ).start()
+
+            time.sleep(self.record_duration)
+    
+    def stop(self):
+        self.recording = False
+        self.quit()
+        self.wait()

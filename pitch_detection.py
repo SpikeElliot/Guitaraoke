@@ -5,8 +5,8 @@ import os
 
 def save_pitches(audio):
     """
-    Saves the MIDI file, note events CSV file, and rendered MIDI audio WAV file
-    from Spotify's Basic Pitch model prediction run on a given audio file.
+    Saves the note events CSV file from Spotify's Basic Pitch model prediction
+    run on a given audio file.
 
     Parameters
     ----------
@@ -17,8 +17,9 @@ def save_pitches(audio):
 
     Returns
     -------
-    pitches_midi_path : str
-        The file path to the resultant MIDI file from the pitch prediction.
+    pitches_path : str
+        The file path to the note events CSV file resultant from the pitch
+        prediction.
     """
     output_folder = "./pitch_predictions"
     audio_path = ""
@@ -46,12 +47,12 @@ def save_pitches(audio):
     predict_and_save(
         [audio_path], # Input file path
         output_folder, # Directory resultant files will be saved to
-        save_midi=True, # Save MIDI file of predicted notes
+        save_midi=False, # Save MIDI file of predicted notes
         sonify_midi=False, # Save wav file of sonified MIDI for testing
         save_model_outputs=False, # Model outputs are not necessary
-        save_notes=False, # Save note events in CSV file
+        save_notes=True, # Save note events in CSV file
         model_or_model_path=ICASSP_2022_MODEL_PATH, # Default model
         minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
         multiple_pitch_bends=True, # More accurate to bending of guitar notes
     )
-    return f"{output_folder}/{audio_filename}_basic_pitch.mid"
+    return f"{output_folder}/{audio_filename}_basic_pitch.csv"

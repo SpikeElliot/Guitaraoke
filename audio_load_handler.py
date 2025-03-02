@@ -53,7 +53,7 @@ class AudioLoadHandler():
     set_pos(pos):
         Set the audio playback's time position to a new time in seconds.
     """
-    def __init__(self, path='./assets/elecguitar_chromatic_scale.wav'):
+    def __init__(self, path):
         """
         The constructor for the AudioLoadHandler class.
 
@@ -64,6 +64,7 @@ class AudioLoadHandler():
         """
         self.CHANNELS = 1
         self.RATE = 44100
+        self.stream = None
         sd.default.samplerate = self.RATE
         self.metronome_data = librosa.load( # Load metronome sound effect
             path="./assets/Perc_MetronomeQuartz_lo.wav",
@@ -83,11 +84,20 @@ class AudioLoadHandler():
         path : str
             The file path of the audio file to load.
         """
+        # When loading a new song, immediately terminate audio processing of
+        # previous song's stream
+        if self.stream:
+            self.stream.abort()
         self.path = path
         self.paused = True
         self.ended = True
-        self.stream = None
+        self.stream = sd.OutputStream(
+            samplerate=self.RATE,
+            channels=self.CHANNELS,
+            callback=self._callback
+        )
         self.position = 0
+        self.user_score = 0
 
         # Get song metadata
         metadata = TinyTag.get(self.path)
@@ -96,6 +106,13 @@ class AudioLoadHandler():
         fn_split = metadata.filename.split(".")
         self.filename, self.filetype = fn_split[1].split("/")[-1], fn_split[2]
         self.filedir = fn_split[1].split("/")[-2]
+
+        # TODO Check if song has already been separated. If so, load in guitar
+        # and no_guitar files to play concurrently. Otherwise, run the
+        # separate_guitar function on the file first.
+
+        # There will also need to be a way to balance volumes between the guitar
+        # track and no guitar track.
             
         # Get song frames and length
         self.data = librosa.load(path=self.path, sr=self.RATE)[0]
@@ -114,14 +131,7 @@ class AudioLoadHandler():
         self.stream.start()
     
     def play_metronome(self):
-        """Use sounddevice to play a metronome sound effect once."""
-        # Open an output stream for song if played for the first time
-        if not self.stream:
-            self.stream = sd.OutputStream(
-                samplerate=self.RATE,
-                channels=self.CHANNELS,
-                callback=self._callback
-            )
+        """Use sounddevice to play a metronome sound effect."""
         sd.play(self.metronome_data)
         sd.wait()
 
