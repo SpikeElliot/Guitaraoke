@@ -1,10 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
 from PyQt5.QtCore import Qt, QTimer
 from audio_load_handler import AudioLoadHandler
 from audio_input_handler import AudioInputHandler
 from waveform_plot import WaveformPlot
-from utils import time_format
+from utils import time_format, hex_to_rgb
 
 
 class MainWindow(QMainWindow):
@@ -15,9 +15,11 @@ class MainWindow(QMainWindow):
 
         self.WIDTH = 1440
         self.HEIGHT = 500
+        self.theme_colour = "#0070DF"
 
-        self.song = AudioLoadHandler(path="./separated_tracks/htdemucs_6s/sweetchildomine/guitar.wav")
+        self.song = AudioLoadHandler(path="./assets/sweetchildomine.wav")
         self.input = AudioInputHandler()
+        self.input.input_device_index = 2
         self.input.score_processed.connect(self._on_score_processed)
 
         self.setWindowTitle("Guitaraoke")
@@ -43,8 +45,7 @@ class MainWindow(QMainWindow):
         self.title_label.setText(self.song.title)
 
         self.duration_label = QLabel()
-        self.duration_label.text_colour = "#462aff"
-        self.duration_label.setText(f"<font color='{self.duration_label.text_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
 
         self.score_label = QLabel()
         self.score_label.setText("Score: ?")
@@ -80,7 +81,7 @@ class MainWindow(QMainWindow):
         self.waveform = WaveformPlot(
             width=int(self.WIDTH*0.9),
             height=100,
-            colour=(70,42,255)
+            colour=hex_to_rgb(self.theme_colour)
         )
         self.waveform.draw_plot(self.song)
         self.waveform.clicked_connect(self._waveform_pressed)
@@ -101,6 +102,28 @@ class MainWindow(QMainWindow):
         
         # Audio Playback Controls
 
+        # Layouts
+        controls_layout = QVBoxLayout()
+        controls_layout_top_row = QHBoxLayout()
+        controls_layout_bottom_row = QGridLayout()
+
+        # Guitar volume label
+        self.guitar_vol_label = QLabel()
+        self.guitar_vol_label.setText("Guitar Volume")
+
+        # Guitar volume slider
+        self.guitar_vol_slider = QSlider(orientation=Qt.Horizontal)
+        self.guitar_vol_slider.setFixedWidth(int(self.waveform.width/2))
+        self.guitar_vol_slider.setRange(0, 100)
+        self.guitar_vol_slider.setPageStep(5)
+        self.guitar_vol_slider.setSliderPosition(100)
+        self.guitar_vol_slider.valueChanged.connect(self._guitar_vol_slider_moved)
+
+        # Guitar volume value label
+        self.guitar_vol_val_label = QLabel()
+        self.guitar_vol_val_label.setText("100%")
+
+        #Buttons
         button_width = 100
 
         # Play button
@@ -123,17 +146,22 @@ class MainWindow(QMainWindow):
         self.pause_button.setFixedWidth(button_width)
         self.pause_button.clicked.connect(self._pause_button_pressed)
         
-        # Record button (TESTING)
-        self.record_button = QPushButton() 
-        self.record_button.setText("Record")
-        self.record_button.setFixedWidth(button_width)
-        self.record_button.clicked.connect(self._record_button_pressed)
-        
-        # Playback controls layout
-        controls_layout = QGridLayout()
-        controls_layout.addWidget(self.play_button, 0, 0)
-        controls_layout.addWidget(self.pause_button, 0, 0)
-        controls_layout.addWidget(self.record_button, 1, 0)
+        controls_layout_top_row.addWidget(self.guitar_vol_label, alignment=Qt.AlignRight)
+        controls_layout_top_row.addSpacing(10)
+        controls_layout_top_row.addWidget(self.guitar_vol_slider, alignment=Qt.AlignCenter)
+        controls_layout_top_row.addSpacing(10)
+        controls_layout_top_row.addWidget(self.guitar_vol_val_label, alignment=Qt.AlignLeft)
+
+        controls_layout_bottom_row.addWidget(self.play_button, 0, 0, alignment=Qt.AlignCenter)
+        controls_layout_bottom_row.addWidget(self.pause_button, 0, 0, alignment=Qt.AlignCenter)
+        controls_layout_bottom_row.setHorizontalSpacing(20)
+        controls_layout_bottom_row.setContentsMargins(
+            int(self.WIDTH*0.05), int(self.HEIGHT*0.05),
+            int(self.WIDTH*0.05), int(self.HEIGHT*0.05)
+        )
+
+        controls_layout.addLayout(controls_layout_top_row)
+        controls_layout.addLayout(controls_layout_bottom_row)
 
         # Main Layout
         
@@ -150,13 +178,28 @@ class MainWindow(QMainWindow):
     def _set_styles(self):
         """Set the CSS styling of window and widgets."""
         # Main Window
-        self.setStyleSheet(
+        self.css = f"""
+            QWidget {{
+                background-color: rgb(255,255,255);
+                color: rgb(0,0,0);
+                font-size: 20px;
+            }}
+
+            QSlider::groove::horizontal {{
+                background: rgb(0,0,0);
+                height: 22px;
+                border-radius: 10px;
+            }}
+
+            QSlider::handle::horizontal {{
+                background: rgb(255,255,255);
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border: 1px solid rgb(0,0,0);
+            }}
             """
-            background-color: rgb(255,255,255);
-            color: rgb(0,0,0);
-            font-size: 20px;
-            """
-        )
+        self.setStyleSheet(self.css)
         # Waveform Plot
         self.waveform.setStyleSheet(
             """
@@ -172,32 +215,31 @@ class MainWindow(QMainWindow):
             """
         )
         # Audio Playback Controls
-        button_stylesheet = """
-            background-color: rgb(70,42,255);
+        button_stylesheet = f"""
+            background-color: {self.theme_colour};
             color: rgb(255,255,255);
             border-radius: 16px;
             padding: 8px 0px;
             """
         self.play_button.setStyleSheet(button_stylesheet)
         self.pause_button.setStyleSheet(button_stylesheet)
-        self.record_button.setStyleSheet(button_stylesheet)
 
     def _update_songpos(self):
         """Update song_duration label and playhead every 10ms."""
-        song_pos = self.song.get_pos()
-        
-        if self.song.ended: # Stop time progressing when song ends
-            self._pause_button_pressed()
-            self.duration_label.setText(f"<font color='{self.duration_label.text_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
-        else:
-            self.duration_label.setText(f"<font color='{self.duration_label.text_colour}'>{time_format(song_pos)}</font> / {time_format(self.song.duration)}")
-
-        playhead_pos = int((song_pos / self.song.duration) * self.waveform.width)
-        self.playhead.move(playhead_pos, 0)
-
         # Show playhead first time play button is clicked
         if self.playhead.isHidden():
             self.playhead.show()
+        
+        song_pos = self.song.get_pos()
+
+        if self.song.ended: # Stop time progressing when song ends
+            self._pause_button_pressed()
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
+        else:
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.song.duration)}")
+
+        playhead_pos = int((song_pos / self.song.duration) * self.waveform.width)
+        self.playhead.move(playhead_pos, 0)
 
     def _play_button_pressed(self):
         """Start songpos_timer when play button clicked."""
@@ -226,9 +268,12 @@ class MainWindow(QMainWindow):
         if self.count_in_timer.count > 4:
             self.count_in_timer.stop()
             self.count_in_timer.count = 0
-
+            # Start audio playback
             self.song.play()
             self.songpos_timer.start()
+            # Start recording user input
+            self.input.recording = True
+            self.input.start()
             return
         elif self.count_in_timer.count == 4:
             # After 4 counts, wait for metronome time alignment with song position
@@ -246,14 +291,11 @@ class MainWindow(QMainWindow):
             self.count_in_timer.stop()
             self.count_in_timer.count = 0
 
+        # Pause playback
         self.song.pause()
         self.songpos_timer.stop()
-
-    def _record_button_pressed(self):
-        """Start an audio input stream recording when record button clicked."""
-        # TODO Learn to use QThreads instead
-        self.input.recording = True
-        self.input.start()
+        # Stop recording
+        self.input.stop()
 
     def _waveform_pressed(self, mouseClickEvent):
         """Skip to song position relative to mouse x position in waveform plot when clicked."""
@@ -280,7 +322,7 @@ class MainWindow(QMainWindow):
         # Update playhead and time display to skipped position
         playhead_pos = int(mouse_x_pos)
         self.playhead.move(playhead_pos, 0)
-        self.duration_label.setText(f"<font color='{self.duration_label.text_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.song.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.song.duration)}")
 
         # Reset timer count in case song skipped during count-in
         if self.count_in_timer.isActive():
@@ -308,6 +350,10 @@ class MainWindow(QMainWindow):
         """
         self.song.user_score += score
         self.score_label.setText(f"Score: {self.song.user_score}")
+
+    def _guitar_vol_slider_moved(self, value):
+        self.song.guitar_volume = value / 100
+        self.guitar_vol_val_label.setText(f"{value}%")
 
 
 def main():

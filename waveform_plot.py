@@ -75,9 +75,12 @@ class WaveformPlot(pg.PlotWidget):
         # is too short, otherwise one point represents a window of ~100 ms
         num_points = np.max([1000, int(audio.duration * 10)])
 
+        # Sum the amplitudes of the two separated tracks to get the full mix
+        audio_data = audio.guitar_data + audio.no_guitar_data
+
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
-            y=audio.data,
+            y=audio_data,
             orig_sr=audio.RATE,
             target_sr=audio.RATE/16
         )

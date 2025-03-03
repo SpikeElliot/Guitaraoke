@@ -29,14 +29,21 @@ class AudioLoadHandler():
         The title found in metadata from a loaded audio file.
     artist : str
         The artist found in metadata from a loaded audio file.
-    data : ndarray
-        The loaded song's audio time series.
+    guitar_data : ndarray
+        The song's separated guitar audio time series.
+    no_guitar_data : ndarray
+        The song's separated no_guitar audio time series.
     duration : float
         The length of the loaded song in seconds.
     bpm : float
         The estimated tempo of the song found using Librosa's beat_track.
     first_beat : float
         The first detected beat of the song found using Librosa's beat_track.
+    guitar_volume : float
+        The volume to scale the separated guitar track's amplitudes by (0-1).
+    user_score : int
+        The performance score derived from comparing the user's recorded pitch
+        to the guitar track's.
 
     Methods
     -------
@@ -97,6 +104,7 @@ class AudioLoadHandler():
             callback=self._callback
         )
         self.position = 0
+        self.guitar_volume = 1
         self.user_score = 0
 
         # Get song metadata
@@ -111,17 +119,27 @@ class AudioLoadHandler():
         # and no_guitar files to play concurrently. Otherwise, run the
         # separate_guitar function on the file first.
 
-        # There will also need to be a way to balance volumes between the guitar
-        # track and no guitar track.
-            
-        # Get song frames and length
-        self.data = librosa.load(path=self.path, sr=self.RATE)[0]
-        self.duration = len(self.data) / float(self.RATE) # In seconds
+        # Get audio frames from guitar no_guitar separated tracks
+        self.guitar_data = librosa.load(
+            f"./separated_tracks/htdemucs_6s/{self.filename}/guitar.wav",
+            sr=self.RATE
+        )[0]
+        self.no_guitar_data = librosa.load(
+            f"./separated_tracks/htdemucs_6s/{self.filename}/no_guitar.wav",
+            sr=self.RATE
+        )[0]
+        
+        self.duration = len(self.guitar_data) / float(self.RATE) # In seconds
 
         # Get song tempo and position of first detected beat
-        tempo, beats = librosa.beat.beat_track(y=self.data, sr=self.RATE)
+        tempo, beats = librosa.beat.beat_track(
+            y=self.guitar_data + self.no_guitar_data, # Full mix
+            sr=self.RATE
+        )
         self.bpm = tempo[0]
         self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
+
+    # TODO Move all playback logic to a separate audio_playback_handler file
 
     def play(self):
         """Play or unpause audio playback."""
@@ -149,15 +167,19 @@ class AudioLoadHandler():
             return
         
         # Set ended bool to True if end reached
-        if new_pos >= len(self.data):
-            new_pos = len(self.data)
+        if new_pos >= len(self.guitar_data):
+            new_pos = len(self.guitar_data)
             self.ended = True
 
         # Set outdata to next frames of loaded audio
         try:
-            audio_data = self.data[self.position:new_pos].reshape(-1,1)
-            outdata[:frames_per_buffer] = audio_data
-        # Case: not enough frames from data compared to buffer size
+            guitar_batch = self.guitar_data[self.position:new_pos].copy()
+            no_guitar_batch = self.no_guitar_data[self.position:new_pos].copy()
+            guitar_batch *= self.guitar_volume
+            # Sum the amplitudes of the two tracks to get full mix values
+            audio_batch = np.add(guitar_batch,no_guitar_batch).reshape(-1,1)
+            outdata[:frames_per_buffer] = audio_batch
+        # Case: not enough frames from audio data compared to buffer size
         except ValueError as e:
             # Set outdata to zeros
             outdata[:frames_per_buffer] = np.zeros((frames_per_buffer,1))

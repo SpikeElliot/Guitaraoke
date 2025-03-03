@@ -23,14 +23,19 @@ class AudioInputHandler(QThread):
         Specifies the audio's datatype.
     input_devices : list of dicts
         A list of available audio input devices.
+    input_device_index : int
+        The index of the input device used.
     record_duration : int
         The length of time of the recording in seconds.
     recording : bool
         Whether the audio input is currently being recorded or not.
+    score_processed : pyqtSignal
+        Connects the _process_record_audio method to the main application,
+        sending the returned "score" value to a different function.
 
     Methods
     -------
-    record(input_dev_idx=0)
+    record()
         Save a WAV file recording of the audio input stream.
     """
     score_processed = pyqtSignal(int)
@@ -41,11 +46,12 @@ class AudioInputHandler(QThread):
         self.CHANNELS = 1
         self.RATE = 44100
         self.DTYPE = "float32" # Datatype used by audio processing libraries
-        self.input_devices = self._get_input_devices()
+        self.input_devices = self._find_input_devices()
+        self.input_device_index = 0
         self.record_duration = 5
         self.recording = False
 
-    def _get_input_devices(self):
+    def _find_input_devices(self):
         """Return a list of available audio input devices."""
         devices = sd.query_devices()
         input_devs = []
@@ -54,16 +60,11 @@ class AudioInputHandler(QThread):
                 input_devs.append(d)
         return input_devs
 
-    def record(self, input_dev_idx=0):
+    def _record(self):
         """
         Record an audio input stream for a given duration in seconds using a
         given input device's index, saving the data to a temporary WAV file.
 
-        Parameters
-        ----------
-        input_dev_idx : int, default=0
-            The index of the input device.
-        
         Returns
         -------
         recording_path : str
@@ -75,7 +76,7 @@ class AudioInputHandler(QThread):
         audio_data = sd.rec(
             int(self.record_duration * self.RATE),
             samplerate=self.RATE,
-            device=input_dev_idx,
+            device=self.input_device_index,
             channels=self.CHANNELS,
             dtype=self.DTYPE
         )
@@ -86,7 +87,7 @@ class AudioInputHandler(QThread):
         write(temp_file.name, self.RATE, audio_data)
         return temp_file.name
 
-    def process_recorded_audio(self, path):
+    def _process_recorded_audio(self, path):
         pitches_path = save_pitches(path)
 
         # TODO Call comparison logic function here to get a score
@@ -97,16 +98,17 @@ class AudioInputHandler(QThread):
 
     def run(self):
         while self.recording:
-            recording = self.record()
+            recording = self._record()
 
             threading.Thread(
-                target=self.process_recorded_audio,
+                target=self._process_recorded_audio,
                 args=(recording,)
             ).start()
 
             time.sleep(self.record_duration)
     
     def stop(self):
+        print("Recording stopped.")
         self.recording = False
         self.quit()
         self.wait()
