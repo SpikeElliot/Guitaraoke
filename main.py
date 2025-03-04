@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
 from PyQt5.QtCore import Qt, QTimer
-from audio_load_handler import AudioLoadHandler
+from audio_playback import AudioPlayback
 from audio_input_handler import AudioInputHandler
 from waveform_plot import WaveformPlot
 from utils import time_format, hex_to_rgb
@@ -17,9 +17,9 @@ class MainWindow(QMainWindow):
         self.HEIGHT = 500
         self.theme_colour = "#0070DF"
 
-        self.song = AudioLoadHandler(path="./assets/sweetchildomine.wav")
+        self.playback = AudioPlayback(path="./assets/sweetchildomine.wav")
         self.input = AudioInputHandler()
-        self.input.input_device_index = 2
+        self.input.set_input_device(2)
         self.input.score_processed.connect(self._on_score_processed)
 
         self.setWindowTitle("Guitaraoke")
@@ -39,13 +39,13 @@ class MainWindow(QMainWindow):
         song_info_top_row, song_info_middle_row, song_info_bottom_row = QHBoxLayout(), QHBoxLayout(), QHBoxLayout()
 
         self.artist_label = QLabel()
-        self.artist_label.setText(self.song.artist)
+        self.artist_label.setText(self.playback.audio.artist)
 
         self.title_label = QLabel()
-        self.title_label.setText(self.song.title)
+        self.title_label.setText(self.playback.audio.title)
 
         self.duration_label = QLabel()
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.audio.duration)}")
 
         self.score_label = QLabel()
         self.score_label.setText("Score: ?")
@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
             height=100,
             colour=hex_to_rgb(self.theme_colour)
         )
-        self.waveform.draw_plot(self.song)
+        self.waveform.draw_plot(self.playback.audio)
         self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
@@ -134,10 +134,7 @@ class MainWindow(QMainWindow):
 
         # Song count-in before playing
         self.count_in_timer = QTimer()
-        self.count_in_timer.count_interval = int(1000 / (self.song.bpm / 60))
-        # Don't set count-in timer interval yet
-        self.count_in_timer.timeout.connect(self._play_count_in_metronome)
-        self.count_in_timer.count = 0
+        self.count_in_timer.timeout.connect(self._count_in)
         
         # Pause button
         self.pause_button = QPushButton() 
@@ -230,56 +227,35 @@ class MainWindow(QMainWindow):
         if self.playhead.isHidden():
             self.playhead.show()
         
-        song_pos = self.song.get_pos()
+        song_pos = self.playback.get_pos()
 
-        if self.song.ended: # Stop time progressing when song ends
+        if self.playback.ended: # Stop time progressing when song ends
             self._pause_button_pressed()
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.song.duration)}")
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.audio.duration)}")
         else:
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.song.duration)}")
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.playback.audio.duration)}")
 
-        playhead_pos = int((song_pos / self.song.duration) * self.waveform.width)
+        playhead_pos = int((song_pos / self.playback.audio.duration) * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
 
     def _play_button_pressed(self):
-        """Start songpos_timer when play button clicked."""
+        """Start count-in timer when play button clicked."""
         self.play_button.hide()
         self.pause_button.show()
-        self._start_count_in()
-        
-    def _start_count_in(self):
-        """Start count-in timer before playing the song."""
-        # Set an initial offset interval to align count-in with current songpos
-        self.count_in_timer.offset = int(((self.song.position/self.song.RATE)*1000 + self.song.first_beat) % self.count_in_timer.count_interval)
-        print("offset " + str(self.count_in_timer.offset) + "ms")
-        print("normal interval " + str(self.count_in_timer.count_interval) + "ms")
-        self.count_in_timer.setInterval(self.count_in_timer.count_interval)
-        self.count_in_timer.count = 0
+        # Set count-in timer interval to estimated beat interval of song
+        self.count_in_timer.setInterval(self.playback.count_interval)
+        self.playback.metronome_count = 0
         self.count_in_timer.start()
-
-    def _play_count_in_metronome(self):
-        """
-        Play the count-in metronome sound and increment self.count_in_timer.count, playing
-        the song after the fourth count.
-        """
-        self.count_in_timer.count += 1
-
-        # Stop timer and play song when metronome aligned to song position
-        if self.count_in_timer.count > 4:
-            self.count_in_timer.stop()
-            self.count_in_timer.count = 0
+        
+    def _count_in(self):
+        """When count-in timer finished, start audio playback, input recording, and songpos timer."""
+        if self.playback.play_count_in_metronome(self.count_in_timer):
             # Start audio playback
-            self.song.play()
+            self.playback.start()
             self.songpos_timer.start()
             # Start recording user input
-            self.input.recording = True
             self.input.start()
             return
-        elif self.count_in_timer.count == 4:
-            # After 4 counts, wait for metronome time alignment with song position
-            self.count_in_timer.setInterval(self.count_in_timer.offset)
-
-        self.song.play_metronome()
     
     def _pause_button_pressed(self):
         """Pause songpos_timer when pause button clicked."""
@@ -289,10 +265,10 @@ class MainWindow(QMainWindow):
         # Reset in case pause button pressed during count-in
         if self.count_in_timer.isActive():
             self.count_in_timer.stop()
-            self.count_in_timer.count = 0
+            self.playback.metronome_count = 0
 
         # Pause playback
-        self.song.pause()
+        self.playback.stop()
         self.songpos_timer.stop()
         # Stop recording
         self.input.stop()
@@ -307,13 +283,13 @@ class MainWindow(QMainWindow):
         
         if mouse_x_pos < 0: # Prevent negative pos value
             mouse_x_pos = 0
-        new_song_pos = (mouse_x_pos / self.waveform.width) * self.song.duration
+        new_song_pos = (mouse_x_pos / self.waveform.width) * self.playback.audio.duration
         
         # Show playhead when song is skipped if play button isn't pressed
         if self.playhead.isHidden():
             self.playhead.show()
 
-        self.song.set_pos(new_song_pos)
+        self.playback.set_pos(new_song_pos) # Update song pos
 
         # Print song skip and mouse information to console (testing)
         print(f"\nSong skipped to: {time_format(new_song_pos)}")
@@ -322,19 +298,21 @@ class MainWindow(QMainWindow):
         # Update playhead and time display to skipped position
         playhead_pos = int(mouse_x_pos)
         self.playhead.move(playhead_pos, 0)
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.song.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.playback.audio.duration)}")
 
         # Reset timer count in case song skipped during count-in
         if self.count_in_timer.isActive():
             self.count_in_timer.stop()
-            self.count_in_timer.count = 0
-        elif self.song.paused:
+            self.playback.metronome_count = 0
+            self.count_in_timer.start()
+            return
+        elif self.playback.paused:
             return
         
         # Pause song and start a count-in
-        self.song.pause()
+        self.playback.stop()
         self.songpos_timer.stop()
-        self._start_count_in()
+        self.count_in_timer.start()
     
     def _on_score_processed(self, score):
         """
@@ -348,11 +326,11 @@ class MainWindow(QMainWindow):
             The returned pitch accuracy score from the AudioInputHandler
             object's audio processing loop.
         """
-        self.song.user_score += score
-        self.score_label.setText(f"Score: {self.song.user_score}")
+        self.playback.user_score += score
+        self.score_label.setText(f"Score: {self.playback.user_score}")
 
     def _guitar_vol_slider_moved(self, value):
-        self.song.guitar_volume = value / 100
+        self.playback.guitar_volume = value / 100
         self.guitar_vol_val_label.setText(f"{value}%")
 
 
