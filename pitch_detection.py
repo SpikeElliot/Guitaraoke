@@ -3,18 +3,18 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 import os
 
 
-def save_pitches(audio):
+def save_pitches(path, input_recording=False):
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.
 
     Parameters
     ----------
-    audio : AudioLoadHandler or str
-        The AudioLoadHandler object whose path property will be used to
-        access the audio file, or a path to the audio file in the case
-        the user's audio input recording is being predicted.
-
+    path : str
+        The path of the audio file to make pitch predictions for.
+    input_recording : bool, default=False
+        Whether the audio file is a loaded song (False) or a temporary
+        user input recording (True).
     Returns
     -------
     pitches_path : str
@@ -22,37 +22,33 @@ def save_pitches(audio):
         prediction.
     """
     output_folder = "./pitch_predictions"
-    audio_path = ""
-    audio_filename = ""
+    filename = ""
+    sonify = False
 
-    # Case: audio is the user's audio input recording file path string
-    if type(audio) == str:
-        os.makedirs( # Make directory for audio input predictions if not exists
-            f"./pitch_predictions/temp",
-            exist_ok=True
-        )
+    # Case: path is for a temporary audio input recording file
+    if input_recording:
+        filename = path.split(".")[0].split("\\")[-1]
+        # Make directory for audio input predictions if not exists
+        os.makedirs( f"./pitch_predictions/temp", exist_ok=True)
         output_folder += "/temp"
-        audio_path = audio
-        audio_filename = audio.split(".")[0].split("\\")[-1]
-    # Case: audio is an AudioLoadHandler object
+    # Case: path is for a loaded audio file that will be played
     else:
-        os.makedirs( # Make directory for song pitch predictions
-            f"./pitch_predictions/songs/{audio.filedir}",
-            exist_ok=True
-        )
-        output_folder += f"/songs/{audio.filedir}"
-        audio_path = audio.path
-        audio_filename = audio.filename
+        filedir = path.split("/")[-2]
+        filename = path.split(".")[-2].split("/")[-1]
+        # Make directory for song pitch predictions
+        os.makedirs( f"./pitch_predictions/songs/{filedir}", exist_ok=True)
+        output_folder += f"/songs/{filedir}"
+        sonify = True
 
     predict_and_save(
-        [audio_path], # Input file path
+        [path], # Input file path
         output_folder, # Directory resultant files will be saved to
         save_midi=False, # Save MIDI file of predicted notes
-        sonify_midi=False, # Save wav file of sonified MIDI for testing
+        sonify_midi=sonify, # Save wav file of sonified MIDI for testing
         save_model_outputs=False, # Model outputs are not necessary
         save_notes=True, # Save note events in CSV file
         model_or_model_path=ICASSP_2022_MODEL_PATH, # Default model
         minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
         multiple_pitch_bends=True, # More accurate to bending of guitar notes
     )
-    return f"{output_folder}/{audio_filename}_basic_pitch.csv"
+    return f"{output_folder}/{filename}_basic_pitch.csv"

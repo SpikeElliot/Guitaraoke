@@ -1,5 +1,7 @@
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 import librosa
-from tinytag import TinyTag
 from guitar_separation import separate_guitar
 from pitch_detection import save_pitches
 
@@ -20,10 +22,6 @@ class AudioLoadHandler():
         The sample rate of the audio.
     metronome_data : ndarray
         The loaded metronome sound's audio time series.
-    title : str
-        The title found in metadata from a loaded audio file.
-    artist : str
-        The artist found in metadata from a loaded audio file.
     guitar_data : ndarray
         The song's separated guitar audio time series.
     no_guitar_data : ndarray
@@ -49,6 +47,7 @@ class AudioLoadHandler():
         self.path = path
         self.CHANNELS = 1
         self.RATE = 44100
+        self.DTYPE = "float32"
         
         # Load metronome sound effect
         self.metronome_data = librosa.load( 
@@ -56,28 +55,41 @@ class AudioLoadHandler():
             sr=self.RATE
         )[0]
 
-        # Get song metadata
-        metadata = TinyTag.get(self.path)
-        self.title = metadata.title or "Unknown"
-        self.artist = metadata.artist or "Unknown"
-        fn_split = metadata.filename.split(".")
-        self.filename, self.filetype = fn_split[1].split("/")[-1], fn_split[2]
-        self.filedir = fn_split[1].split("/")[-2]
+        self.filename = path.split(".")[1].split("/")[-1]
+        separated_tracks_dir = f"./separated_tracks/htdemucs_6s/{self.filename}/"
+        guitar_pitches_path = ""
 
-        # TODO Check if song has already been separated. If so, load in guitar
-        # and no_guitar files to play concurrently. Otherwise, run the
-        # separate_guitar function on the file first.
+        # If song has not been processed, perform guitar separation and pitch detection
+        if not os.path.isdir(separated_tracks_dir):
+            guitar_track_path, no_guitar_track_path = separate_guitar(self.path)
+            guitar_pitches_path = save_pitches(guitar_track_path)
+        else:
+            guitar_track_path = separated_tracks_dir + "guitar.wav"
+            no_guitar_track_path = separated_tracks_dir + "no_guitar.wav"
+            guitar_pitches_path = f"./pitch_predictions/songs/{self.filename}/guitar_basic_pitch.csv"
 
-        # Get audio frames from guitar no_guitar separated tracks
+        # Convert pitches CSV to a pandas DataFrame
+        self.pitches = pd.read_csv(
+            guitar_pitches_path, 
+            sep=None,
+            engine="python",
+            index_col=False
+        ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
+        
+        # print(self.pitches.head())
+        # plt.scatter(self.pitches.start_time_s, self.pitches.pitch_midi)
+        # plt.show()
+        
+        # Get guitar and no_guitar separated tracks' audio time series
         self.guitar_data = librosa.load(
-            f"./separated_tracks/htdemucs_6s/{self.filename}/guitar.wav",
+            guitar_track_path,
             sr=self.RATE
         )[0]
         self.no_guitar_data = librosa.load(
-            f"./separated_tracks/htdemucs_6s/{self.filename}/no_guitar.wav",
+            no_guitar_track_path,
             sr=self.RATE
         )[0]
-
+        
         self.duration = len(self.guitar_data) / float(self.RATE) # In seconds
 
         # Get song tempo and position of first detected beat

@@ -17,14 +17,18 @@ class MainWindow(QMainWindow):
         self.HEIGHT = 500
         self.theme_colour = "#0070DF"
 
-        self.playback = AudioPlayback(path="./assets/sweetchildomine.wav")
-        self.input = AudioInputHandler()
+        # Hard-coded for now
+        self.playback = AudioPlayback( 
+            path="./assets/sweetchildomine_intro_riff.wav",
+            title="Sweet Child O' Mine (Intro Riff)",
+            artist="Guns N' Roses"
+        )
+        self.input = AudioInputHandler(self.playback)
         self.input.set_input_device(2)
         self.input.score_processed.connect(self._on_score_processed)
 
         self.setWindowTitle("Guitaraoke")
 
-        # self.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
         self.setFixedSize(self.WIDTH, self.HEIGHT)
 
         self._set_components()
@@ -39,10 +43,10 @@ class MainWindow(QMainWindow):
         song_info_top_row, song_info_middle_row, song_info_bottom_row = QHBoxLayout(), QHBoxLayout(), QHBoxLayout()
 
         self.artist_label = QLabel()
-        self.artist_label.setText(self.playback.audio.artist)
+        self.artist_label.setText(self.playback.artist)
 
         self.title_label = QLabel()
-        self.title_label.setText(self.playback.audio.title)
+        self.title_label.setText(self.playback.title)
 
         self.duration_label = QLabel()
         self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.audio.duration)}")
@@ -309,27 +313,42 @@ class MainWindow(QMainWindow):
         elif self.playback.paused:
             return
         
-        # Pause song and start a count-in
+        # Pause playback and recording, start a count-in
         self.playback.stop()
+        self.input.stop()
+        # TODO: RESET INPUT BUFFER WHEN SONG SKIPPED
+        # self.input.buffer = np.zeros(self.BUFFER_SIZE)
         self.songpos_timer.stop()
         self.count_in_timer.start()
     
-    def _on_score_processed(self, score):
+    def _on_score_processed(self, score_information):
         """
-        Called when a new pitch detection of user input is received.
-        Currently adds the returned value from the input's process_recorded_audio
-        function to the song's user score and updates the score label.
+        Called when a new batch of recorded user input has been processed.
+        Currently updates the song's score and accuracy labels with values
+        received from the AudioInputHandler's process_recorded_audio function.
 
         Parameters
         ----------
-        score : int
-            The returned pitch accuracy score from the AudioInputHandler
-            object's audio processing loop.
+        score_information : tuple of int
+            The user score, number of notes hit by the user, and total number
+            of notes returned by the compare_pitches method called in the
+            process_recorded_audio function.
         """
+        score, notes_hit, total_notes = score_information
         self.playback.user_score += score
-        self.score_label.setText(f"Score: {self.playback.user_score}")
+        self.playback.notes_hit += notes_hit
+        self.playback.total_notes += total_notes
+
+        self.score_label.setText(f"Score: {int(self.playback.user_score)}")
+
+        if self.playback.total_notes == 0:
+            self.accuracy_label.setText(f"Accuracy: ?%")
+        else:
+            accuracy = (self.playback.notes_hit/self.playback.total_notes) * 100
+            self.accuracy_label.setText(f"Accuracy: {round(accuracy, 1)}%")     
 
     def _guitar_vol_slider_moved(self, value):
+        """Updates the guitar track's volume when slider moved."""
         self.playback.guitar_volume = value / 100
         self.guitar_vol_val_label.setText(f"{value}%")
 

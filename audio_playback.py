@@ -49,19 +49,24 @@ class AudioPlayback(QThread):
         Set the audio playback's time position to a new time in seconds.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, title="Unknown", artist="Unknown"):
         """The constructor for the AudioPlayBack class.
 
         Parameters
         ----------
         path : str
             The file path of the audio file to load.
+        title : str, default="Unknown"
+            The title to be given to the loaded audio file.
+        artist : str, default="Unknown"
+            The artist to be attributed to the loaded audio file.
         """
         super().__init__()
         self.stream = None
-        self.load(path)
+        self.BLOCK_SIZE = 4096 # Increases latency but stops glitching/freezing
+        self.load(path, title, artist)
         
-    def load(self, path):
+    def load(self, path, title="Unknown", artist="Unknown"):
         """
         Instantiate a new AudioLoadHandler object that loads the necessary data
         from an audio file given its path.
@@ -70,35 +75,47 @@ class AudioPlayback(QThread):
         ----------
         path : str
             The file path of the audio file to load.
+        title : str, default="Unknown"
+            The title given to the loaded audio file.
+        artist : str, default="Unknown"
+            The artist attributed to the loaded audio file.
         """
         # When loading a new song, immediately terminate audio processing of
         # previous song's stream
         if self.stream:
             self.stream.abort()
 
+        self.title = title
+        self.artist = artist
+
         self.audio = AudioLoadHandler(path)
         sd.default.samplerate = self.audio.RATE
         self.stream = sd.OutputStream(
             samplerate=self.audio.RATE,
+            blocksize=self.BLOCK_SIZE,
             channels=self.audio.CHANNELS,
-            callback=self._callback
+            callback=self._callback,
+            dtype=self.audio.DTYPE
         )
         self.paused, self.ended = True, True
-        self.position, self.user_score, self.metronome_count = 0, 0, 0
+        self.position = 0
+        self.metronome_count = 0
+        self.user_score, self.notes_hit, self.total_notes = 0, 0, 0
         self.guitar_volume = 1
         self.count_interval = int(1000 / (self.audio.bpm / 60))
 
     def run(self):
         """Play or unpause audio playback."""
-        print("Playback started...")
+        print("\nPlayback started...")
         if self.ended:
             self.position = 0
+            self.user_score, self.notes_hit, self.total_notes = 0, 0, 0
         self.paused, self.ended = False, False
         self.stream.start()
 
     def stop(self):
         """Pause audio playback."""
-        print("Playback stopped.")
+        print("\nPlayback stopped.")
         if not self.paused:
             self.paused = True
         self.quit()
@@ -123,7 +140,6 @@ class AudioPlayback(QThread):
             return True # Start song
 
         sd.play(self.audio.metronome_data)
-        sd.wait()
         return False # Keep counting
     
     def get_pos(self):
@@ -136,6 +152,7 @@ class AudioPlayback(QThread):
         if self.ended:
             self.ended = False
         self.position = int(pos * self.audio.RATE)
+        self.user_score, self.notes_hit, self.total_notes = 0, 0, 0
 
     def _callback(self, outdata, frames, time, status):
         """
@@ -157,14 +174,13 @@ class AudioPlayback(QThread):
 
         # Set outdata to next frames of loaded audio
         try:
-            guitar_batch = self.audio.guitar_data[self.position:new_pos].copy()
-            no_guitar_batch = self.audio.no_guitar_data[self.position:new_pos].copy()
-            guitar_batch *= self.guitar_volume
+            guitar_batch = self.audio.guitar_data[self.position:new_pos]
+            no_guitar_batch = self.audio.no_guitar_data[self.position:new_pos]
             # Sum the amplitudes of the two tracks to get full mix values
-            audio_batch = np.add(guitar_batch,no_guitar_batch).reshape(-1,1)
-            outdata[:frames_per_buffer] = audio_batch
+            audio_batch = (guitar_batch * self.guitar_volume) + no_guitar_batch
+            outdata[:frames_per_buffer] = audio_batch.reshape(-1,1)
         # Case: not enough frames from audio data compared to buffer size
-        except ValueError as e:
+        except ValueError:
             # Set outdata to zeros
             outdata[:frames_per_buffer] = np.zeros((frames_per_buffer,1))
 
