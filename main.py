@@ -1,10 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
+from audio_input import AudioInputHandler
 from PyQt5.QtCore import Qt, QTimer
-from audio_playback import AudioPlayback
-from audio_input_handler import AudioInputHandler
 from waveform_plot import WaveformPlot
+from audio_playback import AudioPlayback
 from utils import time_format, hex_to_rgb
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
 
 
 class MainWindow(QMainWindow):
@@ -49,13 +49,13 @@ class MainWindow(QMainWindow):
         self.title_label.setText(self.playback.title)
 
         self.duration_label = QLabel()
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.audio.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.duration)}")
 
         self.score_label = QLabel()
-        self.score_label.setText("Score: ?")
+        self.score_label.setText("Score: 0")
 
         self.accuracy_label = QLabel()
-        self.accuracy_label.setText("Accuracy: ?%")
+        self.accuracy_label.setText("Accuracy: 0%")
 
         self.gamemode_label = QLabel()
         self.gamemode_label.setText("PRACTICE")
@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
             height=100,
             colour=hex_to_rgb(self.theme_colour)
         )
-        self.waveform.draw_plot(self.playback.audio)
+        self.waveform.draw_plot(self.playback)
         self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
@@ -235,11 +235,11 @@ class MainWindow(QMainWindow):
 
         if self.playback.ended: # Stop time progressing when song ends
             self._pause_button_pressed()
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.audio.duration)}")
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.duration)}")
         else:
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.playback.audio.duration)}")
+            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.playback.duration)}")
 
-        playhead_pos = int((song_pos / self.playback.audio.duration) * self.waveform.width)
+        playhead_pos = int((song_pos / self.playback.duration) * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
 
     def _play_button_pressed(self):
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         
         if mouse_x_pos < 0: # Prevent negative pos value
             mouse_x_pos = 0
-        new_song_pos = (mouse_x_pos / self.waveform.width) * self.playback.audio.duration
+        new_song_pos = (mouse_x_pos / self.waveform.width) * self.playback.duration
         
         # Show playhead when song is skipped if play button isn't pressed
         if self.playhead.isHidden():
@@ -302,10 +302,11 @@ class MainWindow(QMainWindow):
         # Update playhead and time display to skipped position
         playhead_pos = int(mouse_x_pos)
         self.playhead.move(playhead_pos, 0)
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.playback.audio.duration)}")
+        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.playback.duration)}")
 
-        # Reset timer count in case song skipped during count-in
+        # Case: song skipped during count-in
         if self.count_in_timer.isActive():
+            # Restart count
             self.count_in_timer.stop()
             self.playback.metronome_count = 0
             self.count_in_timer.start()
@@ -321,7 +322,7 @@ class MainWindow(QMainWindow):
         self.songpos_timer.stop()
         self.count_in_timer.start()
     
-    def _on_score_processed(self, score_information):
+    def _on_score_processed(self, score_info):
         """
         Called when a new batch of recorded user input has been processed.
         Currently updates the song's score and accuracy labels with values
@@ -329,23 +330,23 @@ class MainWindow(QMainWindow):
 
         Parameters
         ----------
-        score_information : tuple of int
+        score_info : tuple of int
             The user score, number of notes hit by the user, and total number
-            of notes returned by the compare_pitches method called in the
-            process_recorded_audio function.
+            of notes for the current batch of compared audio.
         """
-        score, notes_hit, total_notes = score_information
-        self.playback.user_score += score
-        self.playback.notes_hit += notes_hit
-        self.playback.total_notes += total_notes
+        score, notes_hit, total_notes = score_info
+        
+        self.playback.score_data["score"] += score
+        self.playback.score_data["notes_hit"] += notes_hit
+        self.playback.score_data["total_notes"] += total_notes
+
+        if self.playback.total_notes != 0: # Avoid divide by zero error
+            accuracy = (self.playback.score_data["notes_hit"]
+                        /self.playback.score_data["total_notes"]) * 100
+            self.playback.score_data["accuracy"] = accuracy
 
         self.score_label.setText(f"Score: {int(self.playback.user_score)}")
-
-        if self.playback.total_notes == 0:
-            self.accuracy_label.setText(f"Accuracy: ?%")
-        else:
-            accuracy = (self.playback.notes_hit/self.playback.total_notes) * 100
-            self.accuracy_label.setText(f"Accuracy: {round(accuracy, 1)}%")     
+        self.accuracy_label.setText(f"Accuracy: {round(self.playback.score_data['accuracy'], 1)}%")
 
     def _guitar_vol_slider_moved(self, value):
         """Updates the guitar track's volume when slider moved."""
