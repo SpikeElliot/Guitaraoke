@@ -148,13 +148,8 @@ class AudioPlayback(QThread):
         self.metronome_count = 0
         self.guitar_volume = 1
 
-        # Score information
-        self.score_data = {
-            "score": 0,
-            "notes_hit" : 0,
-            "total_notes" : 0,
-            "accuracy" : 0
-        }
+        # Initialise user score data
+        self._zero_score_data()
 
         # Open output stream
         self.stream = sd.OutputStream(
@@ -170,7 +165,7 @@ class AudioPlayback(QThread):
         print("\nPlayback started...")
         if self.ended:
             self.position = 0
-            self.user_score, self.notes_hit, self.total_notes = 0, 0, 0
+            self._zero_score_data()
 
         self.paused, self.ended = False, False
         self.stream.start()
@@ -215,7 +210,7 @@ class AudioPlayback(QThread):
             self.ended = False
 
         self.position = int(pos * self.RATE)
-        self.user_score, self.notes_hit, self.total_notes = 0, 0, 0
+        self._zero_score_data()
 
     def _callback(self, outdata, frames, time, status):
         """
@@ -245,3 +240,12 @@ class AudioPlayback(QThread):
         outdata[:frames] = audio_batch.reshape(-1,1)
 
         self.position = new_pos # Update song position
+    
+    def _zero_score_data(self):
+        """Reset all user score data to zero."""
+        self.score_data = {
+            "score": 0,
+            "notes_hit" : 0,
+            "total_notes" : 0,
+            "accuracy" : 0
+        }

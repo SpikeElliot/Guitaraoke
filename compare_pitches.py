@@ -24,7 +24,7 @@ def compare_pitches(user_pitches, song_pitches):
     
     Returns
     -------
-    score_information : tuple of int
+    score_info : tuple of int
         The user score, number of notes hit by the user, and total number
         of notes.
     """
@@ -60,5 +60,5 @@ def compare_pitches(user_pitches, song_pitches):
                 notes_hit += 1 - score_penalty
 
     score = int(notes_hit * 100)
-    score_information = (score, notes_hit, total_notes)
-    return score_information
+    score_info = (score, notes_hit, total_notes)
+    return score_info
