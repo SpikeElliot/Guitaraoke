@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 # import matplotlib.pyplot as plt
+from save_pitches import save_pitches
 from PyQt5.QtCore import QThread, QTimer
-from pitch_detection import save_pitches
-from guitar_separation import separate_guitar
+from separate_guitar import separate_guitar
 
 
 class AudioPlayback(QThread):

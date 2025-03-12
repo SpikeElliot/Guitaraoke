@@ -1,5 +1,5 @@
 import sys
-from audio_input import AudioInputHandler
+from audio_input import AudioInput
 from PyQt5.QtCore import Qt, QTimer
 from waveform_plot import WaveformPlot
 from audio_playback import AudioPlayback
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
             title="Sweet Child O' Mine (Intro Riff)",
             artist="Guns N' Roses"
         )
-        self.input = AudioInputHandler(self.playback)
+        self.input = AudioInput(self.playback)
         self.input.set_input_device(2)
         self.input.score_processed.connect(self._on_score_processed)
 
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
         """
         Called when a new batch of recorded user input has been processed.
         Currently updates the song's score and accuracy labels with values
-        received from the AudioInputHandler's process_recorded_audio function.
+        received from the AudioInput's _process_recording function.
 
         Parameters
         ----------

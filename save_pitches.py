@@ -1,6 +1,6 @@
-from basic_pitch.inference import predict_and_save
-from basic_pitch import ICASSP_2022_MODEL_PATH
 import os
+from basic_pitch import ICASSP_2022_MODEL_PATH
+from basic_pitch.inference import predict_and_save
 
 
 def save_pitches(path, input_recording=False):

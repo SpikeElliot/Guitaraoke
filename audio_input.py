@@ -1,18 +1,18 @@
-from PyQt5.QtCore import QThread, pyqtSignal
-import pandas as pd
-import threading
 import os
-import sounddevice as sd
-import tempfile
-import numpy as np
 import time
+import tempfile
+import threading
+import numpy as np
+import pandas as pd
+import sounddevice as sd
 from scipy.io.wavfile import write
-from pitch_detection import save_pitches
+from save_pitches import save_pitches
 from utils import preprocess_pitch_data
-from score_system import compare_pitches
+from compare_pitches import compare_pitches
+from PyQt5.QtCore import QThread, pyqtSignal
 
 
-class AudioInputHandler(QThread):
+class AudioInput(QThread):
     """
     Handles operations relating to audio input such as streaming and recording.
     Inherits from PyQt5 QThread.
@@ -33,14 +33,8 @@ class AudioInputHandler(QThread):
         The size of the audio input buffer in frames.
     OVERLAP_SIZE : int
         The size of the audio input overlapping window in frames.
-    score_processed : pyqtSignal
-        Connects the _process_recorded_audio method to the main application,
-        sending the returned "score" value to a different function.
-    song_pitch_data : DataFrame
-        The pandas DataFrame containing the loaded song's guitar track
-        predicted pitches.
     song : AudioPlayback
-        The song loaded for playback whose current time position and pitch data
+        The AudioPlayback object whose current time position and pitch data
         is needed.
     streaming : bool
         Whether the user's audio input is currently being recorded or not.
@@ -51,11 +45,11 @@ class AudioInputHandler(QThread):
         Sets the input device to use for the sounddevice input stream by index
         in input_devices list.
     """
-    score_processed = pyqtSignal(tuple)
+    score_processed = pyqtSignal(tuple) # Connects the QThread to the GUI
 
     def __init__(self, song):
         """
-        The constructor for the AudioInputHandler class.
+        The constructor for the AudioInput class.
         
         Parameters
         ----------
@@ -64,12 +58,14 @@ class AudioInputHandler(QThread):
             is needed.
         """
         super().__init__()
+        self.song = song
         self.CHANNELS = 1
         self.RATE = 44100
-        self.DTYPE = "float32" # Datatype used by audio processing libraries
+        self.DTYPE = "float32" 
         
         # Audio input stream is saved in 1 second windows to prevent notes from
         # being cut off, as is the case when using sounddevice's rec function.
+        self.stream = None
         self.BUFFER_SIZE = int(self.RATE * 5)
         self.OVERLAP_SIZE = int(self.RATE * 1)
         self.buffer = np.zeros(self.BUFFER_SIZE)
@@ -77,9 +73,7 @@ class AudioInputHandler(QThread):
 
         self.input_devices = self._find_input_devices()
         self.input_device_index = 0
-        self.song = song
-        self.streaming = False
-        self.set_input_device(self.input_device_index)
+        self.set_input_device(self.input_device_index)        
 
     def _find_input_devices(self):
         """Return a list of available audio input devices."""
@@ -100,6 +94,10 @@ class AudioInputHandler(QThread):
         input_dev_idx : int
             The input_devices list index of the desired input device.
         """
+        # Terminate previous input stream
+        if self.stream:
+            self.stream.abort()
+
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
         self.stream = sd.InputStream(
@@ -109,9 +107,7 @@ class AudioInputHandler(QThread):
             dtype=self.DTYPE,
             callback=self._callback,
         )
-
-    # TODO: Move input streaming logic and record-processing loop to a dedicated
-    # streaming class?
+        self.streaming = False
     
     def _callback(self, indata, frames, time, status):
         """
@@ -120,7 +116,7 @@ class AudioInputHandler(QThread):
         """
         self.audio_blocks = np.append(self.audio_blocks, indata)
 
-    def _process_recorded_audio(self):
+    def _process_recording(self):
         """
         Convert the user input recording into a MIDI file, and compare the
         user's predicted pitches to the audio file's aligned at the correct
@@ -157,7 +153,7 @@ class AudioInputHandler(QThread):
                 # Convert user and song pitches to dicts of note event sequences
                 user_pitches = preprocess_pitch_data(user_pitches)
                 song_pitches = preprocess_pitch_data(
-                    self.song.audio.pitches,
+                    self.song.pitches,
                     slice_start=current_time - (self.BUFFER_SIZE / self.RATE),
                     slice_end=current_time
                 )
@@ -166,7 +162,7 @@ class AudioInputHandler(QThread):
                 # print("user pitches:",user_pitches)
                 # print("song pitches:",song_pitches)
 
-                score_information = compare_pitches(
+                score_info = compare_pitches(
                     user_pitches, 
                     song_pitches
                 )
@@ -177,7 +173,7 @@ class AudioInputHandler(QThread):
                 os.unlink(temp_recording.name)
 
                 # Send score information to GUI
-                self.score_processed.emit(score_information)
+                self.score_processed.emit(score_info)
 
             time.sleep(0.01) # Reduce CPU load
         
@@ -187,7 +183,7 @@ class AudioInputHandler(QThread):
         self.stream.start()
         self.streaming = True
         audio_processing_thread = threading.Thread(
-            target=self._process_recorded_audio,
+            target=self._process_recording,
         )
         audio_processing_thread.daemon = True
         audio_processing_thread.start()

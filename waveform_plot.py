@@ -1,6 +1,6 @@
-import pyqtgraph as pg
-import numpy as np
 import librosa
+import numpy as np
+import pyqtgraph as pg
 
 
 class WaveformPlot(pg.PlotWidget):
@@ -10,7 +10,7 @@ class WaveformPlot(pg.PlotWidget):
     Attributes
     ----------
     width : int
-            The fixed width of the PlotWidget.
+        The fixed width of the PlotWidget.
     height : int
         The fixed height of the PlotWidget.
     background_colour : tuple of int, default=(255,255,255)
@@ -67,8 +67,8 @@ class WaveformPlot(pg.PlotWidget):
 
         Parameters
         ----------
-        audio : AudioLoadHandler
-            The AudioLoadHandler object whose audio time series data (frames) 
+        audio : AudioPlayback
+            The AudioPlayback object whose audio time series data (frames) 
             will be used.
         """
         # Preserves a minimum number of 1000 points on the graph if audio file
