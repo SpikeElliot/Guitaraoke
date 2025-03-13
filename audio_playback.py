@@ -147,6 +147,7 @@ class AudioPlayback(QThread):
         self.position = 0
         self.metronome_count = 0
         self.guitar_volume = 1
+        self.loop_markers = [None,None]
 
         # Initialise user score data
         self._zero_score_data()
@@ -210,7 +211,6 @@ class AudioPlayback(QThread):
             self.ended = False
 
         self.position = int(pos * self.RATE)
-        self._zero_score_data()
 
     def _callback(self, outdata, frames, time, status):
         """

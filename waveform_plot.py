@@ -59,6 +59,7 @@ class WaveformPlot(pg.PlotWidget):
         self.showAxes(False)
         self.hideButtons()
         self.setMouseEnabled(False, False)
+        self.setMenuEnabled(False) # Disable context menu blocking right click
 
     def draw_plot(self, audio):
         """
