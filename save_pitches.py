@@ -3,7 +3,7 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 from basic_pitch.inference import predict_and_save
 
 
-def save_pitches(path, input_recording=False):
+def save_pitches(path, sonify=False, temp=False):
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.
@@ -12,33 +12,33 @@ def save_pitches(path, input_recording=False):
     ----------
     path : str
         The path of the audio file to make pitch predictions for.
-    input_recording : bool, default=False
-        Whether the audio file is a loaded song (False) or a temporary
-        user input recording (True).
+    sonify : bool, default=False
+        Whether to render audio from predicted MIDI and save to an audio file.
+    temp : bool, default=False
+        Whether the audio file is a saved song or a temporary recording.
+        
     Returns
     -------
-    pitches_path : str
-        The file path to the note events CSV file resultant from the pitch
-        prediction.
+    paths : list of str
+        The file paths to the note events CSV file [0], and the sonified
+        MIDI file [1] if sonify=True.
     """
+    assert os.path.isfile(path), "File does not exist"
     output_folder = "./pitch_predictions"
     filename = ""
-    sonify = False
-
-    # Case: path is for a temporary audio input recording file
-    if input_recording:
+    
+    # Case: path is to a temp audio input recording file
+    if temp:
         filename = path.split(".")[0].split("\\")[-1]
         # Make directory for audio input predictions if not exists
         os.makedirs( f"./pitch_predictions/temp", exist_ok=True)
         output_folder += "/temp"
-    # Case: path is for a loaded audio file that will be played
-    else:
+    else: # Case: path is to a loaded audio file
         filedir = path.split("/")[-2]
         filename = path.split(".")[-2].split("/")[-1]
         # Make directory for song pitch predictions
         os.makedirs( f"./pitch_predictions/songs/{filedir}", exist_ok=True)
         output_folder += f"/songs/{filedir}"
-        sonify = True
 
     predict_and_save(
         [path], # Input file path
@@ -51,4 +51,8 @@ def save_pitches(path, input_recording=False):
         minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
         multiple_pitch_bends=True, # More accurate to bending of guitar notes
     )
-    return f"{output_folder}/{filename}_basic_pitch.csv"
+
+    paths = [f"{output_folder}/{filename}_basic_pitch.csv"]
+    if sonify:
+        paths.append(f"{output_folder}/{filename}_basic_pitch.wav")
+    return paths

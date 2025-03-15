@@ -139,7 +139,7 @@ class AudioInput(QThread):
                 buffer_size_s = self.BUFFER_SIZE / self.RATE # In seconds
             
                 # Save predicted user pitches to a temp CSV file
-                user_pitches_path = save_pitches(temp_recording.name, input_recording=True)
+                user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
                 user_pitches = pd.read_csv( # Convert pitches CSV to a pandas DataFrame
                     user_pitches_path,
                     sep=None,

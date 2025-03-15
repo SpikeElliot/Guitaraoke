@@ -73,8 +73,8 @@ class AudioPlayback(QThread):
         self.CHANNELS = 1
         self.RATE = 44100
         sd.default.samplerate = self.RATE
-        self.DTYPE = "float32" # Datatype used by audio processing libraries
         self.BLOCK_SIZE = 4096 # Increases latency but stops glitching/freezing
+        self.DTYPE = "float32" # Datatype preferred by audio processing libraries
         self.load(path, title, artist)
         
     def load(self, path, title="Unknown", artist="Unknown"):
@@ -90,8 +90,7 @@ class AudioPlayback(QThread):
         artist : str, default="Unknown"
             The artist attributed to the loaded audio file.
         """
-        # When loading a new song, immediately terminate audio processing of
-        # previous song's stream
+        # When loading a new song, immediately terminate previous stream
         if self.stream:
             self.stream.abort()
 
@@ -110,7 +109,7 @@ class AudioPlayback(QThread):
         # If song has not been processed, perform guitar separation and pitch detection
         if not os.path.isdir(separated_tracks_dir):
             guitar_track_path, no_guitar_track_path = separate_guitar(self.path)
-            guitar_pitches_path = save_pitches(guitar_track_path)
+            guitar_pitches_path = save_pitches(guitar_track_path)[0]
         else: # Otherwise, load tracks and pitches
             guitar_track_path = separated_tracks_dir + "guitar.wav"
             no_guitar_track_path = separated_tracks_dir + "no_guitar.wav"
