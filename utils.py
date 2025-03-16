@@ -1,4 +1,5 @@
 import math
+import pandas as pd
 
 
 def time_format(time: float) -> str:
@@ -16,6 +17,19 @@ def time_format(time: float) -> str:
 def hex_to_rgb(hex_string: str) -> tuple:
     """Takes a hex triplet and converts it to RGB values."""
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
+
+def csv_to_pitches_dataframe(path):
+    """
+    Use pandas read_csv function to read a CSV file as a DataFrame, dropping
+    unwanted columns and sorting by note onset times.
+    """
+    pitches = pd.read_csv(
+        path, 
+        sep=None,
+        engine="python",
+        index_col=False
+    ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
+    return pitches
 
 def preprocess_pitch_data(pitches, slice_start=None, slice_end=None):
     """

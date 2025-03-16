@@ -7,9 +7,9 @@ import pandas as pd
 import sounddevice as sd
 from scipy.io.wavfile import write
 from save_pitches import save_pitches
-from utils import preprocess_pitch_data
 from compare_pitches import compare_pitches
 from PyQt5.QtCore import QThread, pyqtSignal
+from utils import preprocess_pitch_data, csv_to_pitches_dataframe
 
 
 class AudioInput(QThread):
@@ -140,12 +140,7 @@ class AudioInput(QThread):
             
                 # Save predicted user pitches to a temp CSV file
                 user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
-                user_pitches = pd.read_csv( # Convert pitches CSV to a pandas DataFrame
-                    user_pitches_path,
-                    sep=None,
-                    engine="python",
-                    index_col=False
-                ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
+                user_pitches = csv_to_pitches_dataframe(user_pitches_path)
                 
                 # Align user note event times to current song position
                 user_pitches["start_time_s"] = user_pitches["start_time_s"] + (current_time - buffer_size_s)

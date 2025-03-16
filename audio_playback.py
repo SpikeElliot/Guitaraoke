@@ -1,12 +1,11 @@
 import os
 import librosa
 import numpy as np
-import pandas as pd
 import sounddevice as sd
-# import matplotlib.pyplot as plt
 from save_pitches import save_pitches
 from PyQt5.QtCore import QThread, QTimer
 from separate_guitar import separate_guitar
+from utils import csv_to_pitches_dataframe
 
 
 class AudioPlayback(QThread):
@@ -116,16 +115,7 @@ class AudioPlayback(QThread):
             guitar_pitches_path = f"./pitch_predictions/songs/{self.filename}/guitar_basic_pitch.csv"
 
         # Convert pitches CSV to a pandas DataFrame
-        self.pitches = pd.read_csv(
-            guitar_pitches_path, 
-            sep=None,
-            engine="python",
-            index_col=False
-        ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
-        
-        # print(self.pitches.head())
-        # plt.scatter(self.pitches.start_time_s, self.pitches.pitch_midi)
-        # plt.show()
+        self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
         
         # Get guitar and no_guitar tracks' audio time series
         self.guitar_data = librosa.load(guitar_track_path, sr=self.RATE)[0]

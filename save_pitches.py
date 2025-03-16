@@ -29,13 +29,15 @@ def save_pitches(path, sonify=False, temp=False):
     
     # Case: path is to a temp audio input recording file
     if temp:
-        filename = path.split(".")[0].split("\\")[-1]
+        filename = path.split(".")[-2].split("\\")[-1]
+
         # Make directory for audio input predictions if not exists
         os.makedirs( f"./pitch_predictions/temp", exist_ok=True)
         output_folder += "/temp"
     else: # Case: path is to a loaded audio file
         filedir = path.split("/")[-2]
         filename = path.split(".")[-2].split("/")[-1]
+        
         # Make directory for song pitch predictions
         os.makedirs( f"./pitch_predictions/songs/{filedir}", exist_ok=True)
         output_folder += f"/songs/{filedir}"

@@ -10,6 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from save_pitches import save_pitches
+from utils import csv_to_pitches_dataframe
 
 
 class TestSavePitches(unittest.TestCase):
@@ -35,6 +36,28 @@ class TestSavePitches(unittest.TestCase):
         # Assert there are zero predicted notes from silent audio
         note_count = test_note_events.shape[0]
         self.assertEqual(note_count, 0)
+
+    def test_monotone_audio(self):
+        # Save predicted notes from C3 sine test audio file
+        test_pitches_path = save_pitches(".\\tests\\test_audio\\C3_sine_test.wav", temp=True)[0]
+        test_notes_events = csv_to_pitches_dataframe(test_pitches_path)
+        os.remove(test_pitches_path)
+
+        # Assert there is only one correct pitch detected (C3 = 60)
+        unique_pitches = test_notes_events["pitch_midi"].unique()
+        self.assertEqual(unique_pitches, [60])
+
+    def test_note_start_times(self):
+        # Save predicted notes from test audio file where note start times have
+        # an interval of exactly one second
+        test_pitches_path = save_pitches(".\\tests\\test_audio\\1s_interval_test.wav", temp=True)[0]
+        test_notes_events = csv_to_pitches_dataframe(test_pitches_path)
+        os.remove(test_pitches_path)
+
+        # Assert all predicted note onset times are accurate within 20ms
+        note_start_times = test_notes_events["start_time_s"]
+        for time in note_start_times:
+            self.assertAlmostEqual(time, round(time), delta=0.02)
 
 
 if __name__=="__main__":
