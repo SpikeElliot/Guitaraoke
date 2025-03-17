@@ -72,8 +72,8 @@ class AudioPlayback(QThread):
         self.CHANNELS = 1
         self.RATE = 44100
         sd.default.samplerate = self.RATE
-        self.BLOCK_SIZE = 4096 # Increases latency but stops glitching/freezing
         self.DTYPE = "float32" # Datatype preferred by audio processing libraries
+        self.BLOCK_SIZE = 2048 # Minimise latency while preventing glitching/freezing
         self.load(path, title, artist)
         
     def load(self, path, title="Unknown", artist="Unknown"):
@@ -137,6 +137,7 @@ class AudioPlayback(QThread):
         self.metronome_count = 0
         self.guitar_volume = 1
         self.loop_markers = [None,None]
+        self.looping = False
 
         # Initialise user score data
         self._zero_score_data()
@@ -154,6 +155,7 @@ class AudioPlayback(QThread):
         """Play or unpause audio playback."""
         print("\nPlayback started...")
         if self.ended:
+            # Reset song pos to start of song
             self.position = 0
             self._zero_score_data()
 
@@ -220,9 +222,26 @@ class AudioPlayback(QThread):
             frames = new_pos - self.position
             self.ended = True
 
-        # Load guitar and no_guitar batches for current position
-        guitar_batch = self.guitar_data[self.position:new_pos]
-        no_guitar_batch = self.no_guitar_data[self.position:new_pos]
+        # Case: end of loop is reached during looping
+        if self.looping and new_pos >= self.loop_markers[1]:
+            overflow_frames = new_pos - self.loop_markers[1]
+            # Set new pos to correct position after loop
+            new_pos = self.loop_markers[0] + overflow_frames
+
+            # Get all frames before right loop marker, and concatenate with
+            # all frames needed after loop
+            guitar_batch = np.concatenate((
+                self.guitar_data[self.position:self.loop_markers[1]],
+                self.guitar_data[self.loop_markers[0]:new_pos]
+            ))
+            no_guitar_batch = np.concatenate((
+                self.no_guitar_data[self.position:self.loop_markers[1]],
+                self.no_guitar_data[self.loop_markers[0]:new_pos]
+            ))
+        else:
+            # No loop, load guitar and no_guitar batches as normal
+            guitar_batch = self.guitar_data[self.position:new_pos]
+            no_guitar_batch = self.no_guitar_data[self.position:new_pos]
 
         # Sum the amplitudes of the two tracks to get full mix values
         audio_batch = (guitar_batch * self.guitar_volume) + no_guitar_batch

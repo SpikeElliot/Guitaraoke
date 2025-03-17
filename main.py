@@ -266,7 +266,10 @@ class MainWindow(QMainWindow):
         self.count_in_timer.start()
         
     def _count_in(self):
-        """When count-in timer finished, start audio playback, input recording, and songpos timer."""
+        """
+        When count-in timer finished, start audio playback, song position
+        update timer, and input recording.
+        """
         if self.playback.play_count_in_metronome(self.count_in_timer):
             # Start audio playback
             self.playback.start()
@@ -306,41 +309,46 @@ class MainWindow(QMainWindow):
         if keyboard_mods == Qt.ShiftModifier:
             left_marker = self.playback.loop_markers[0]
             right_marker = self.playback.loop_markers[1]
+            new_song_pos_in_frames = int(new_song_pos * self.playback.RATE)
 
             # Update left marker
             if mouse_button == 1:
                 if not right_marker:
-                    left_marker = new_song_pos
+                    left_marker = new_song_pos_in_frames
                 else:
-                    if new_song_pos > right_marker:
+                    self.playback.looping = True
+                    if new_song_pos_in_frames > right_marker:
                         # Invert markers if new left marker > right marker
                         left_marker = right_marker
-                        right_marker = new_song_pos
+                        right_marker = new_song_pos_in_frames
                     else:
-                        left_marker = new_song_pos
-            # Update left marker
+                        left_marker = new_song_pos_in_frames
+            # Update right marker
             elif mouse_button == 2:
                 if not left_marker:
-                    right_marker = new_song_pos
+                    right_marker = new_song_pos_in_frames
                 else:
-                    if new_song_pos < left_marker:
+                    self.playback.looping = True
+                    if new_song_pos_in_frames < left_marker:
                         # Invert markers if new right marker < left marker
                         right_marker = left_marker
-                        left_marker = new_song_pos
+                        left_marker = new_song_pos_in_frames
                     else:
-                        right_marker = new_song_pos
+                        right_marker = new_song_pos_in_frames
 
             # Show the loop window widget when its area has been created by
             # the left and right markers
-            if left_marker and right_marker:
+            if self.playback.looping:
                 # Position of second marker needs to be found by converting
                 # song position to coordinate
-                if left_marker == new_song_pos:
-                    x_pos_2 = int(((right_marker / self.playback.duration)
+                if left_marker == new_song_pos_in_frames:
+                    x_pos_2 = int((((right_marker/self.playback.RATE) 
+                                    / self.playback.duration)
                                     * self.waveform.width))
                     self.loop_window.move(mouse_x_pos, 0)
                 else:
-                    x_pos_2 = int(((left_marker / self.playback.duration)
+                    x_pos_2 = int((((left_marker/self.playback.RATE) 
+                                    / self.playback.duration)
                                     * self.waveform.width))
                     self.loop_window.move(x_pos_2, 0)
 
@@ -348,14 +356,15 @@ class MainWindow(QMainWindow):
                 self.loop_window.resize(loop_window_width,  100)
                 self.loop_window.show()
                 
+            # Update playback loop markers (in frames)
             self.playback.loop_markers[0] = left_marker
             self.playback.loop_markers[1] = right_marker
 
             # Print song loop markers to console (testing)
             if left_marker:
-                print(f"\nLeft marker: {time_format(left_marker)}")
+                print(f"\nLeft marker: {time_format(left_marker/self.playback.RATE)}")
             if right_marker:
-                print(f"Right marker: {time_format(right_marker)}")
+                print(f"Right marker: {time_format(right_marker/self.playback.RATE)}")
             return
         
         if mouse_button != 1: # Left mouse button
