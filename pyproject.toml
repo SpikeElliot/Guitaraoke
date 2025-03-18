@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guitaraoke"
+version = "0.1"
+dependencies = [
+    "numpy", 
+    "pandas", 
+    "PyQt5", 
+    "pyqtgraph", 
+    "sounddevice", 
+    "librosa", 
+    "demucs", 
+    "basic_pitch", 
+    "scipy"
+]
+requires-python = "==3.11.11"
+description = "A guitar karaoke app with real-time performance feedback to help users learn to play new songs."
+authors = [{name = "Spike Elliot"}]
+license = {text = "MIT"}

@@ -1,10 +1,10 @@
 import sys
 import numpy as np
-from audio_input import AudioInput
 from PyQt5.QtCore import Qt, QTimer
-from waveform_plot import WaveformPlot
-from audio_playback import AudioPlayback
-from utils import time_format, hex_to_rgb
+from guitaraoke.audio_input import AudioInput
+from guitaraoke.waveform_plot import WaveformPlot
+from guitaraoke.audio_playback import AudioPlayback
+from guitaraoke.utils import time_format, hex_to_rgb
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
 
 
@@ -14,13 +14,12 @@ class MainWindow(QMainWindow):
         """The constructor for the MainWindow class."""
         super().__init__()
 
-        self.WIDTH = 1440
-        self.HEIGHT = 500
+        self.WIDTH, self.HEIGHT = 1440, 500
         self.theme_colour = "#0070DF"
 
         # Hard-coded for now
         self.playback = AudioPlayback( 
-            path="./assets/sweetchildomine_intro_riff.wav",
+            path="./assets/audio/sweetchildomine_intro_riff.wav",
             title="Sweet Child O' Mine (Intro Riff)",
             artist="Guns N' Roses"
         )
@@ -41,7 +40,9 @@ class MainWindow(QMainWindow):
         # Song Information Labels
 
         song_info_layout = QVBoxLayout()
-        song_info_top_row, song_info_middle_row, song_info_bottom_row = QHBoxLayout(), QHBoxLayout(), QHBoxLayout()
+        song_info_top_row = QHBoxLayout()
+        song_info_middle_row = QHBoxLayout()
+        song_info_bottom_row = QHBoxLayout()
 
         self.artist_label = QLabel()
         self.artist_label.setText(self.playback.artist)
@@ -50,7 +51,10 @@ class MainWindow(QMainWindow):
         self.title_label.setText(self.playback.title)
 
         self.duration_label = QLabel()
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.duration)}")
+        duration_text = f"<font color='{self.theme_colour}'>"
+        duration_text += f"00:00.00</font> / "
+        duration_text += f"{time_format(self.playback.duration)}"
+        self.duration_label.setText(duration_text)
 
         self.score_label = QLabel()
         self.score_label.setText("Score: 0")
@@ -62,19 +66,31 @@ class MainWindow(QMainWindow):
         self.gamemode_label.setText("PRACTICE")
 
         song_info_top_row.addSpacing(int(self.WIDTH*0.05))
-        song_info_top_row.addWidget(self.gamemode_label, alignment=Qt.AlignLeft)
-        song_info_top_row.addWidget(self.artist_label, alignment=Qt.AlignCenter)
-        song_info_top_row.addWidget(self.score_label, alignment=Qt.AlignRight)
+        song_info_top_row.addWidget(
+            self.gamemode_label, alignment=Qt.AlignLeft
+        )
+        song_info_top_row.addWidget(
+            self.artist_label, alignment=Qt.AlignCenter
+        )
+        song_info_top_row.addWidget(
+            self.score_label, alignment=Qt.AlignRight
+        )
         song_info_top_row.addSpacing(int(self.WIDTH*0.05))
         
         song_info_middle_row.addSpacing(int(self.WIDTH*0.05))
         song_info_middle_row.addWidget(QLabel()) # Temporary
-        song_info_middle_row.addWidget(self.title_label, alignment=Qt.AlignCenter)
-        song_info_middle_row.addWidget(self.accuracy_label, alignment=Qt.AlignRight)
+        song_info_middle_row.addWidget(
+            self.title_label, alignment=Qt.AlignCenter
+        )
+        song_info_middle_row.addWidget(
+            self.accuracy_label, alignment=Qt.AlignRight
+        )
         song_info_middle_row.addSpacing(int(self.WIDTH*0.05))
 
         song_info_bottom_row.addStretch(1)
-        song_info_bottom_row.addWidget(self.duration_label, alignment=Qt.AlignCenter)
+        song_info_bottom_row.addWidget(
+            self.duration_label, alignment=Qt.AlignCenter
+        )
         song_info_bottom_row.addStretch(1)
 
         song_info_layout.addLayout(song_info_top_row)
@@ -108,7 +124,9 @@ class MainWindow(QMainWindow):
 
         # Overlay playhead on waveform
         waveform_layout = QHBoxLayout(self.waveform) 
-        waveform_layout.addWidget(self.playhead, alignment=Qt.AlignLeft)
+        waveform_layout.addWidget(
+            self.playhead, alignment=Qt.AlignLeft
+        )
         
         # Audio Playback Controls
 
@@ -127,13 +145,15 @@ class MainWindow(QMainWindow):
         self.guitar_vol_slider.setRange(0, 100)
         self.guitar_vol_slider.setPageStep(5)
         self.guitar_vol_slider.setSliderPosition(100)
-        self.guitar_vol_slider.valueChanged.connect(self._guitar_vol_slider_moved)
+        self.guitar_vol_slider.valueChanged.connect(
+            self._guitar_vol_slider_moved
+        )
 
         # Guitar volume value label
         self.guitar_vol_val_label = QLabel()
         self.guitar_vol_val_label.setText("100%")
 
-        #Buttons
+        # Buttons
         button_width = 100
 
         # Play button
@@ -153,14 +173,28 @@ class MainWindow(QMainWindow):
         self.pause_button.setFixedWidth(button_width)
         self.pause_button.clicked.connect(self._pause_button_pressed)
         
-        controls_layout_top_row.addWidget(self.guitar_vol_label, alignment=Qt.AlignRight)
+        controls_layout_top_row.addWidget( # "Guitar Volume" text label
+            self.guitar_vol_label, alignment=Qt.AlignRight
+        )
         controls_layout_top_row.addSpacing(10)
-        controls_layout_top_row.addWidget(self.guitar_vol_slider, alignment=Qt.AlignCenter)
-        controls_layout_top_row.addSpacing(10)
-        controls_layout_top_row.addWidget(self.guitar_vol_val_label, alignment=Qt.AlignLeft)
 
-        controls_layout_bottom_row.addWidget(self.play_button, 0, 0, alignment=Qt.AlignCenter)
-        controls_layout_bottom_row.addWidget(self.pause_button, 0, 0, alignment=Qt.AlignCenter)
+        controls_layout_top_row.addWidget( # Guitar volume slider
+            self.guitar_vol_slider, alignment=Qt.AlignCenter
+        )
+        controls_layout_top_row.addSpacing(10)
+
+        controls_layout_top_row.addWidget( # Guitar volume value label
+            self.guitar_vol_val_label, alignment=Qt.AlignLeft
+        )
+
+        controls_layout_bottom_row.addWidget( # Play button
+            self.play_button, 0, 0, alignment=Qt.AlignCenter
+        )
+
+        controls_layout_bottom_row.addWidget( # Pause button
+            self.pause_button, 0, 0, alignment=Qt.AlignCenter
+        )
+
         controls_layout_bottom_row.setHorizontalSpacing(20)
         controls_layout_bottom_row.setContentsMargins(
             int(self.WIDTH*0.05), int(self.HEIGHT*0.05),
@@ -174,7 +208,9 @@ class MainWindow(QMainWindow):
         
         layout = QVBoxLayout()
         layout.addLayout(song_info_layout)
-        layout.addWidget(self.waveform, alignment=Qt.AlignCenter)
+        layout.addWidget(
+            self.waveform, alignment=Qt.AlignCenter
+        )
         layout.addLayout(controls_layout)
         
         # Container for main layout
@@ -241,18 +277,26 @@ class MainWindow(QMainWindow):
     def _update_songpos(self):
         """Update song_duration label and playhead every 10ms."""
         # Show playhead first time play button is clicked
-        if self.playhead.isHidden():
-            self.playhead.show()
+        if self.playhead.isHidden() : self.playhead.show()
         
         song_pos = self.playback.get_pos()
 
-        if self.playback.ended: # Stop time progressing when song ends
+        duration_text = f"<font color='{self.theme_colour}'>"
+        if self.playback.ended: 
+            # Stop time progressing when song ends
             self._pause_button_pressed()
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>00:00.00</font> / {time_format(self.playback.duration)}")
-        else:
-            self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font> / {time_format(self.playback.duration)}")
 
-        playhead_pos = int((song_pos / self.playback.duration) * self.waveform.width)
+            # Set song time display back to 0
+            duration_text += f"00:00.00</font> / {time_format(self.playback.duration)}"
+            self.duration_label.setText(duration_text)
+        else:
+            # Update the song duration label with new time
+            duration_text += f"{time_format(song_pos)}</font> "
+            duration_text += f"/ {time_format(self.playback.duration)}"
+            self.duration_label.setText(duration_text)
+
+        playhead_pos = int((song_pos/self.playback.duration)
+                            * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
 
     def _play_button_pressed(self):
@@ -301,20 +345,21 @@ class MainWindow(QMainWindow):
         mouse_button = mouseClickEvent.button()
         keyboard_mods = mouseClickEvent.modifiers()
         
-        if mouse_x_pos < 0: # Prevent negative pos value
-            mouse_x_pos = 0
-        new_song_pos = (mouse_x_pos / self.waveform.width) * self.playback.duration
+        if mouse_x_pos < 0 : mouse_x_pos = 0 # Prevent negative pos value
+
+        new_song_pos = ((mouse_x_pos/self.waveform.width)
+                        * self.playback.duration)
 
         # Case: shift button held
         if keyboard_mods == Qt.ShiftModifier:
             left_marker = self.playback.loop_markers[0]
             right_marker = self.playback.loop_markers[1]
+
             new_song_pos_in_frames = int(new_song_pos * self.playback.RATE)
 
-            # Update left marker
+            # Update left marker when left mouse pressed
             if mouse_button == 1:
-                if not right_marker:
-                    left_marker = new_song_pos_in_frames
+                if not right_marker : left_marker = new_song_pos_in_frames
                 else:
                     self.playback.looping = True
                     if new_song_pos_in_frames > right_marker:
@@ -323,10 +368,9 @@ class MainWindow(QMainWindow):
                         right_marker = new_song_pos_in_frames
                     else:
                         left_marker = new_song_pos_in_frames
-            # Update right marker
+            # Update right marker when right mouse pressed
             elif mouse_button == 2:
-                if not left_marker:
-                    right_marker = new_song_pos_in_frames
+                if not left_marker : right_marker = new_song_pos_in_frames
                 else:
                     self.playback.looping = True
                     if new_song_pos_in_frames < left_marker:
@@ -336,19 +380,20 @@ class MainWindow(QMainWindow):
                     else:
                         right_marker = new_song_pos_in_frames
 
+            if left_marker : left_marker_in_s = left_marker/self.playback.RATE
+            if right_marker : right_marker_in_s = right_marker/self.playback.RATE
+
             # Show the loop window widget when its area has been created by
             # the left and right markers
             if self.playback.looping:
                 # Position of second marker needs to be found by converting
                 # song position to coordinate
                 if left_marker == new_song_pos_in_frames:
-                    x_pos_2 = int((((right_marker/self.playback.RATE) 
-                                    / self.playback.duration)
+                    x_pos_2 = int(((right_marker_in_s/self.playback.duration)
                                     * self.waveform.width))
                     self.loop_window.move(mouse_x_pos, 0)
                 else:
-                    x_pos_2 = int((((left_marker/self.playback.RATE) 
-                                    / self.playback.duration)
+                    x_pos_2 = int(((left_marker_in_s/self.playback.duration)
                                     * self.waveform.width))
                     self.loop_window.move(x_pos_2, 0)
 
@@ -361,18 +406,16 @@ class MainWindow(QMainWindow):
             self.playback.loop_markers[1] = right_marker
 
             # Print song loop markers to console (testing)
-            if left_marker:
-                print(f"\nLeft marker: {time_format(left_marker/self.playback.RATE)}")
-            if right_marker:
-                print(f"Right marker: {time_format(right_marker/self.playback.RATE)}")
+            if left_marker : print(f"\nLeft marker: {time_format(left_marker_in_s)}")
+            if right_marker : print(f"Right marker: {time_format(right_marker_in_s)}")
             return
         
-        if mouse_button != 1: # Left mouse button
-            return
+        if mouse_button != 1 : return 
+
+        # Case: only left mouse button pressed
         
         # Show playhead when song is skipped if play button isn't pressed
-        if self.playhead.isHidden():
-            self.playhead.show()
+        if self.playhead.isHidden() : self.playhead.show()
 
         self.playback.set_pos(new_song_pos) # Update song pos
 
@@ -383,7 +426,11 @@ class MainWindow(QMainWindow):
         # Update playhead and time display to skipped position
         playhead_pos = int(mouse_x_pos)
         self.playhead.move(playhead_pos, 0)
-        self.duration_label.setText(f"<font color='{self.theme_colour}'>{time_format(new_song_pos)}</font> / {time_format(self.playback.duration)}")
+
+        duration_text = f"<font color='{self.theme_colour}'>"
+        duration_text += f"{time_format(new_song_pos)}</font> / "
+        duration_text += f"{time_format(self.playback.duration)}"
+        self.duration_label.setText(duration_text)
 
         # Case: song skipped during count-in
         if self.count_in_timer.isActive():
@@ -392,8 +439,7 @@ class MainWindow(QMainWindow):
             self.playback.metronome_count = 0
             self.count_in_timer.start()
             return
-        elif self.playback.paused:
-            return
+        elif self.playback.paused : return
         
         # Pause playback and recording, start a count-in
         self.playback.stop()
@@ -425,7 +471,9 @@ class MainWindow(QMainWindow):
             self.playback.score_data["accuracy"] = accuracy
 
         self.score_label.setText(f"Score: {self.playback.score_data['score']}")
-        self.accuracy_label.setText(f"Accuracy: {round(self.playback.score_data['accuracy'], 1)}%")
+
+        new_acc = self.playback.score_data["accuracy"]
+        self.accuracy_label.setText(f"Accuracy: {round(new_acc, 1)}%")
 
     def _guitar_vol_slider_moved(self, value):
         """Updates the guitar track's volume when slider moved."""

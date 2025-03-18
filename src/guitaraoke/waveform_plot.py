@@ -29,7 +29,7 @@ class WaveformPlot(pg.PlotWidget):
             self, 
             width,
             height,
-            background_colour=(255,255,255),
+            bg_colour=(255,255,255),
             colour=(0,0,0)
         ):
         """
@@ -48,11 +48,9 @@ class WaveformPlot(pg.PlotWidget):
         """
         super().__init__()
 
-        self.width = width
-        self.height = height
-        self.background_colour = background_colour
-        self.colour = colour
-        self.setBackground(self.background_colour)
+        self.width, self.height = width, height
+        self.bg_colour, self.colour = bg_colour, colour
+        self.setBackground(self.bg_colour)
         self.setFixedSize(self.width, self.height)
 
         # Set plot properties

@@ -10,7 +10,7 @@ import numpy as np
 #
 # Due to overlapping recordings, duplicate notes are being counted every loop.
 # A method of filtering duplicates from score calculations needs to be found.
-def compare_pitches(user_pitches, song_pitches):
+def compare_pitches(user_pitches : dict, song_pitches : dict):
     """
     Take two dicts containing note event sequences for all possible MIDI pitches
     and compare note appearances and timings for each pitch, returning a score
@@ -38,14 +38,12 @@ def compare_pitches(user_pitches, song_pitches):
         total_notes += len(song_note_events)
 
         # Case: No notes in song
-        if len(song_note_events) == 0:
-            continue
+        if len(song_note_events) == 0 : continue
         
-        if len(user_note_events) == 0:
-            # TODO: At some point the issue of the user not being able to play
-            # the rhythm and lead notes concurrently needs to be addressed 
-            # somehow to make scoring fairer
-            continue
+        # TODO: At some point the issue of the user not being able to play
+        # the rhythm and lead notes concurrently needs to be addressed 
+        # somehow to make scoring fairer
+        if len(user_note_events) == 0 : continue
 
         # Case: Note events found in both sources
         for note_time in song_note_events:

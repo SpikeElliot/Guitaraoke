@@ -2,10 +2,10 @@ import os
 import librosa
 import numpy as np
 import sounddevice as sd
-from save_pitches import save_pitches
 from PyQt5.QtCore import QThread, QTimer
-from separate_guitar import separate_guitar
-from utils import csv_to_pitches_dataframe
+from guitaraoke.save_pitches import save_pitches
+from guitaraoke.separate_guitar import separate_guitar
+from guitaraoke.utils import csv_to_pitches_dataframe
 
 
 class AudioPlayback(QThread):
@@ -90,19 +90,18 @@ class AudioPlayback(QThread):
             The artist attributed to the loaded audio file.
         """
         # When loading a new song, immediately terminate previous stream
-        if self.stream:
-            self.stream.abort()
+        if self.stream : self.stream.abort()
 
         self.path = path
         self.title = title
         self.artist = artist
 
         # Load metronome sound effect
-        metronome_path = "./assets/Perc_MetronomeQuartz_lo.wav"
+        metronome_path = "./assets/audio/Perc_MetronomeQuartz_lo.wav"
         self.metronome_data = librosa.load(metronome_path, sr=self.RATE)[0]
 
         self.filename = path.split(".")[1].split("/")[-1]
-        separated_tracks_dir = f"./separated_tracks/htdemucs_6s/{self.filename}/"
+        separated_tracks_dir = f"./assets/separated_tracks/htdemucs_6s/{self.filename}/"
         guitar_pitches_path = ""
 
         # If song has not been processed, perform guitar separation and pitch detection
@@ -112,7 +111,7 @@ class AudioPlayback(QThread):
         else: # Otherwise, load tracks and pitches
             guitar_track_path = separated_tracks_dir + "guitar.wav"
             no_guitar_track_path = separated_tracks_dir + "no_guitar.wav"
-            guitar_pitches_path = f"./pitch_predictions/songs/{self.filename}/guitar_basic_pitch.csv"
+            guitar_pitches_path = f"./assets/pitch_predictions/songs/{self.filename}/guitar_basic_pitch.csv"
 
         # Convert pitches CSV to a pandas DataFrame
         self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
@@ -165,8 +164,7 @@ class AudioPlayback(QThread):
     def stop(self):
         """Pause audio playback."""
         print("\nPlayback stopped.")
-        if not self.paused:
-            self.paused = True
+        if not self.paused : self.paused = True
         self.quit()
         self.wait()
     
@@ -198,9 +196,7 @@ class AudioPlayback(QThread):
     
     def set_pos(self, pos):
         """Set the audio playback's time position to a new time in seconds."""
-        if self.ended:
-            self.ended = False
-
+        if self.ended : self.ended = False
         self.position = int(pos * self.RATE)
 
     def _callback(self, outdata, frames, time, status):

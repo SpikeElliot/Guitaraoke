@@ -3,13 +3,12 @@ import time
 import tempfile
 import threading
 import numpy as np
-import pandas as pd
 import sounddevice as sd
 from scipy.io.wavfile import write
-from save_pitches import save_pitches
-from compare_pitches import compare_pitches
 from PyQt5.QtCore import QThread, pyqtSignal
-from utils import preprocess_pitch_data, csv_to_pitches_dataframe
+from guitaraoke.save_pitches import save_pitches
+from guitaraoke.compare_pitches import compare_pitches
+from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
 
 
 class AudioInput(QThread):
@@ -63,11 +62,11 @@ class AudioInput(QThread):
         self.RATE = 44100
         self.DTYPE = "float32" 
         
-        # Audio input stream is saved in 1 second windows to prevent notes from
+        # Audio input stream is saved in 2 second windows to prevent notes from
         # being cut off, as is the case when using sounddevice's rec function.
         self.stream = None
-        self.BUFFER_SIZE = int(self.RATE * 5)
-        self.OVERLAP_SIZE = int(self.RATE * 1)
+        self.BUFFER_SIZE = int(self.RATE * 6)
+        self.OVERLAP_SIZE = int(self.RATE * 2)
         self.buffer = np.zeros(self.BUFFER_SIZE)
         self.audio_blocks = np.ndarray(0)
 
@@ -95,8 +94,7 @@ class AudioInput(QThread):
             The input_devices list index of the desired input device.
         """
         # Terminate previous input stream
-        if self.stream:
-            self.stream.abort()
+        if self.stream : self.stream.abort()
 
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
@@ -106,6 +104,7 @@ class AudioInput(QThread):
             channels=self.CHANNELS,
             dtype=self.DTYPE,
             callback=self._callback,
+            latency="low"
         )
         self.streaming = False
     
@@ -187,6 +186,7 @@ class AudioInput(QThread):
         """Stops the user input recording-processing loop."""
         print("\nRecording stopped.")
         self.stream.stop()
+        self.buffer = np.zeros(self.BUFFER_SIZE) # Reset buffer when streaming ends
         self.streaming = False
         self.quit()
         self.wait()

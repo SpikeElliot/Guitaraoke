@@ -3,7 +3,7 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 from basic_pitch.inference import predict_and_save
 
 
-def save_pitches(path, sonify=False, temp=False):
+def save_pitches(path : str, sonify=False, temp=False):
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.
@@ -20,11 +20,11 @@ def save_pitches(path, sonify=False, temp=False):
     Returns
     -------
     paths : list of str
-        The file paths to the note events CSV file [0], and the sonified
+        The file paths to the note events CSV file [0] and the sonified
         MIDI file [1] if sonify=True.
     """
     assert os.path.isfile(path), "File does not exist"
-    output_folder = "./pitch_predictions"
+    output_folder = "./assets/pitch_predictions"
     filename = ""
     
     # Case: path is to a temp audio input recording file
@@ -32,14 +32,14 @@ def save_pitches(path, sonify=False, temp=False):
         filename = path.split(".")[-2].split("\\")[-1]
 
         # Make directory for audio input predictions if not exists
-        os.makedirs( f"./pitch_predictions/temp", exist_ok=True)
+        os.makedirs( f"./assets/pitch_predictions/temp", exist_ok=True)
         output_folder += "/temp"
     else: # Case: path is to a loaded audio file
         filedir = path.split("/")[-2]
         filename = path.split(".")[-2].split("/")[-1]
         
         # Make directory for song pitch predictions
-        os.makedirs( f"./pitch_predictions/songs/{filedir}", exist_ok=True)
+        os.makedirs( f"./assets/pitch_predictions/songs/{filedir}", exist_ok=True)
         output_folder += f"/songs/{filedir}"
 
     predict_and_save(
@@ -55,6 +55,5 @@ def save_pitches(path, sonify=False, temp=False):
     )
 
     paths = [f"{output_folder}/{filename}_basic_pitch.csv"]
-    if sonify:
-        paths.append(f"{output_folder}/{filename}_basic_pitch.wav")
+    if sonify : paths.append(f"{output_folder}/{filename}_basic_pitch.wav")
     return paths
