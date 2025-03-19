@@ -211,15 +211,10 @@ class AudioPlayback(QThread):
             # Set outdata to zeros
             outdata[:frames] = np.zeros((frames,1))
             return
-        
-        # Case: end of song is reached in this batch
-        if new_pos >= len(self.guitar_data):
-            new_pos = len(self.guitar_data)
-            frames = new_pos - self.position
-            self.ended = True
 
-        # Case: end of loop is reached during looping
-        if self.looping and new_pos >= self.loop_markers[1]:
+        # Case: song looping and end of loop is reached in this batch
+        if self.looping and (self.position < self.loop_markers[1] 
+                             and new_pos >= self.loop_markers[1]):
             overflow_frames = new_pos - self.loop_markers[1]
             # Set new pos to correct position after loop
             new_pos = self.loop_markers[0] + overflow_frames
@@ -235,7 +230,13 @@ class AudioPlayback(QThread):
                 self.no_guitar_data[self.loop_markers[0]:new_pos]
             ))
         else:
-            # No loop, load guitar and no_guitar batches as normal
+            # Case: no looping and end of song is reached in this batch
+            if new_pos >= len(self.guitar_data):
+                new_pos = len(self.guitar_data)
+                frames = new_pos - self.position
+                self.ended = True
+
+            # No looping, load guitar and no_guitar batches as normal
             guitar_batch = self.guitar_data[self.position:new_pos]
             no_guitar_batch = self.no_guitar_data[self.position:new_pos]
 

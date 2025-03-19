@@ -51,10 +51,10 @@ class MainWindow(QMainWindow):
         self.title_label.setText(self.playback.title)
 
         self.duration_label = QLabel()
-        duration_text = f"<font color='{self.theme_colour}'>"
-        duration_text += f"00:00.00</font> / "
-        duration_text += f"{time_format(self.playback.duration)}"
-        self.duration_label.setText(duration_text)
+        self.duration_label.setText(
+            f"<font color='{self.theme_colour}'>00:00.00</font>"
+            f" / {time_format(self.playback.duration)}"
+        )
 
         self.score_label = QLabel()
         self.score_label.setText("Score: 0")
@@ -275,32 +275,34 @@ class MainWindow(QMainWindow):
         self.pause_button.setStyleSheet(button_stylesheet)
 
     def _update_songpos(self):
-        """Update song_duration label and playhead every 10ms."""
+        """Updates song_duration label and moves playhead every 10ms."""
         # Show playhead first time play button is clicked
         if self.playhead.isHidden() : self.playhead.show()
         
         song_pos = self.playback.get_pos()
 
-        duration_text = f"<font color='{self.theme_colour}'>"
         if self.playback.ended: 
             # Stop time progressing when song ends
             self._pause_button_pressed()
 
-            # Set song time display back to 0
-            duration_text += f"00:00.00</font> / {time_format(self.playback.duration)}"
-            self.duration_label.setText(duration_text)
+            # Reset song time display to 0
+            self.duration_label.setText( 
+                f"<font color='{self.theme_colour}'>00:00.00</font>"
+                f" / {time_format(self.playback.duration)}"
+            ) 
         else:
             # Update the song duration label with new time
-            duration_text += f"{time_format(song_pos)}</font> "
-            duration_text += f"/ {time_format(self.playback.duration)}"
-            self.duration_label.setText(duration_text)
+            self.duration_label.setText( 
+                f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font>"
+                f" / {time_format(self.playback.duration)}"
+            ) 
 
-        playhead_pos = int((song_pos/self.playback.duration)
-                            * self.waveform.width)
+        playhead_pos = int((song_pos/self.playback.duration) 
+                           * self.waveform.width)
         self.playhead.move(playhead_pos, 0)
 
     def _play_button_pressed(self):
-        """Start count-in timer when play button clicked."""
+        """Starts count-in timer when play button pressed."""
         self.play_button.hide()
         self.pause_button.show()
 
@@ -310,127 +312,128 @@ class MainWindow(QMainWindow):
         self.count_in_timer.start()
         
     def _count_in(self):
-        """
-        When count-in timer finished, start audio playback, song position
-        update timer, and input recording.
-        """
+        """Starts audio playback and recording when count-in timer finished."""
         if self.playback.play_count_in_metronome(self.count_in_timer):
-            # Start audio playback
+            # Start playback and recording
             self.playback.start()
-            self.songpos_timer.start()
-
-            # Start recording user input
             self.input.start()
+            self.songpos_timer.start()
     
     def _pause_button_pressed(self):
-        """Pause songpos_timer when pause button clicked."""
+        """Stops audio playback and recording when pause button pressed."""
         self.pause_button.hide()
         self.play_button.show()
 
-        # Reset in case pause button pressed during count-in
+        # Case: pause button pressed during count-in timer
         if self.count_in_timer.isActive():
             self.count_in_timer.stop()
             self.playback.metronome_count = 0
 
-        # Pause playback
+        # Pause playback and recording
         self.playback.stop()
-        self.songpos_timer.stop()
-        
-        # Stop recording
         self.input.stop()
+        self.songpos_timer.stop()
 
     def _waveform_pressed(self, mouseClickEvent):
-        """Skip to song position relative to mouse x position in waveform plot when clicked."""
-        mouse_x_pos = int(mouseClickEvent.scenePos()[0])
-        mouse_button = mouseClickEvent.button()
-        keyboard_mods = mouseClickEvent.modifiers()
-        
-        if mouse_x_pos < 0 : mouse_x_pos = 0 # Prevent negative pos value
-
-        new_song_pos = ((mouse_x_pos/self.waveform.width)
-                        * self.playback.duration)
+        """
+        Method called when mouse click event signal sent by waveform plot.
+        Sets a loop marker if shift button held, otherwise if left mouse button
+        pressed, skip to song position based on x position clicked.
+        """
+        x_pos = np.max(int(mouseClickEvent.scenePos()[0]), 0)
+        button = mouseClickEvent.button()
+        mods = mouseClickEvent.modifiers()
 
         # Case: shift button held
-        if keyboard_mods == Qt.ShiftModifier:
-            left_marker = self.playback.loop_markers[0]
-            right_marker = self.playback.loop_markers[1]
-
-            new_song_pos_in_frames = int(new_song_pos * self.playback.RATE)
-
-            # Update left marker when left mouse pressed
-            if mouse_button == 1:
-                if not right_marker : left_marker = new_song_pos_in_frames
-                else:
-                    self.playback.looping = True
-                    if new_song_pos_in_frames > right_marker:
-                        # Invert markers if new left marker > right marker
-                        left_marker = right_marker
-                        right_marker = new_song_pos_in_frames
-                    else:
-                        left_marker = new_song_pos_in_frames
-            # Update right marker when right mouse pressed
-            elif mouse_button == 2:
-                if not left_marker : right_marker = new_song_pos_in_frames
-                else:
-                    self.playback.looping = True
-                    if new_song_pos_in_frames < left_marker:
-                        # Invert markers if new right marker < left marker
-                        right_marker = left_marker
-                        left_marker = new_song_pos_in_frames
-                    else:
-                        right_marker = new_song_pos_in_frames
-
-            if left_marker : left_marker_in_s = left_marker/self.playback.RATE
-            if right_marker : right_marker_in_s = right_marker/self.playback.RATE
-
-            # Show the loop window widget when its area has been created by
-            # the left and right markers
-            if self.playback.looping:
-                # Position of second marker needs to be found by converting
-                # song position to coordinate
-                if left_marker == new_song_pos_in_frames:
-                    x_pos_2 = int(((right_marker_in_s/self.playback.duration)
-                                    * self.waveform.width))
-                    self.loop_window.move(mouse_x_pos, 0)
-                else:
-                    x_pos_2 = int(((left_marker_in_s/self.playback.duration)
-                                    * self.waveform.width))
-                    self.loop_window.move(x_pos_2, 0)
-
-                loop_window_width = np.abs(mouse_x_pos - x_pos_2)
-                self.loop_window.resize(loop_window_width,  100)
-                self.loop_window.show()
-                
-            # Update playback loop markers (in frames)
-            self.playback.loop_markers[0] = left_marker
-            self.playback.loop_markers[1] = right_marker
-
-            # Print song loop markers to console (testing)
-            if left_marker : print(f"\nLeft marker: {time_format(left_marker_in_s)}")
-            if right_marker : print(f"Right marker: {time_format(right_marker_in_s)}")
-            return
-        
-        if mouse_button != 1 : return 
+        if mods == Qt.ShiftModifier : return self._loop_marker_set(x_pos, button)
 
         # Case: only left mouse button pressed
-        
-        # Show playhead when song is skipped if play button isn't pressed
+        if button == 1 : self._skip_song_position(x_pos) 
+
+    def _loop_marker_set(self, x_pos, button):
+        """
+        Sets a new time position (in frames) for the left or right loop marker.
+        When both markers have values set, song looping logic is actuated.
+        """
+        left_marker = self.playback.loop_markers[0]
+        right_marker = self.playback.loop_markers[1]
+
+        marker_pos = int(( # Marker time position in frames
+            (x_pos/self.waveform.width)
+            * self.playback.RATE
+            * self.playback.duration
+        ))
+        time_constraint = 2 * self.playback.RATE # Minimum loop time of 2 secs
+
+        # Update left marker when left mouse pressed
+        if button == 1:
+            if right_marker is None : left_marker = marker_pos
+            elif np.abs(right_marker - marker_pos) >= time_constraint:
+                # Invert markers if new left marker > right marker
+                if marker_pos > right_marker:
+                    left_marker = right_marker
+                    right_marker = marker_pos
+                # Otherwise, set left marker to new position
+                else:
+                    left_marker = marker_pos
+                self.playback.looping = True
+        # Update right marker when right mouse pressed
+        elif button == 2:
+            if left_marker is None : right_marker = marker_pos
+            elif np.abs(marker_pos - left_marker) >= time_constraint:
+                # Invert markers if new right marker < left marker
+                if marker_pos < left_marker:
+                    right_marker = left_marker
+                    left_marker = marker_pos
+                # Otherwise, set right marker to new position
+                else:
+                    right_marker = marker_pos
+                self.playback.looping = True
+
+        if left_marker is not None:
+            left_marker_in_s = left_marker/self.playback.RATE
+        if right_marker is not None:
+            right_marker_in_s = right_marker/self.playback.RATE
+
+        if self.playback.looping:
+            # Get loop marker x positions
+            left_x_pos = int(((left_marker_in_s/self.playback.duration)
+                                * self.waveform.width))
+            right_x_pos = int(((right_marker_in_s/self.playback.duration)
+                                * self.waveform.width))
+            
+            # Show the loop window widget when its area has been created by
+            # the left and right markers
+            self.loop_window.move(left_x_pos, 0)
+            loop_window_width = np.abs(right_x_pos - left_x_pos)
+            self.loop_window.resize(loop_window_width, 100)
+            self.loop_window.show()
+            
+        # Update playback loop markers (in frames)
+        self.playback.loop_markers[0] = left_marker
+        self.playback.loop_markers[1] = right_marker
+
+        # Print song loop markers to console (testing)
+        if left_marker is not None:
+            print(f"\nLeft marker: {time_format(left_marker_in_s)}")
+        if right_marker is not None:
+            print(f"Right marker: {time_format(right_marker_in_s)}")
+
+    def _skip_song_position(self, x_pos):
+        """Skips to song position based on x-pos of left-click on waveform plot."""
         if self.playhead.isHidden() : self.playhead.show()
 
-        self.playback.set_pos(new_song_pos) # Update song pos
+        self.playhead.move(x_pos, 0) # Update playhead x position
 
-        # Print song skip and mouse information to console (testing)
-        print(f"\nSong skipped to: {time_format(new_song_pos)}")
-        print("mouse_x_pos: {} | mouse_button: {}".format(mouse_x_pos, mouse_button))
+        song_pos = ((x_pos/self.waveform.width) * self.playback.duration)
+        self.playback.set_pos(song_pos) # Update song time position
 
-        # Update playhead and time display to skipped position
-        playhead_pos = int(mouse_x_pos)
-        self.playhead.move(playhead_pos, 0)
+        self.duration_label.setText( # Update song time display
+            f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font>"
+            f" / {time_format(self.playback.duration)}"
+        ) 
 
-        duration_text = f"<font color='{self.theme_colour}'>"
-        duration_text += f"{time_format(new_song_pos)}</font> / "
-        duration_text += f"{time_format(self.playback.duration)}"
-        self.duration_label.setText(duration_text)
+        print(f"\nSong skipped to: {time_format(song_pos)}") # Testing
 
         # Case: song skipped during count-in
         if self.count_in_timer.isActive():
@@ -440,8 +443,8 @@ class MainWindow(QMainWindow):
             self.count_in_timer.start()
             return
         elif self.playback.paused : return
-        
-        # Pause playback and recording, start a count-in
+
+        # Case: song skipped mid-playback
         self.playback.stop()
         self.input.stop()
         self.songpos_timer.stop()
@@ -449,15 +452,8 @@ class MainWindow(QMainWindow):
     
     def _on_score_processed(self, score_info):
         """
-        Called when a new batch of recorded user input has been processed.
-        Currently updates the song's score and accuracy labels with values
-        received from the AudioInput's _process_recording function.
-
-        Parameters
-        ----------
-        score_info : tuple of int
-            The user score, number of notes hit by the user, and total number
-            of notes for the current batch of compared audio.
+        Method called when the next input recording has been processed. Updates
+        the AudioPlayback's score_data and the GUI's labels with new values.
         """
         score, notes_hit, total_notes = score_info
         
@@ -468,15 +464,13 @@ class MainWindow(QMainWindow):
         if self.playback.score_data["total_notes"] != 0: # Avoid div by 0 error
             accuracy = (self.playback.score_data["notes_hit"]
                         /self.playback.score_data["total_notes"]) * 100
-            self.playback.score_data["accuracy"] = accuracy
+            new_acc = self.playback.score_data["accuracy"] = accuracy
 
         self.score_label.setText(f"Score: {self.playback.score_data['score']}")
-
-        new_acc = self.playback.score_data["accuracy"]
         self.accuracy_label.setText(f"Accuracy: {round(new_acc, 1)}%")
 
     def _guitar_vol_slider_moved(self, value):
-        """Updates the guitar track's volume when slider moved."""
+        """Updates the AudioPlayback's guitar_volume based on new slider value."""
         self.playback.guitar_volume = value / 100
         self.guitar_vol_val_label.setText(f"{value}%")
 
