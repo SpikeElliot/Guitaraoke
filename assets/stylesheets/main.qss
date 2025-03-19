@@ -1,0 +1,48 @@
+QWidget {
+    background-color: rgb(255,255,255);
+    color: rgb(0,0,0);
+    font-size: 20px;
+}
+
+QSlider::groove::horizontal {
+    background: rgb(0,0,0);
+    height: 22px;
+    border-radius: 10px;
+}
+
+QSlider::handle::horizontal {
+    background: rgb(255,255,255);
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    border: 1px solid rgb(0,0,0);
+}
+
+PlotWidget#waveform {
+    border: 2px solid rgb(0,0,0);
+    border-radius: 4px;
+}
+
+QWidget#playhead {
+    background-color: rgba(255,0,0,0.9);
+    border: none;
+}
+
+QWidget#loop_window {
+    background-color: rgba(170,70,240,0.4);
+    border: none;
+}
+
+QPushButton {
+    color: rgb(255,255,255);
+    border-radius: 16px;
+    padding: 8px 0px;
+}
+
+QPushButton#play_button, QPushButton#pause_button {
+    background-color: #0070df
+}
+
+QPushButton#loop_button {
+    background-color: #4e759c
+}

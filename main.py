@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
         self._set_styles()
 
     def _set_components(self):
-        """Initialise all widgets and add them to the main window."""
+        """Initialises all widgets and adds them to the main window."""
         # Song Information Labels
 
         song_info_layout = QVBoxLayout()
@@ -105,16 +105,19 @@ class MainWindow(QMainWindow):
             height=100,
             colour=hex_to_rgb(self.theme_colour)
         )
+        self.waveform.setObjectName("waveform")
         self.waveform.draw_plot(self.playback)
         self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
-        self.playhead = QWidget(self.waveform) 
+        self.playhead = QWidget(self.waveform)
+        self.playhead.setObjectName("playhead")
         self.playhead.setFixedSize(3, self.waveform.height)
         self.playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.playhead.hide()
 
         self.loop_window = QWidget(self.waveform)
+        self.loop_window.setObjectName("loop_window")
         self.loop_window.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.loop_window.hide()
 
@@ -159,6 +162,7 @@ class MainWindow(QMainWindow):
 
         # Play button
         self.play_button = QPushButton() 
+        self.play_button.setObjectName("play_button")
         self.play_button.setText("Play")
         self.play_button.setFixedWidth(button_width)
         self.play_button.clicked.connect(self._play_button_pressed)
@@ -169,6 +173,7 @@ class MainWindow(QMainWindow):
         
         # Pause button
         self.pause_button = QPushButton() 
+        self.pause_button.setObjectName("pause_button")
         self.pause_button.setText("Pause")
         self.pause_button.hide()
         self.pause_button.setFixedWidth(button_width)
@@ -176,6 +181,7 @@ class MainWindow(QMainWindow):
 
         # Loop button
         self.loop_button = QPushButton()
+        self.loop_button.setObjectName("loop_button")
         self.loop_button.setText("Loop")
         self.loop_button.setFixedWidth(button_width)
         self.loop_button.clicked.connect(self._loop_button_pressed)
@@ -230,68 +236,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)    
 
     def _set_styles(self):
-        """Set the CSS styling of window and widgets."""
-        # Main Window
-        self.css = f"""
-            QWidget {{
-                background-color: rgb(255,255,255);
-                color: rgb(0,0,0);
-                font-size: 20px;
-            }}
+        """Sets the CSS styling of window and widgets."""
+        with open("./assets/stylesheets/main.qss", "r") as f:
+            # Read main stylesheet and set main window style
+            _style = f.read()
+            self.setStyleSheet(_style)
 
-            QSlider::groove::horizontal {{
-                background: rgb(0,0,0);
-                height: 22px;
-                border-radius: 10px;
-            }}
-
-            QSlider::handle::horizontal {{
-                background: rgb(255,255,255);
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                border: 1px solid rgb(0,0,0);
-            }}
-            """
-        self.setStyleSheet(self.css)
-        # Waveform Plot
-        self.waveform.setStyleSheet(
-            """
-            border: 2px solid rgb(0,0,0);
-            border-radius: 4px;
-            """
-        )
-        # Song Playhead
-        self.playhead.setStyleSheet(
-            """
-            background-color: rgba(255,0,0,0.9);
-            border: none;
-            """
-        )
-        # Song Loop Window
-        self.loop_window.setStyleSheet(
-            """
-            background-color: rgba(170,70,240,0.4);
-            border: none;
-            """
-        )
-        # Audio Playback Controls
-        button_stylesheet = """
-            color: rgb(255,255,255);
-            border-radius: 16px;
-            padding: 8px 0px;
-            """
-        self.active_button_stylesheet = f"""
-            background-color: {self.theme_colour};
-            {button_stylesheet}
-            """
-        self.inactive_button_stylesheet = f"""
-            background-color: {self.inactive_colour};
-            {button_stylesheet}
-            """
-        self.play_button.setStyleSheet(self.active_button_stylesheet)
-        self.pause_button.setStyleSheet(self.active_button_stylesheet)
-        self.loop_button.setStyleSheet(self.inactive_button_stylesheet)
+        self.active_button_style = f"background-color: {self.theme_colour};"
+        self.inactive_button_style = f"background-color: {self.inactive_colour};"
 
     def _update_songpos(self):
         """Updates song_duration label and moves playhead every 10ms."""
@@ -358,17 +310,16 @@ class MainWindow(QMainWindow):
         Toggles song section looping when loop button pressed if both loop
         markers are set.
         """
-        if (self.playback.loop_markers[0] is None or
-            self.playback.loop_markers[1] is None) : return
+        if None in self.playback.loop_markers : return
         
         if self.playback.looping:
             self.loop_window.hide()
             self.playback.looping = False
-            self.loop_button.setStyleSheet(self.inactive_button_stylesheet)
+            self.loop_button.setStyleSheet(self.inactive_button_style)
         else:
             self.loop_window.show()
             self.playback.looping = True
-            self.loop_button.setStyleSheet(self.active_button_stylesheet)
+            self.loop_button.setStyleSheet(self.active_button_style)
 
     def _waveform_pressed(self, mouseClickEvent):
         """
@@ -413,7 +364,7 @@ class MainWindow(QMainWindow):
                 else:
                     left_marker = marker_pos
                 self.playback.looping = True
-                self.loop_button.setStyleSheet(self.active_button_stylesheet)
+                self.loop_button.setStyleSheet(self.active_button_style)
         # Update right marker when right mouse pressed
         elif button == 2:
             if left_marker is None : right_marker = marker_pos
@@ -426,7 +377,7 @@ class MainWindow(QMainWindow):
                 else:
                     right_marker = marker_pos
                 self.playback.looping = True
-                self.loop_button.setStyleSheet(self.active_button_stylesheet)
+                self.loop_button.setStyleSheet(self.active_button_style)
 
         if left_marker is not None:
             left_marker_in_s = left_marker/self.playback.RATE
