@@ -84,7 +84,7 @@ class AudioPlayback(QThread):
             The artist attributed to the loaded audio file.
         """
         # When loading a new song, immediately terminate previous stream
-        if self.stream : self.stream.abort()
+        if self.stream: self.stream.abort()
 
         self.path = path
         self.title = title
@@ -159,7 +159,7 @@ class AudioPlayback(QThread):
     def stop(self) -> None:
         """Pause audio playback."""
         print("\nPlayback stopped.")
-        if not self.paused : self.paused = True
+        if not self.paused: self.paused = True
         self.quit()
         self.wait()
     
@@ -191,7 +191,7 @@ class AudioPlayback(QThread):
     
     def set_pos(self, pos: float) -> None:
         """Set the audio playback's time position to a new time in seconds."""
-        if self.ended : self.ended = False
+        if self.ended: self.ended = False
         self.position = int(pos * self.RATE)
 
     def _callback(self, outdata, frames, time, status) -> None:
@@ -208,8 +208,7 @@ class AudioPlayback(QThread):
             return
 
         # Case: song looping and end of loop is reached in this batch
-        if self.looping and (self.position < self.loop_markers[1] 
-                             and new_pos >= self.loop_markers[1]):
+        if self.in_loop_bounds() and new_pos >= self.loop_markers[1]:
             overflow_frames = new_pos - self.loop_markers[1]
             # Set new pos to correct position after loop
             new_pos = self.loop_markers[0] + overflow_frames
@@ -249,3 +248,9 @@ class AudioPlayback(QThread):
             "total_notes": 0,
             "accuracy": 0
         }
+    
+    def in_loop_bounds(self) -> bool:
+        if self.looping and (self.position > self.loop_markers[0]
+                             and self.position < self.loop_markers[1]):
+            return True
+        return False

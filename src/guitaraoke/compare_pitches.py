@@ -41,12 +41,12 @@ def compare_pitches(
         total_notes += len(song_note_events)
 
         # Case: No notes in song
-        if len(song_note_events) == 0 : continue
+        if len(song_note_events) == 0: continue
         
         # TODO: At some point the issue of the user not being able to play
         # the rhythm and lead notes concurrently needs to be addressed 
         # somehow to make scoring fairer
-        if len(user_note_events) == 0 : continue
+        if len(user_note_events) == 0: continue
 
         # Case: Note events found in both sources
         for note_time in song_note_events:

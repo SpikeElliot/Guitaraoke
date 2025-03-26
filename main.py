@@ -184,6 +184,24 @@ class MainWindow(QMainWindow):
         # Buttons
         button_width = 100
 
+        # Count-in toggle button
+        self.count_in_button = QPushButton()
+        self.count_in_button.setObjectName("count_in_button")
+        self.count_in_button.setText("Count-in")
+        self.count_in_button.setFixedWidth(button_width)
+        self.count_in_button.clicked.connect(self._count_in_button_pressed)
+
+        # Song count-in timer
+        self.count_in_timer = QTimer()
+        self.count_in_timer.timeout.connect(self._count_in)
+
+        # Skip back button
+        self.skip_back_button = QPushButton() 
+        self.skip_back_button.setObjectName("skip_back_button")
+        self.skip_back_button.setText("Skip back")
+        self.skip_back_button.setFixedWidth(button_width)
+        self.skip_back_button.clicked.connect(self._skip_back_button_pressed)
+
         # Play button
         self.play_button = QPushButton() 
         self.play_button.setObjectName("play_button")
@@ -199,23 +217,19 @@ class MainWindow(QMainWindow):
         self.pause_button.setFixedWidth(button_width)
         self.pause_button.clicked.connect(self._pause_button_pressed)
 
-        # Loop button
+        # Skip forward button
+        self.skip_forward_button = QPushButton() 
+        self.skip_forward_button.setObjectName("skip_forward_button")
+        self.skip_forward_button.setText("Skip forward")
+        self.skip_forward_button.setFixedWidth(button_width)
+        self.skip_forward_button.clicked.connect(self._skip_forward_button_pressed)
+
+        # Loop toggle button
         self.loop_button = QPushButton()
         self.loop_button.setObjectName("loop_button")
         self.loop_button.setText("Loop")
         self.loop_button.setFixedWidth(button_width)
         self.loop_button.clicked.connect(self._loop_button_pressed)
-
-        # Count-in button
-        self.count_in_button = QPushButton()
-        self.count_in_button.setObjectName("count_in_button")
-        self.count_in_button.setText("Count-in")
-        self.count_in_button.setFixedWidth(button_width)
-        self.count_in_button.clicked.connect(self._count_in_button_pressed)
-
-        # Song count-in before playing
-        self.count_in_timer = QTimer()
-        self.count_in_timer.timeout.connect(self._count_in)
         
         # Top row
 
@@ -240,26 +254,36 @@ class MainWindow(QMainWindow):
 
         # Bottom row
 
-        controls_layout_bottom_row.addWidget( # Play button
-            self.play_button, 
-            0, 1
-        )
-
-        controls_layout_bottom_row.addWidget( # Pause button
-            self.pause_button, 
-            0, 1
-        )
-
-        controls_layout_bottom_row.addWidget( # Loop button
-            self.loop_button, 
-            0, 2, 
-            alignment=Qt.AlignLeft
-        )
-
         controls_layout_bottom_row.addWidget( # Count-in button
             self.count_in_button, 
             0, 0, 
             alignment=Qt.AlignRight
+        )
+
+        controls_layout_bottom_row.addWidget( # Count-in button
+            self.skip_back_button, 
+            0, 1
+        )
+
+        controls_layout_bottom_row.addWidget( # Play button
+            self.play_button, 
+            0, 2
+        )
+
+        controls_layout_bottom_row.addWidget( # Pause button
+            self.pause_button, 
+            0, 2
+        )
+
+        controls_layout_bottom_row.addWidget( # Count-in button
+            self.skip_forward_button, 
+            0, 3
+        )
+
+        controls_layout_bottom_row.addWidget( # Loop button
+            self.loop_button, 
+            0, 4, 
+            alignment=Qt.AlignLeft
         )
 
         controls_layout_bottom_row.setHorizontalSpacing(20)
@@ -299,9 +323,7 @@ class MainWindow(QMainWindow):
     def _update_songpos(self) -> None:
         """Updates song_duration label and moves playhead every 10ms."""
         # Show playhead first time play button is clicked
-        if self.playhead.isHidden() : self.playhead.show()
-        
-        song_pos = self.playback.get_pos()
+        if self.playhead.isHidden(): self.playhead.show()
 
         if self.playback.ended: 
             # Stop time progressing when song ends
@@ -315,13 +337,18 @@ class MainWindow(QMainWindow):
         else:
             # Update the song duration label with new time
             self.duration_label.setText( 
-                f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font>"
+                f"<font color='{self.theme_colour}'>"
+                f"{time_format(self.playback.get_pos())}</font>"
                 f" / {time_format(self.playback.duration)}"
-            ) 
+            )
 
-        playhead_pos = int((song_pos/self.playback.duration) 
-                           * self.waveform.width)
-        self.playhead.move(playhead_pos, 0)
+        self._update_playhead_pos()
+    
+    def _update_playhead_pos(self) -> None:
+        song_pos = self.playback.get_pos()
+        head_pos = int((song_pos/self.playback.duration)
+                        * self.waveform.width)
+        self.playhead.move(head_pos, 0)
 
     def _play_button_pressed(self) -> None:
         """Starts count-in timer when play button pressed."""
@@ -337,12 +364,11 @@ class MainWindow(QMainWindow):
         self.count_in_timer.start()
     
     def _count_in_button_pressed(self) -> None:
+        self.playback.count_in = not self.playback.count_in
         if self.playback.count_in:
-            self.playback.count_in = False
-            self.count_in_button.setStyleSheet(self.inactive_button_style)
-        else:
-            self.playback.count_in = True
             self.count_in_button.setStyleSheet(self.active_button_style)
+        else:
+            self.count_in_button.setStyleSheet(self.inactive_button_style)
         
     def _count_in(self) -> None:
         """Starts audio playback and recording when count-in timer finished."""
@@ -373,6 +399,36 @@ class MainWindow(QMainWindow):
         # Pause playback and recording
         self._pause_song_processes()
 
+    def _skip_forward_button_pressed(self) -> None:
+        # Prevent position from running over end of loop or end of song
+        end = self.playback.duration
+        if self.playback.in_loop_bounds():
+            end = self.playback.loop_markers[1]/self.playback.RATE
+        pos_in_s = self.playback.position/self.playback.RATE
+
+        if pos_in_s + 5 < end:
+            self.playback.set_pos(pos_in_s + 5)
+        else:
+            self.playback.set_pos(end-0.1)
+
+        if self.playhead.isHidden(): self.playhead.show()
+        self._update_songpos()
+
+    def _skip_back_button_pressed(self) -> None:
+        # Prevent position from falling behind start of loop or start of song
+        start = 0
+        if self.playback.in_loop_bounds():
+            start = self.playback.loop_markers[0]/self.playback.RATE
+        pos_in_s = self.playback.position/self.playback.RATE
+
+        if pos_in_s - 5 > start:
+            self.playback.set_pos(pos_in_s - 5)
+        else:
+            self.playback.set_pos(start)
+
+        if self.playhead.isHidden(): self.playhead.show()
+        self._update_songpos()
+
     def _loop_button_pressed(self) -> None:
         """
         Toggles song section looping when loop button pressed if both loop
@@ -380,14 +436,13 @@ class MainWindow(QMainWindow):
         """
         if None in self.playback.loop_markers: return
         
+        self.playback.looping = not self.playback.looping
         if self.playback.looping:
-            self.loop_window.hide()
-            self.playback.looping = False
-            self.loop_button.setStyleSheet(self.inactive_button_style)
-        else:
             self.loop_window.show()
-            self.playback.looping = True
             self.loop_button.setStyleSheet(self.active_button_style)
+        else:
+            self.loop_window.hide()
+            self.loop_button.setStyleSheet(self.inactive_button_style)
 
     def _waveform_pressed(self, mouseClickEvent) -> None:
         """

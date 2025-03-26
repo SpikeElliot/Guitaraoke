@@ -95,7 +95,7 @@ class AudioInput(QThread):
             The input_devices list index of the desired input device.
         """
         # Terminate previous input stream
-        if self.stream : self.stream.abort()
+        if self.stream: self.stream.abort()
 
         self.input_device_index = input_dev_idx
         # Create new stream using this input device

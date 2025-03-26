@@ -59,5 +59,5 @@ def save_pitches(
     )
 
     paths = [f"{output_folder}/{filename}_basic_pitch.csv"]
-    if sonify : paths.append(f"{output_folder}/{filename}_basic_pitch.wav")
+    if sonify: paths.append(f"{output_folder}/{filename}_basic_pitch.wav")
     return paths

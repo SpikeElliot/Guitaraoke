@@ -39,7 +39,7 @@ QPushButton {
     padding: 8px 0px;
 }
 
-QPushButton#play_button, QPushButton#pause_button, QPushButton#count_in_button {
+QPushButton#play_button, QPushButton#pause_button, QPushButton#count_in_button, QPushButton#skip_back_button, QPushButton#skip_forward_button {
     background-color: #0070df
 }
 
