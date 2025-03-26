@@ -18,7 +18,7 @@ def hex_to_rgb(hex_string: str) -> tuple:
     """Takes a hex triplet and converts it to RGB values."""
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 
-def csv_to_pitches_dataframe(path : str):
+def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
     """
     Use pandas read_csv function to read a CSV file as a DataFrame, dropping
     unwanted columns and sorting by note onset times.
@@ -30,7 +30,11 @@ def csv_to_pitches_dataframe(path : str):
         index_col=False
     ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
 
-def preprocess_pitch_data(pitches, slice_start=None, slice_end=None):
+def preprocess_pitch_data(
+    pitches: pd.DataFrame, 
+    slice_start: float = None, 
+    slice_end: float = None
+) -> dict:
     """
     Takes a pandas DataFrame read from a Basic Pitch note events CSV file
     and performs pre-processing, returning a 2D array of note sequences.

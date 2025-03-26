@@ -55,18 +55,8 @@ class AudioPlayback(QThread):
     set_pos(pos):
         Set the audio playback's time position to a new time in seconds.
     """
-    def __init__(self, path, title="Unknown", artist="Unknown"):
-        """The constructor for the AudioPlayBack class.
-
-        Parameters
-        ----------
-        path : str
-            The file path of the audio file to load.
-        title : str, default="Unknown"
-            The title to be given to the loaded audio.
-        artist : str, default="Unknown"
-            The artist to be attributed to the loaded audio.
-        """
+    def __init__(self) -> None:
+        """The constructor for the AudioPlayback class."""
         super().__init__()
         self.stream = None
         self.CHANNELS = 1
@@ -74,9 +64,13 @@ class AudioPlayback(QThread):
         sd.default.samplerate = self.RATE
         self.DTYPE = "float32" # Datatype preferred by audio processing libraries
         self.BLOCK_SIZE = 2048 # Minimise latency while preventing glitching/freezing
-        self.load(path, title, artist)
         
-    def load(self, path, title="Unknown", artist="Unknown"):
+    def load(
+        self, 
+        path: str, 
+        title: str = "Unknown", 
+        artist: str = "Unknown"
+    ) -> None:
         """
         Load important data from an audio file and prepare it for playback.
 
@@ -137,6 +131,7 @@ class AudioPlayback(QThread):
         self.guitar_volume = 1
         self.loop_markers = [None,None]
         self.looping = False
+        self.count_in = True
 
         # Initialise user score data
         self._zero_score_data()
@@ -150,7 +145,7 @@ class AudioPlayback(QThread):
             dtype=self.DTYPE
         )
 
-    def run(self):
+    def run(self) -> None:
         """Play or unpause audio playback."""
         print("\nPlayback started...")
         if self.ended:
@@ -161,14 +156,14 @@ class AudioPlayback(QThread):
         self.paused, self.ended = False, False
         self.stream.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Pause audio playback."""
         print("\nPlayback stopped.")
         if not self.paused : self.paused = True
         self.quit()
         self.wait()
     
-    def play_count_in_metronome(self, count_in_timer : QTimer):
+    def play_count_in_metronome(self, count_in_timer: QTimer) -> None:
         """
         Use sounddevice to play the count-in metronome sound and increment the
         metronome_count attribute, playing the song after the fourth count.
@@ -189,17 +184,17 @@ class AudioPlayback(QThread):
         sd.play(self.metronome_data)
         return False # Keep counting
     
-    def get_pos(self):
+    def get_pos(self) -> None:
         """Return the audio playback's current time position in seconds."""
         pos = self.position / self.RATE
         return pos
     
-    def set_pos(self, pos):
+    def set_pos(self, pos: float) -> None:
         """Set the audio playback's time position to a new time in seconds."""
         if self.ended : self.ended = False
         self.position = int(pos * self.RATE)
 
-    def _callback(self, outdata, frames, time, status):
+    def _callback(self, outdata, frames, time, status) -> None:
         """
         The callback function called by the sounddevice output stream. 
         Generates output audio data.
@@ -246,11 +241,11 @@ class AudioPlayback(QThread):
 
         self.position = new_pos # Update song position
     
-    def _zero_score_data(self):
+    def _zero_score_data(self) -> None:
         """Reset all user score data to zero."""
         self.score_data = {
             "score": 0,
-            "notes_hit" : 0,
-            "total_notes" : 0,
-            "accuracy" : 0
+            "notes_hit": 0,
+            "total_notes": 0,
+            "accuracy": 0
         }

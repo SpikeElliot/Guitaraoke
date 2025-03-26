@@ -3,7 +3,11 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 from basic_pitch.inference import predict_and_save
 
 
-def save_pitches(path : str, sonify=False, temp=False):
+def save_pitches(
+        path: str,
+        sonify: bool = False,
+        temp=False
+    ) -> list[str]:
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.

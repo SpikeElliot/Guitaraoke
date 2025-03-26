@@ -7,6 +7,7 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 from PyQt5.QtCore import QThread, pyqtSignal
 from guitaraoke.save_pitches import save_pitches
+from guitaraoke.audio_playback import AudioPlayback
 from guitaraoke.compare_pitches import compare_pitches
 from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
 
@@ -46,7 +47,7 @@ class AudioInput(QThread):
     """
     score_processed = pyqtSignal(tuple) # Connects the QThread to the GUI
 
-    def __init__(self, song):
+    def __init__(self, song: AudioPlayback) -> None:
         """
         The constructor for the AudioInput class.
         
@@ -74,7 +75,7 @@ class AudioInput(QThread):
         self.input_device_index = 0
         self.set_input_device(self.input_device_index)        
 
-    def _find_input_devices(self):
+    def _find_input_devices(self) -> None:
         """Return a list of available audio input devices."""
         devices = sd.query_devices()
         input_devs = []
@@ -83,7 +84,7 @@ class AudioInput(QThread):
                 input_devs.append(d)
         return input_devs
     
-    def set_input_device(self, input_dev_idx):
+    def set_input_device(self, input_dev_idx: int) -> None:
         """
         Sets the input device to use for the sounddevice input stream by index
         in input_devices list. Starts a new input stream using the desired input device.
@@ -108,14 +109,14 @@ class AudioInput(QThread):
         )
         self.streaming = False
     
-    def _callback(self, indata, frames, time, status):
+    def _callback(self, indata, frames, time, status) -> None:
         """
         The callback function called by the sounddevice input stream. 
         Generates input audio data.
         """
         self.audio_blocks = np.append(self.audio_blocks, indata)
 
-    def _process_recording(self):
+    def _process_recording(self) -> None:
         """
         Convert the user input recording into a MIDI file, and compare the
         user's predicted pitches to the audio file's aligned at the correct
@@ -171,7 +172,7 @@ class AudioInput(QThread):
 
             time.sleep(0.01) # Reduce CPU load
         
-    def run(self):
+    def run(self) -> None:
         """Starts the user input recording-processing loop."""
         print(f"\nRecording...")
         self.stream.start()
@@ -182,7 +183,7 @@ class AudioInput(QThread):
         audio_processing_thread.daemon = True
         audio_processing_thread.start()
     
-    def stop(self):
+    def stop(self) -> None:
         """Stops the user input recording-processing loop."""
         print("\nRecording stopped.")
         self.stream.stop()

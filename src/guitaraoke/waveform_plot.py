@@ -1,6 +1,7 @@
 import librosa
 import numpy as np
 import pyqtgraph as pg
+from guitaraoke.audio_playback import AudioPlayback
 
 
 class WaveformPlot(pg.PlotWidget):
@@ -26,12 +27,12 @@ class WaveformPlot(pg.PlotWidget):
         Add a mouse click connection to the waveform plot widget.
     """
     def __init__(
-            self, 
-            width,
-            height,
-            bg_colour=(255,255,255),
-            colour=(0,0,0)
-        ):
+        self, 
+        width: int,
+        height: int,
+        bg_colour: tuple[int, int] = (255,255,255),
+        colour: tuple[int, int] = (0,0,0)
+        ) -> None:
         """
         The constructor for the WaveformPlot class.
 
@@ -59,7 +60,7 @@ class WaveformPlot(pg.PlotWidget):
         self.setMouseEnabled(False, False)
         self.setMenuEnabled(False) # Disable context menu blocking right click
 
-    def draw_plot(self, audio):
+    def draw_plot(self, audio: AudioPlayback) -> None:
         """
         Draw the plot of an audio file's maximum and minimum window amplitudes
         as two lines, filling between the points to create a waveform.
