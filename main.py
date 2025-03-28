@@ -137,24 +137,31 @@ class MainWindow(QMainWindow):
         self.playhead.setObjectName("playhead")
         self.playhead.setFixedSize(3, self.waveform.height)
         self.playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.playhead.hide()
 
+        # Loop window
         self.loop_window = QWidget(self.waveform)
         self.loop_window.setObjectName("loop_window")
         self.loop_window.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.loop_window.hide()
 
+        # Left loop marker
+        self.left_marker_img = QWidget(self.waveform)
+        self.left_marker_img.setObjectName("left_marker_img")
+        self.left_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.left_marker_img.resize(24, 24)
+        self.left_marker_img.hide()
+
+        # Right loop marker
+        self.right_marker_img = QWidget(self.waveform)
+        self.right_marker_img.setObjectName("right_marker_img")
+        self.right_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.right_marker_img.resize(24, 24)
+        self.right_marker_img.hide()
+
         # Song time position timer
         self.songpos_timer = QTimer() 
         self.songpos_timer.setInterval(10)
         self.songpos_timer.timeout.connect(self._update_songpos)
-
-        # Overlay playhead on waveform
-        waveform_layout = QHBoxLayout(self.waveform) 
-        waveform_layout.addWidget(
-            self.playhead, 
-            alignment=Qt.AlignLeft
-        )
         
         # Audio Playback Controls
 
@@ -320,12 +327,18 @@ class MainWindow(QMainWindow):
         self.active_button_style = f"background-color: {self.theme_colour};"
         self.inactive_button_style = f"background-color: {self.inactive_colour};"
 
+        self.active_marker_style = """
+            border-image: url('./assets/images/loop_marker.png');
+            background-color: transparent;
+            """
+        self.inactive_marker_style = """
+            border-image: url('./assets/images/loop_marker_inactive.png');
+            background-color: transparent;
+            """
+
     def _update_songpos(self) -> None:
         """Updates song_duration label and moves playhead every 10ms."""
-        # Show playhead first time play button is clicked
-        if self.playhead.isHidden(): self.playhead.show()
-
-        if self.playback.ended: 
+        if self.playback.ended:
             # Stop time progressing when song ends
             self._pause_button_pressed()
 
@@ -411,7 +424,6 @@ class MainWindow(QMainWindow):
         else:
             self.playback.set_pos(end-0.1)
 
-        if self.playhead.isHidden(): self.playhead.show()
         self._update_songpos()
 
     def _skip_back_button_pressed(self) -> None:
@@ -426,7 +438,6 @@ class MainWindow(QMainWindow):
         else:
             self.playback.set_pos(start)
 
-        if self.playhead.isHidden(): self.playhead.show()
         self._update_songpos()
 
     def _loop_button_pressed(self) -> None:
@@ -440,9 +451,13 @@ class MainWindow(QMainWindow):
         if self.playback.looping:
             self.loop_window.show()
             self.loop_button.setStyleSheet(self.active_button_style)
+            self.left_marker_img.setStyleSheet(self.active_marker_style)
+            self.right_marker_img.setStyleSheet(self.active_marker_style)
         else:
             self.loop_window.hide()
             self.loop_button.setStyleSheet(self.inactive_button_style)
+            self.left_marker_img.setStyleSheet(self.inactive_marker_style)
+            self.right_marker_img.setStyleSheet(self.inactive_marker_style)
 
     def _waveform_pressed(self, mouseClickEvent) -> None:
         """
@@ -477,42 +492,51 @@ class MainWindow(QMainWindow):
 
         # Update left marker when left mouse pressed
         if button == 1:
-            if right_marker is None : left_marker = marker_pos
+            if right_marker is None:
+                left_marker = marker_pos
             elif np.abs(right_marker - marker_pos) >= time_constraint:
+                # Looping set to true when both markers set
+                self.playback.looping = True 
                 # Invert markers if new left marker > right marker
                 if marker_pos > right_marker:
                     left_marker = right_marker
                     right_marker = marker_pos
                 # Otherwise, set left marker to new position
-                else:
-                    left_marker = marker_pos
-                self.playback.looping = True
-                self.loop_button.setStyleSheet(self.active_button_style)
+                else: left_marker = marker_pos
+            self.left_marker_img.show() # Show marker when set
+
         # Update right marker when right mouse pressed
         elif button == 2:
-            if left_marker is None : right_marker = marker_pos
+            if left_marker is None: 
+                right_marker = marker_pos
             elif np.abs(marker_pos - left_marker) >= time_constraint:
+                # Looping set to true when both markers set
+                self.playback.looping = True
                 # Invert markers if new right marker < left marker
                 if marker_pos < left_marker:
                     right_marker = left_marker
                     left_marker = marker_pos
                 # Otherwise, set right marker to new position
-                else:
-                    right_marker = marker_pos
-                self.playback.looping = True
-                self.loop_button.setStyleSheet(self.active_button_style)
+                else: right_marker = marker_pos
+            self.right_marker_img.show() # Show marker when set
 
+        # Get loop marker x positions and move marker images
         if left_marker is not None:
             left_marker_in_s = left_marker/self.playback.RATE
-        if right_marker is not None:
-            right_marker_in_s = right_marker/self.playback.RATE
-
-        if self.playback.looping:
-            # Get loop marker x positions
             left_x_pos = int(((left_marker_in_s/self.playback.duration)
                                 * self.waveform.width))
+            self.left_marker_img.move(left_x_pos-12, 2)
+        if right_marker is not None:
+            right_marker_in_s = right_marker/self.playback.RATE
             right_x_pos = int(((right_marker_in_s/self.playback.duration)
                                 * self.waveform.width))
+            self.right_marker_img.move(right_x_pos-12, 2)
+
+        if self.playback.looping:
+            # Set active styles for loop markers and button
+            self.left_marker_img.setStyleSheet(self.active_marker_style)
+            self.right_marker_img.setStyleSheet(self.active_marker_style)
+            self.loop_button.setStyleSheet(self.active_button_style)
             
             # Show the loop window widget when its area has been created by
             # the left and right markers
@@ -533,8 +557,6 @@ class MainWindow(QMainWindow):
 
     def _skip_song_position(self, x_pos: int) -> None:
         """Skips to song position based on x-pos of left-click on waveform plot."""
-        if self.playhead.isHidden(): self.playhead.show()
-
         self.playhead.move(x_pos, 0) # Update playhead x position
 
         song_pos = ((x_pos/self.waveform.width) * self.playback.duration)

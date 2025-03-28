@@ -33,6 +33,11 @@ QWidget#loop_window {
     border: none;
 }
 
+QWidget#left_marker_img, QLabel#right_marker_img {
+    border-image: url("./assets/images/loop_marker_inactive.png");
+    background-color: transparent;
+}
+
 QPushButton {
     color: rgb(255,255,255);
     border-radius: 16px;

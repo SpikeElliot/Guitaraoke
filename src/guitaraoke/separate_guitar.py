@@ -2,7 +2,7 @@ import os
 import demucs.separate
 
 
-def separate_guitar(path : str) -> tuple[str, str]:
+def separate_guitar(path: str) -> tuple[str, str]:
     """
     Uses the HT Demucs 6-stem model to perform guitar separation from a given
     audio file, saving "guitar" and "no_guitar" tracks as WAV files.

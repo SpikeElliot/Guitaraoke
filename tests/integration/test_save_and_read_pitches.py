@@ -8,7 +8,7 @@ from guitaraoke.save_pitches import save_pitches
 from guitaraoke.utils import csv_to_pitches_dataframe
 
 
-def test_no_notes_predicted_from_silent_audio():
+def test_no_notes_predicted_from_silent_audio() -> None:
     # Create temporary silent audio file
     dummy_silent_audio = np.zeros(shape=(44100*2,)) # 2 seconds of silence
     temp_test_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
@@ -28,7 +28,7 @@ def test_no_notes_predicted_from_silent_audio():
     assert note_count == 0
 
 
-def test_one_note_predicted_from_monotone_audio():
+def test_one_note_predicted_from_monotone_audio() -> None:
     # Save predicted notes from audio file featuring a pure sine tone of C3
     test_pitches_path = save_pitches(".\\assets\\audio\\test\\C3_sine_test.wav", temp=True)[0]
     test_notes_events = csv_to_pitches_dataframe(test_pitches_path)
@@ -39,7 +39,7 @@ def test_one_note_predicted_from_monotone_audio():
     assert unique_pitches == [60]
 
 
-def test_predicted_note_times_are_accurate():
+def test_predicted_note_times_are_accurate() -> None:
     # Save predicted notes from test audio file where note start times have
     # an interval of exactly one second
     test_pitches_path = save_pitches(".\\assets\\audio\\test\\1s_interval_test.wav", temp=True)[0]
