@@ -7,7 +7,7 @@ def save_pitches(
         path: str,
         sonify: bool = False,
         temp: bool = False
-    ) -> list[str]:
+) -> list[str]:
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.

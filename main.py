@@ -600,9 +600,8 @@ class MainWindow(QMainWindow):
             accuracy = (self.playback.score_data["notes_hit"]
                         /self.playback.score_data["total_notes"]) * 100
             new_acc = self.playback.score_data["accuracy"] = accuracy
-
+            self.accuracy_label.setText(f"Accuracy: {round(new_acc, 1)}%")
         self.score_label.setText(f"Score: {self.playback.score_data['score']}")
-        self.accuracy_label.setText(f"Accuracy: {round(new_acc, 1)}%")
 
     def _guitar_vol_slider_moved(self, value: int) -> None:
         """Updates the AudioPlayback's guitar_volume based on new slider value."""

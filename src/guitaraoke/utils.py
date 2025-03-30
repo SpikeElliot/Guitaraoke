@@ -32,9 +32,9 @@ def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
 
 def preprocess_pitch_data(
     pitches: pd.DataFrame, 
-    slice_start: float = None, 
-    slice_end: float = None
-) -> dict:
+    slice_start: float | None = None, 
+    slice_end: float | None = None
+) -> dict[int, list]:
     """
     Takes a pandas DataFrame read from a Basic Pitch note events CSV file
     and performs pre-processing, returning a 2D array of note sequences.
@@ -52,14 +52,16 @@ def preprocess_pitch_data(
         A dictionary containing lists of the times in seconds of note on events
         for every possible MIDI pitch (0-127).
     """
+    new_pitches = pitches.copy()
+    
     if slice_start and slice_end:
-        pitches = pitches[(pitches["start_time_s"] >= slice_start)
-                        & (pitches["start_time_s"] < slice_end)]
+        new_pitches = pitches[
+            (pitches["start_time_s"] >= slice_start)
+            & (pitches["start_time_s"] < slice_end)
+        ]
         
-    pitch_sequences = {}
-    for i in range(128):
-        pitch_sequences[i] = []
-    for row in pitches.itertuples():
+    pitch_sequences = {k: [] for k in range(128)}
+    for row in new_pitches.itertuples():
         pitch_sequences[row.pitch_midi].append(row.start_time_s)
 
     return pitch_sequences

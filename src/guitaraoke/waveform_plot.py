@@ -32,7 +32,7 @@ class WaveformPlot(pg.PlotWidget):
         height: int,
         bg_colour: tuple[int, int] = (255,255,255),
         colour: tuple[int, int] = (0,0,0)
-        ) -> None:
+    ) -> None:
         """
         The constructor for the WaveformPlot class.
 
