@@ -177,6 +177,7 @@ class MainWindow(QMainWindow):
 
         # Guitar volume slider
         self.guitar_vol_slider = QSlider(orientation=Qt.Horizontal)
+        self.guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
         self.guitar_vol_slider.setFixedWidth(int(self.waveform.width/2))
         self.guitar_vol_slider.setRange(0, 100)
         self.guitar_vol_slider.setPageStep(5)
@@ -196,6 +197,7 @@ class MainWindow(QMainWindow):
         self.count_in_button = QPushButton()
         self.count_in_button.setObjectName("count_in_button")
         self.count_in_button.setText("Count-in")
+        self.count_in_button.setToolTip("Toggle metronome count-in.")
         self.count_in_button.setFixedWidth(button_width)
         self.count_in_button.clicked.connect(self._count_in_button_pressed)
 
@@ -207,6 +209,7 @@ class MainWindow(QMainWindow):
         self.skip_back_button = QPushButton() 
         self.skip_back_button.setObjectName("skip_back_button")
         self.skip_back_button.setText("Skip back")
+        self.skip_back_button.setToolTip("Skip back 5 seconds.")
         self.skip_back_button.setFixedWidth(button_width)
         self.skip_back_button.clicked.connect(self._skip_back_button_pressed)
 
@@ -214,6 +217,7 @@ class MainWindow(QMainWindow):
         self.play_button = QPushButton() 
         self.play_button.setObjectName("play_button")
         self.play_button.setText("Play")
+        self.play_button.setToolTip("Start or resume song playback.")
         self.play_button.setFixedWidth(button_width)
         self.play_button.clicked.connect(self._play_button_pressed)
         
@@ -221,6 +225,7 @@ class MainWindow(QMainWindow):
         self.pause_button = QPushButton() 
         self.pause_button.setObjectName("pause_button")
         self.pause_button.setText("Pause")
+        self.pause_button.setToolTip("Pause song playback.")
         self.pause_button.hide()
         self.pause_button.setFixedWidth(button_width)
         self.pause_button.clicked.connect(self._pause_button_pressed)
@@ -229,6 +234,7 @@ class MainWindow(QMainWindow):
         self.skip_forward_button = QPushButton() 
         self.skip_forward_button.setObjectName("skip_forward_button")
         self.skip_forward_button.setText("Skip forward")
+        self.skip_forward_button.setToolTip("Skip forward 5 seconds.")
         self.skip_forward_button.setFixedWidth(button_width)
         self.skip_forward_button.clicked.connect(self._skip_forward_button_pressed)
 
@@ -236,6 +242,11 @@ class MainWindow(QMainWindow):
         self.loop_button = QPushButton()
         self.loop_button.setObjectName("loop_button")
         self.loop_button.setText("Loop")
+        self.loop_button.setToolTip(
+            "Toggle section looping.<br><br> \
+            <b>shift+mouse1</b> sets the left loop marker.<br> \
+            <b>shift+mouse2</b> sets the right loop marker."
+        )
         self.loop_button.setFixedWidth(button_width)
         self.loop_button.clicked.connect(self._loop_button_pressed)
         

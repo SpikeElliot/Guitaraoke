@@ -14,9 +14,9 @@ class WaveformPlot(pg.PlotWidget):
         The fixed width of the PlotWidget.
     height : int
         The fixed height of the PlotWidget.
-    background_colour : tuple of int, default=(255,255,255)
+    background_colour : tuple[int,int,int], default=(255,255,255)
         The RGB values to use for the plot's background colour.
-    colour : tuple of int, default=(0,0,0)
+    colour : tuple[int,int,int], default=(0,0,0)
         The RGB values to use for the plot's fill colour.
 
     Methods
@@ -30,8 +30,8 @@ class WaveformPlot(pg.PlotWidget):
         self, 
         width: int,
         height: int,
-        bg_colour: tuple[int, int] = (255,255,255),
-        colour: tuple[int, int] = (0,0,0)
+        bg_colour: tuple[int,int,int] = (255,255,255),
+        colour: tuple[int,int,int] = (0,0,0)
     ) -> None:
         """
         The constructor for the WaveformPlot class.
@@ -42,9 +42,9 @@ class WaveformPlot(pg.PlotWidget):
             The fixed width of the PlotWidget.
         height : int
             The fixed height of the PlotWidget.
-        background_colour : tuple of int, default=(255,255,255)
+        background_colour : tuple[int,int,int], default=(255,255,255)
             The RGB values to use for the plot's background colour.
-        colour : tuple of int, default=(0,0,0)
+        colour : tuple[int,int,int], default=(0,0,0)
             The RGB values to use for the plot's fill colour.
         """
         super().__init__()

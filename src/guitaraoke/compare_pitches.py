@@ -12,9 +12,9 @@ from collections import defaultdict
 # Due to overlapping recordings, duplicate notes are being counted every loop.
 # A method of filtering duplicates from score calculations needs to be found.
 def compare_pitches(
-    user_pitches: dict, 
-    song_pitches: dict
-) -> tuple[int, int]:
+    user_pitches: dict[int, list], 
+    song_pitches: dict[int, list]
+) -> tuple[int, float, int]:
     """
     Take two dictionaries containing 128 arrays (one for each MIDI pitch), 
     find the shortest unique distances between each user and song note, 
@@ -22,13 +22,13 @@ def compare_pitches(
 
     Parameters
     ----------
-    user_pitches, song_pitches : dict
+    user_pitches, song_pitches : dict[int, list]
         A dictionary converted from a pandas DataFrame containing a list of note
         event times for each possible MIDI pitch predicted from an audio file.
     
     Returns
     -------
-    score_info : tuple
+    tuple[int, float, int]
         The user score, number of notes hit by the user, and total number
         of notes.
     """
@@ -117,8 +117,4 @@ def compare_pitches(
                 notes_hit += 1 - score_penalty
 
     score = round(notes_hit * 100)
-    return (score, notes_hit, total_notes)
-
-# TESTING
-# user_notes = {0: [0.1, 0.2, 0.3, 0.4, 0.52, 0.54, 0.61]}
     return (score, notes_hit, total_notes)

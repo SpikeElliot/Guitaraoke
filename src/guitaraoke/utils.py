@@ -48,7 +48,7 @@ def preprocess_pitch_data(
 
     Returns
     -------
-    pitch_sequences : dict
+    pitch_sequences : dict[int, list]
         A dictionary containing lists of the times in seconds of note on events
         for every possible MIDI pitch (0-127).
     """

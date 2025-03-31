@@ -250,7 +250,8 @@ class AudioPlayback(QThread):
         }
     
     def in_loop_bounds(self) -> bool:
-        if self.looping and (self.position > self.loop_markers[0]
-                             and self.position < self.loop_markers[1]):
+        if (self.looping 
+            and (self.position > self.loop_markers[0]
+            and self.position < self.loop_markers[1])):
             return True
         return False
