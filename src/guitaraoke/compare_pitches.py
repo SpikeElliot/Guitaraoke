@@ -59,7 +59,7 @@ def compare_pitches(
         # given song note time's distances from all user note times.
         nearest_times = []
         for time in song_note_times:
-            # Get a list of user time indexes sorted by distance from song times
+            # Get a list of user time indexes sorted by distance from song time
             sorted_dist_idxs = np.argsort(
                 np.abs(np.array(user_note_times) - time)
             )
@@ -74,16 +74,18 @@ def compare_pitches(
         while not unique_pairs:
             for i in range(len(nearest_times)-1):
                 for j in range(i+1, len(nearest_times)):
-                    if not (nearest_times[i] and nearest_times[j]):
-                        continue # One of the song notes has been removed
-
-                    if nearest_times[i][0] != nearest_times[j][0]: 
-                        continue # Nearest user notes are dissimilar
+                    # First song note has been removed
+                    if not nearest_times[i]:
+                        break 
+                    # Second song note removed or nearest user notes are dissimilar
+                    if (not nearest_times[j]
+                        or nearest_times[i][0] != nearest_times[j][0]):
+                        continue
 
                     i_dist = np.abs(song_note_times[i] - nearest_times[i][0])
                     j_dist = np.abs(song_note_times[j] - nearest_times[j][0])
 
-                    # The song note time with the furthest distance has the user
+                    # The song note time with the larger distance has the user
                     # note time deleted from its corresponding array, updating 
                     # index 0 to the next closest user note time. 
                     if i_dist > j_dist:
@@ -119,5 +121,4 @@ def compare_pitches(
 
 # TESTING
 # user_notes = {0: [0.1, 0.2, 0.3, 0.4, 0.52, 0.54, 0.61]}
-# song_notes = {0: [0.1, 0.2, 0.3, 0.46, 0.5, 0.511, 0.56, 0.57, 0.6]}
-# print(compare_pitches(user_notes, song_notes))
+    return (score, notes_hit, total_notes)

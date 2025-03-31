@@ -585,13 +585,16 @@ class MainWindow(QMainWindow):
         self._pause_song_processes()
         self.count_in_timer.start()
     
-    def _on_score_processed(self, score_info: tuple[int, int]) -> None:
+    def _on_score_processed(
+            self,
+            score: int,
+            notes_hit: float,
+            total_notes: int
+        ) -> None:
         """
         Method called when the next input recording has been processed. Updates
         the AudioPlayback's score_data and the GUI's labels with new values.
         """
-        score, notes_hit, total_notes = score_info
-        
         self.playback.score_data["score"] += score
         self.playback.score_data["notes_hit"] += notes_hit
         self.playback.score_data["total_notes"] += total_notes

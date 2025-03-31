@@ -45,7 +45,7 @@ class AudioInput(QThread):
         Sets the input device to use for the sounddevice input stream by index
         in input_devices list.
     """
-    score_processed = pyqtSignal(tuple) # Connects the QThread to the GUI
+    score_processed = pyqtSignal(int, float, int) # Connects the QThread to the GUI
 
     def __init__(self, song: AudioPlayback) -> None:
         """
@@ -157,7 +157,7 @@ class AudioInput(QThread):
                 # print("user pitches:",user_pitches)
                 # print("song pitches:",song_pitches)
 
-                score_info = compare_pitches(
+                score_results = compare_pitches(
                     user_pitches, 
                     song_pitches
                 )
@@ -168,7 +168,7 @@ class AudioInput(QThread):
                 os.unlink(temp_recording.name)
 
                 # Send score information to GUI
-                self.score_processed.emit(score_info)
+                self.score_processed.emit(*score_results)
 
             time.sleep(0.01) # Reduce CPU load
         
