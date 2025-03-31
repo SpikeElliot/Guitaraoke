@@ -1,3 +1,5 @@
+"""Module providing an AudioInput class."""
+
 import os
 import time
 import tempfile
@@ -5,7 +7,7 @@ import threading
 import numpy as np
 import sounddevice as sd
 from scipy.io.wavfile import write
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal # pylint: disable=E0611
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.audio_playback import AudioPlayback
 from guitaraoke.compare_pitches import compare_pitches
@@ -46,6 +48,11 @@ class AudioInput(QThread):
         in input_devices list.
     """
     score_processed = pyqtSignal(int, float, int) # Connects the QThread to the GUI
+    CHANNELS = 1
+    RATE = 44100
+    DTYPE = "float32"
+    BUFFER_SIZE = int(RATE * 6)
+    OVERLAP_SIZE = int(RATE * 2)
 
     def __init__(self, song: AudioPlayback) -> None:
         """
@@ -59,21 +66,17 @@ class AudioInput(QThread):
         """
         super().__init__()
         self.song = song
-        self.CHANNELS = 1
-        self.RATE = 44100
-        self.DTYPE = "float32" 
-        
         # Audio input stream is saved in 2 second windows to prevent notes from
         # being cut off, as is the case when using sounddevice's rec function.
         self.stream = None
-        self.BUFFER_SIZE = int(self.RATE * 6)
-        self.OVERLAP_SIZE = int(self.RATE * 2)
+        self.streaming = False
+
         self.buffer = np.zeros(self.BUFFER_SIZE)
         self.audio_blocks = np.ndarray(0)
 
         self.input_devices = self._find_input_devices()
         self.input_device_index = 0
-        self.set_input_device(self.input_device_index)        
+        self.set_input_device(self.input_device_index)
 
     def _find_input_devices(self) -> None:
         """Return a list of available audio input devices."""
@@ -83,7 +86,7 @@ class AudioInput(QThread):
             if d["max_input_channels"] > 0 and d["hostapi"] == 0:
                 input_devs.append(d)
         return input_devs
-    
+
     def set_input_device(self, input_dev_idx: int) -> None:
         """
         Sets the input device to use for the sounddevice input stream by index
@@ -95,7 +98,8 @@ class AudioInput(QThread):
             The input_devices list index of the desired input device.
         """
         # Terminate previous input stream
-        if self.stream: self.stream.abort()
+        if self.stream:
+            self.stream.abort()
 
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
@@ -105,11 +109,11 @@ class AudioInput(QThread):
             channels=self.CHANNELS,
             dtype=self.DTYPE,
             callback=self._callback,
-            latency="low"
+            latency="low",
         )
         self.streaming = False
-    
-    def _callback(self, indata, frames, time, status) -> None:
+
+    def _callback(self, indata, f, t, s) -> None: # pylint: disable=W0613
         """
         The callback function called by the sounddevice input stream. 
         Generates input audio data.
@@ -120,30 +124,33 @@ class AudioInput(QThread):
         """
         Convert the user input recording into a MIDI file, and compare the
         user's predicted pitches to the audio file's aligned at the correct
-        time. The resultant score information is sent to the GUI.
+        time. The resultant score data is sent to the GUI.
         """
         while self.streaming:
             current_time = self.song.position / self.RATE # Update time
 
             if self.audio_blocks.size >= self.OVERLAP_SIZE:
                 # Add new window to buffer and shift to the left by overlap duration
-                self.buffer = np.append(self.buffer, self.audio_blocks[:self.OVERLAP_SIZE])
+                self.buffer = np.append(
+                    self.buffer,
+                    self.audio_blocks[:self.OVERLAP_SIZE]
+                )
                 self.buffer = self.buffer[self.OVERLAP_SIZE:]
                 self.audio_blocks = self.audio_blocks[self.OVERLAP_SIZE:]
-                
+
                 # Save recorded audio as a temp WAV file
                 temp_recording = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
                 write(temp_recording.name, self.RATE, self.buffer)
                 print(f"\nCreated temp file: {temp_recording.name}")
 
                 buffer_size_s = self.BUFFER_SIZE / self.RATE # In seconds
-            
+
                 # Save predicted user pitches to a temp CSV file
                 user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
                 user_pitches = csv_to_pitches_dataframe(user_pitches_path)
-                
+
                 # Align user note event times to current song position
-                user_pitches["start_time_s"] = user_pitches["start_time_s"] + (current_time - buffer_size_s)
+                user_pitches["start_time_s"] += current_time - buffer_size_s
 
                 # Convert user and song pitches to dicts of note event sequences
                 user_pitches = preprocess_pitch_data(user_pitches)
@@ -158,7 +165,7 @@ class AudioInput(QThread):
                 # print("song pitches:",song_pitches)
 
                 score_results = compare_pitches(
-                    user_pitches, 
+                    user_pitches,
                     song_pitches
                 )
 
@@ -171,10 +178,10 @@ class AudioInput(QThread):
                 self.score_processed.emit(*score_results)
 
             time.sleep(0.01) # Reduce CPU load
-        
+
     def run(self) -> None:
         """Starts the user input recording-processing loop."""
-        print(f"\nRecording...")
+        print("\nRecording...")
         self.stream.start()
         self.streaming = True
         audio_processing_thread = threading.Thread(
@@ -182,7 +189,7 @@ class AudioInput(QThread):
         )
         audio_processing_thread.daemon = True
         audio_processing_thread.start()
-    
+
     def stop(self) -> None:
         """Stops the user input recording-processing loop."""
         print("\nRecording stopped.")

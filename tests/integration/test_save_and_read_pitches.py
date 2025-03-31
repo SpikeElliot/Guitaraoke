@@ -1,5 +1,9 @@
+"""
+Module performing integration testing of the pitch saving and reading 
+functionality.
+"""
+
 import os
-import pytest
 import tempfile
 import numpy as np
 import pandas as pd
@@ -9,6 +13,7 @@ from guitaraoke.utils import csv_to_pitches_dataframe
 
 
 def test_no_notes_predicted_from_silent_audio() -> None:
+    """Assert there are zero predicted notes from silent audio"""
     # Create temporary silent audio file
     dummy_silent_audio = np.zeros(shape=(44100*2,)) # 2 seconds of silence
     temp_test_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
@@ -23,30 +28,32 @@ def test_no_notes_predicted_from_silent_audio() -> None:
     temp_test_file.close()
     os.unlink(temp_test_file.name)
 
-    # Assert there are zero predicted notes from silent audio
     note_count = test_note_events.shape[0]
     assert note_count == 0
 
 
 def test_one_note_predicted_from_monotone_audio() -> None:
-    # Save predicted notes from audio file featuring a pure sine tone of C3
+    """Assert only one pitch is predicted from monotone audio."""
+    # Save predicted notes from audio file playing a pure sine tone of C3
     test_pitches_path = save_pitches(".\\assets\\audio\\test\\C3_sine_test.wav", temp=True)[0]
     test_notes_events = csv_to_pitches_dataframe(test_pitches_path)
     os.remove(test_pitches_path)
 
-    # Assert only one pitch (C3 = 60) is predicted
     unique_pitches = test_notes_events["pitch_midi"].unique()
     assert unique_pitches == [60]
 
 
 def test_predicted_note_times_are_accurate() -> None:
+    "Assert all predicted note onset times are accurate within 20ms."
     # Save predicted notes from test audio file where note start times have
     # an interval of exactly one second
-    test_pitches_path = save_pitches(".\\assets\\audio\\test\\1s_interval_test.wav", temp=True)[0]
+    test_pitches_path = save_pitches(
+        ".\\assets\\audio\\test\\1s_interval_test.wav",
+        temp=True,
+    )[0]
     test_notes_events = csv_to_pitches_dataframe(test_pitches_path)
     os.remove(test_pitches_path)
 
-    # Assert all predicted note onset times are accurate within 20ms
     note_start_times = test_notes_events["start_time_s"]
     tolerance = 0.02
     for time in note_start_times:

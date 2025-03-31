@@ -1,3 +1,5 @@
+"""Module providing a waveform plot class."""
+
 import librosa
 import numpy as np
 import pyqtgraph as pg
@@ -27,7 +29,7 @@ class WaveformPlot(pg.PlotWidget):
         Add a mouse click connection to the waveform plot widget.
     """
     def __init__(
-        self, 
+        self,
         width: int,
         height: int,
         bg_colour: tuple[int,int,int] = (255,255,255),
@@ -75,12 +77,9 @@ class WaveformPlot(pg.PlotWidget):
         # is too short, otherwise one point represents a window of ~100 ms
         num_points = np.max([1000, int(audio.duration * 10)])
 
-        # Sum the amplitudes of the two separated tracks to get the full mix
-        audio_data = audio.guitar_data + audio.no_guitar_data
-
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
-            y=audio_data,
+            y=audio.guitar_data + audio.no_guitar_data, # Sum to get full mix
             orig_sr=audio.RATE,
             target_sr=audio.RATE/16
         )
@@ -88,31 +87,27 @@ class WaveformPlot(pg.PlotWidget):
         x_vals = np.arange(0, num_points)
 
         # Get max and min values for each window
-        w_maxes, w_mins = [], []
+        max_windows, min_windows = [], []
         for i in range(num_points):
             w = plot_frames[i*w_size : i*w_size + w_size]
-            w_maxes.append(np.max(w))
-            w_mins.append(np.min([0, np.min(w)]))
-        
-        # Convert lists to np arrays for data processing
-        max_windows = np.array(w_maxes)
-        min_windows = np.array(w_mins)
+            max_windows.append(np.max(w))
+            min_windows.append(np.min([0, np.min(w)]))
 
-        # Get y-axis limits based on range of amplitudes from windows
-        max_ylim = np.max(max_windows)
-        min_ylim = np.min(min_windows)
+        # Convert lists to np arrays for data processing
+        max_windows = np.array(max_windows)
+        min_windows = np.array(min_windows)
 
         # Scale the data (0 to 1 for pos vals, 0 to -1 for neg vals)
-        max_windows /= max_ylim
-        min_windows /= abs(min_ylim)
+        max_windows /= np.max(max_windows)
+        min_windows /= np.abs(np.min(min_windows))
 
         # Set axis ranges for plot
-        self.setYRange(-1, 1, padding=0)
-        self.setXRange(0, num_points, padding=0)
+        self.setYRange(-1, 1, padding=0) # pylint: disable=E1124
+        self.setXRange(0, num_points, padding=0) # pylint: disable=E1124
 
         # Set line colour
-        pen=pg.mkPen(self.colour)
-        brush=pg.mkBrush(self.colour)
+        pen = pg.mkPen(self.colour)
+        brush = pg.mkBrush(self.colour)
 
         # Initialise plot items
         max_line = pg.PlotCurveItem(x_vals, max_windows, pen=pen)
@@ -123,7 +118,7 @@ class WaveformPlot(pg.PlotWidget):
         self.addItem(max_line)
         self.addItem(min_line)
         self.addItem(fill)
-        
+
     def clicked_connect(self, function):
         """Add a mouse click connection to the waveform plot widget."""
         self.scene().sigMouseClicked.connect(function)

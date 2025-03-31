@@ -1,20 +1,24 @@
+"""The main file of the application."""
+
 import sys
 import numpy as np
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer # pylint: disable=E0611
+from PyQt5.QtWidgets import ( # pylint: disable=E0611
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QPushButton, QSlider
+)
 from guitaraoke.audio_input import AudioInput
 from guitaraoke.waveform_plot import WaveformPlot
 from guitaraoke.audio_playback import AudioPlayback
 from guitaraoke.utils import time_format, hex_to_rgb
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QSlider
 
 
 class MainWindow(QMainWindow):
     """The main window of the GUI application."""
+    WIDTH, HEIGHT = 1440, 500
     def __init__(self) -> None:
         """The constructor for the MainWindow class."""
         super().__init__()
-
-        self.WIDTH, self.HEIGHT = 1440, 500
         self.theme_colour = "#0070df"
         self.inactive_colour = "#4e759c"
 
@@ -72,35 +76,35 @@ class MainWindow(QMainWindow):
         song_info_top_row.addSpacing(int(self.WIDTH*0.05))
 
         song_info_top_row.addWidget(
-            self.gamemode_label, 
+            self.gamemode_label,
             alignment=Qt.AlignLeft
         )
 
         song_info_top_row.addWidget(
-            self.artist_label, 
+            self.artist_label,
             alignment=Qt.AlignCenter
         )
 
         song_info_top_row.addWidget(
-            self.score_label, 
+            self.score_label,
             alignment=Qt.AlignRight
         )
 
         song_info_top_row.addSpacing(int(self.WIDTH*0.05))
 
         # Middle row
-        
+
         song_info_middle_row.addSpacing(int(self.WIDTH*0.05))
 
         song_info_middle_row.addWidget(QLabel()) # Temporary
 
         song_info_middle_row.addWidget(
-            self.title_label, 
+            self.title_label,
             alignment=Qt.AlignCenter
         )
 
         song_info_middle_row.addWidget(
-            self.accuracy_label, 
+            self.accuracy_label,
             alignment=Qt.AlignRight
         )
 
@@ -111,7 +115,7 @@ class MainWindow(QMainWindow):
         song_info_bottom_row.addStretch(1)
 
         song_info_bottom_row.addWidget(
-            self.duration_label, 
+            self.duration_label,
             alignment=Qt.AlignCenter
         )
 
@@ -160,10 +164,10 @@ class MainWindow(QMainWindow):
         self.right_marker_img.hide()
 
         # Song time position timer
-        self.songpos_timer = QTimer() 
+        self.songpos_timer = QTimer()
         self.songpos_timer.setInterval(10)
         self.songpos_timer.timeout.connect(self._update_songpos)
-        
+
         # Audio Playback Controls
 
         # Layouts
@@ -206,7 +210,7 @@ class MainWindow(QMainWindow):
         self.count_in_timer.timeout.connect(self._count_in)
 
         # Skip back button
-        self.skip_back_button = QPushButton() 
+        self.skip_back_button = QPushButton()
         self.skip_back_button.setObjectName("skip_back_button")
         self.skip_back_button.setText("Skip back")
         self.skip_back_button.setToolTip("Skip back 5 seconds.")
@@ -214,15 +218,15 @@ class MainWindow(QMainWindow):
         self.skip_back_button.clicked.connect(self._skip_back_button_pressed)
 
         # Play button
-        self.play_button = QPushButton() 
+        self.play_button = QPushButton()
         self.play_button.setObjectName("play_button")
         self.play_button.setText("Play")
         self.play_button.setToolTip("Start or resume song playback.")
         self.play_button.setFixedWidth(button_width)
         self.play_button.clicked.connect(self._play_button_pressed)
-        
+
         # Pause button
-        self.pause_button = QPushButton() 
+        self.pause_button = QPushButton()
         self.pause_button.setObjectName("pause_button")
         self.pause_button.setText("Pause")
         self.pause_button.setToolTip("Pause song playback.")
@@ -231,7 +235,7 @@ class MainWindow(QMainWindow):
         self.pause_button.clicked.connect(self._pause_button_pressed)
 
         # Skip forward button
-        self.skip_forward_button = QPushButton() 
+        self.skip_forward_button = QPushButton()
         self.skip_forward_button.setObjectName("skip_forward_button")
         self.skip_forward_button.setText("Skip forward")
         self.skip_forward_button.setToolTip("Skip forward 5 seconds.")
@@ -249,59 +253,59 @@ class MainWindow(QMainWindow):
         )
         self.loop_button.setFixedWidth(button_width)
         self.loop_button.clicked.connect(self._loop_button_pressed)
-        
+
         # Top row
 
         controls_layout_top_row.addWidget( # "Guitar Volume" text label
-            self.guitar_vol_label, 
+            self.guitar_vol_label,
             alignment=Qt.AlignRight
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume slider
-            self.guitar_vol_slider, 
+            self.guitar_vol_slider,
             alignment=Qt.AlignCenter
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume value label
-            self.guitar_vol_val_label, 
+            self.guitar_vol_val_label,
             alignment=Qt.AlignLeft
         )
 
         # Bottom row
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.count_in_button, 
-            0, 0, 
+            self.count_in_button,
+            0, 0,
             alignment=Qt.AlignRight
         )
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.skip_back_button, 
+            self.skip_back_button,
             0, 1
         )
 
         controls_layout_bottom_row.addWidget( # Play button
-            self.play_button, 
+            self.play_button,
             0, 2
         )
 
         controls_layout_bottom_row.addWidget( # Pause button
-            self.pause_button, 
+            self.pause_button,
             0, 2
         )
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.skip_forward_button, 
+            self.skip_forward_button,
             0, 3
         )
 
         controls_layout_bottom_row.addWidget( # Loop button
-            self.loop_button, 
-            0, 4, 
+            self.loop_button,
+            0, 4,
             alignment=Qt.AlignLeft
         )
 
@@ -315,23 +319,23 @@ class MainWindow(QMainWindow):
         controls_layout.addLayout(controls_layout_bottom_row)
 
         # Main Layout
-        
+
         layout = QVBoxLayout()
         layout.addLayout(song_info_layout)
         layout.addWidget(
-            self.waveform, 
+            self.waveform,
             alignment=Qt.AlignCenter
         )
         layout.addLayout(controls_layout)
-        
+
         # Container for main layout
         container = QWidget()
         container.setLayout(layout)
-        self.setCentralWidget(container)    
+        self.setCentralWidget(container)
 
     def _set_styles(self) -> None:
         """Sets the CSS styling of window and widgets."""
-        with open("./assets/stylesheets/main.qss", "r") as f:
+        with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
             # Read main stylesheet and set main window style
             _style = f.read()
             self.setStyleSheet(_style)
@@ -355,20 +359,20 @@ class MainWindow(QMainWindow):
             self._pause_button_pressed()
 
             # Reset song time display to 0
-            self.duration_label.setText( 
+            self.duration_label.setText(
                 f"<font color='{self.theme_colour}'>00:00.00</font>"
                 f" / {time_format(self.playback.duration)}"
-            ) 
+            )
         else:
             # Update the song duration label with new time
-            self.duration_label.setText( 
+            self.duration_label.setText(
                 f"<font color='{self.theme_colour}'>"
                 f"{time_format(self.playback.get_pos())}</font>"
                 f" / {time_format(self.playback.duration)}"
             )
 
         self._update_playhead_pos()
-    
+
     def _update_playhead_pos(self) -> None:
         song_pos = self.playback.get_pos()
         head_pos = int((song_pos/self.playback.duration)
@@ -381,26 +385,28 @@ class MainWindow(QMainWindow):
         self.pause_button.show()
 
         # Case: song count-in is disabled
-        if not self.playback.count_in: return self._start_song_processes()
+        if not self.playback.count_in:
+            self._start_song_processes()
+            return
 
         # Set count-in timer interval to estimated beat interval of song
         self.count_in_timer.setInterval(self.playback.count_interval)
         self.playback.metronome_count = 0
         self.count_in_timer.start()
-    
+
     def _count_in_button_pressed(self) -> None:
         self.playback.count_in = not self.playback.count_in
         if self.playback.count_in:
             self.count_in_button.setStyleSheet(self.active_button_style)
         else:
             self.count_in_button.setStyleSheet(self.inactive_button_style)
-        
+
     def _count_in(self) -> None:
         """Starts audio playback and recording when count-in timer finished."""
         if self.playback.play_count_in_metronome(self.count_in_timer):
             # Start playback and recording
             self._start_song_processes()
-            
+
     def _start_song_processes(self) -> None:
         self.playback.start()
         self.input.start()
@@ -410,7 +416,7 @@ class MainWindow(QMainWindow):
         self.playback.stop()
         self.input.stop()
         self.songpos_timer.stop()
-    
+
     def _pause_button_pressed(self) -> None:
         """Stops audio playback and recording when pause button pressed."""
         self.pause_button.hide()
@@ -457,8 +463,9 @@ class MainWindow(QMainWindow):
         Toggles song section looping when loop button pressed if both loop
         markers are set.
         """
-        if None in self.playback.loop_markers: return
-        
+        if None in self.playback.loop_markers:
+            return
+
         self.playback.looping = not self.playback.looping
         if self.playback.looping:
             self.loop_window.show()
@@ -471,21 +478,24 @@ class MainWindow(QMainWindow):
             self.left_marker_img.setStyleSheet(self.inactive_marker_style)
             self.right_marker_img.setStyleSheet(self.inactive_marker_style)
 
-    def _waveform_pressed(self, mouseClickEvent) -> None:
+    def _waveform_pressed(self, mouse_event) -> None:
         """
         Method called when mouse click event signal sent by waveform plot.
         Sets a loop marker if shift button held, otherwise if left mouse button
         pressed, skip to song position based on x position clicked.
         """
-        x_pos = np.max(int(mouseClickEvent.scenePos()[0]), 0)
-        button = mouseClickEvent.button()
-        mods = mouseClickEvent.modifiers()
+        x_pos = np.max(int(mouse_event.scenePos()[0]), 0)
+        button = mouse_event.button()
+        mods = mouse_event.modifiers()
 
         # Case: shift button held
-        if mods == Qt.ShiftModifier: return self._loop_marker_set(x_pos, button)
+        if mods == Qt.ShiftModifier:
+            self._loop_marker_set(x_pos, button)
+            return
 
         # Case: only left mouse button pressed
-        if button == 1: self._skip_song_position(x_pos) 
+        if button == 1:
+            self._skip_song_position(x_pos)
 
     def _loop_marker_set(self, x_pos: int, button: int) -> None:
         """
@@ -508,23 +518,23 @@ class MainWindow(QMainWindow):
                 self.left_marker_img.move(x_pos-12, 2)
             elif np.abs(right_marker - marker_pos) >= time_constraint:
                 # Looping set to true when both markers set
-                self.playback.looping = True 
+                self.playback.looping = True
                 # Invert markers if new left marker > right marker
                 if marker_pos > right_marker:
                     left_marker = right_marker
                     self.left_marker_img.move(self.right_marker_img.x(), 2)
-                    
+
                     right_marker = marker_pos
                     self.right_marker_img.move(x_pos-12, 2)
                 # Otherwise, set left marker to new position
-                else: 
+                else:
                     left_marker = marker_pos
                     self.left_marker_img.move(x_pos-12, 2)
             self.left_marker_img.show() # Show marker when set
 
         # Update right marker when right mouse pressed
         elif button == 2:
-            if left_marker is None: 
+            if left_marker is None:
                 right_marker = marker_pos
                 self.right_marker_img.move(x_pos-12, 2)
             elif np.abs(marker_pos - left_marker) >= time_constraint:
@@ -538,7 +548,7 @@ class MainWindow(QMainWindow):
                     left_marker = marker_pos
                     self.left_marker_img.move(x_pos-12, 2)
                 # Otherwise, set right marker to new position
-                else: 
+                else:
                     right_marker = marker_pos
                     self.right_marker_img.move(x_pos-12, 2)
             self.right_marker_img.show() # Show marker when set
@@ -548,40 +558,35 @@ class MainWindow(QMainWindow):
             self.left_marker_img.setStyleSheet(self.active_marker_style)
             self.right_marker_img.setStyleSheet(self.active_marker_style)
             self.loop_button.setStyleSheet(self.active_button_style)
-            
+
             # Show the loop window widget when its area has been created by
             # the left and right markers
             left_x, right_x = self.left_marker_img.x()+12, self.right_marker_img.x()+12
             self.loop_window.move(left_x, 2)
             self.loop_window.resize(np.abs(right_x - left_x), self.waveform.height-4)
             self.loop_window.show()
-            
+
         # Update playback loop markers (in frames)
         self.playback.loop_markers[0] = left_marker
         self.playback.loop_markers[1] = right_marker
-
-        # Print song loop markers to console (testing)
-        if left_marker is not None:
-            print(f"\nLeft marker: {time_format(left_marker/self.playback.RATE)}")
-        if right_marker is not None:
-            print(f"Right marker: {time_format(right_marker/self.playback.RATE)}")
 
     def _skip_song_position(self, x_pos: int) -> None:
         """Skips to song position based on x-pos of left-click on waveform plot."""
         self.playhead.move(x_pos, 2) # Update playhead x position
 
-        song_pos = ((x_pos/self.waveform.width) * self.playback.duration)
+        song_pos = (x_pos/self.waveform.width) * self.playback.duration
         self.playback.set_pos(song_pos) # Update song time position
 
         self.duration_label.setText( # Update song time display
             f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font>"
             f" / {time_format(self.playback.duration)}"
-        ) 
+        )
 
         print(f"\nSong skipped to: {time_format(song_pos)}") # Testing
 
         # Case: song count-in is disabled
-        if not self.playback.count_in: return
+        if not self.playback.count_in:
+            return
 
         # Case: song skipped during count-in
         if self.count_in_timer.isActive():
@@ -590,12 +595,13 @@ class MainWindow(QMainWindow):
             self.playback.metronome_count = 0
             self.count_in_timer.start()
             return
-        elif self.playback.paused : return
+        if self.playback.paused:
+            return
 
         # Case: song skipped mid-playback
         self._pause_song_processes()
         self.count_in_timer.start()
-    
+
     def _on_score_processed(
             self,
             score: int,
@@ -623,7 +629,8 @@ class MainWindow(QMainWindow):
         self.guitar_vol_val_label.setText(f"{value}%")
 
 
-def main():
+def main() -> None:
+    """Run the application."""
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

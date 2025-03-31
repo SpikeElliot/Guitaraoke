@@ -1,8 +1,10 @@
+"""Module providing an AudioPlayback class."""
+
 import os
 import librosa
 import numpy as np
 import sounddevice as sd
-from PyQt5.QtCore import QThread, QTimer
+from PyQt5.QtCore import QThread, QTimer # pylint: disable=E0611
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe
@@ -55,20 +57,42 @@ class AudioPlayback(QThread):
     set_pos(pos):
         Set the audio playback's time position to a new time in seconds.
     """
+    CHANNELS = 1
+    RATE = 44100
+    DTYPE = "float32" # Datatype preferred by audio processing libraries
+    sd.default.samplerate = RATE
+
     def __init__(self) -> None:
         """The constructor for the AudioPlayback class."""
         super().__init__()
         self.stream = None
-        self.CHANNELS = 1
-        self.RATE = 44100
-        sd.default.samplerate = self.RATE
-        self.DTYPE = "float32" # Datatype preferred by audio processing libraries
-        self.BLOCK_SIZE = 2048 # Minimise latency while preventing glitching/freezing
-        
+        self.path = None
+        self.title= None
+        self.artist = None
+        self.metronome_data = None
+        self.filename = None
+        self.pitches = None
+        self.guitar_data = None
+        self.no_guitar_data = None
+        self.bpm = None
+        self.count_interval = None
+        self.first_beat = None
+        self.paused = True
+        self.ended = True
+        self.duration = None
+        self.position = 0
+        self.metronome_count = 0
+        self.guitar_volume = 1
+        self.loop_markers = [None,None]
+        self.looping = False
+        self.count_in = True
+        self.score_data = None
+        # self.BLOCK_SIZE = 2048 # Minimise latency while preventing glitching/freezing
+
     def load(
-        self, 
-        path: str, 
-        title: str = "Unknown", 
+        self,
+        path: str,
+        title: str = "Unknown",
         artist: str = "Unknown"
     ) -> None:
         """
@@ -84,7 +108,8 @@ class AudioPlayback(QThread):
             The artist attributed to the loaded audio file.
         """
         # When loading a new song, immediately terminate previous stream
-        if self.stream: self.stream.abort()
+        if self.stream:
+            self.stream.abort()
 
         self.path = path
         self.title = title
@@ -105,15 +130,16 @@ class AudioPlayback(QThread):
         else: # Otherwise, load tracks and pitches
             guitar_track_path = separated_tracks_dir + "guitar.wav"
             no_guitar_track_path = separated_tracks_dir + "no_guitar.wav"
-            guitar_pitches_path = f"./assets/pitch_predictions/songs/{self.filename}/guitar_basic_pitch.csv"
+            guitar_pitches_path = ("./assets/pitch_predictions/songs/"
+            f"{self.filename}/guitar_basic_pitch.csv")
 
         # Convert pitches CSV to a pandas DataFrame
         self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
-        
+
         # Get guitar and no_guitar tracks' audio time series
         self.guitar_data = librosa.load(guitar_track_path, sr=self.RATE)[0]
         self.no_guitar_data = librosa.load(no_guitar_track_path, sr=self.RATE)[0]
-        
+
         # Get tempo information
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
@@ -123,15 +149,7 @@ class AudioPlayback(QThread):
         self.count_interval = int(1000 / (self.bpm / 60))
         self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
 
-        # Playback variables
-        self.paused, self.ended = True, True
         self.duration = len(self.guitar_data) / float(self.RATE) # In secs
-        self.position = 0
-        self.metronome_count = 0
-        self.guitar_volume = 1
-        self.loop_markers = [None,None]
-        self.looping = False
-        self.count_in = True
 
         # Initialise user score data
         self._zero_score_data()
@@ -139,7 +157,7 @@ class AudioPlayback(QThread):
         # Open output stream
         self.stream = sd.OutputStream(
             samplerate=self.RATE,
-            blocksize=self.BLOCK_SIZE,
+            blocksize=0,
             channels=self.CHANNELS,
             callback=self._callback,
             dtype=self.DTYPE
@@ -159,10 +177,11 @@ class AudioPlayback(QThread):
     def stop(self) -> None:
         """Pause audio playback."""
         print("\nPlayback stopped.")
-        if not self.paused: self.paused = True
+        if not self.paused:
+            self.paused = True
         self.quit()
         self.wait()
-    
+
     def play_count_in_metronome(self, count_in_timer: QTimer) -> None:
         """
         Use sounddevice to play the count-in metronome sound and increment the
@@ -183,18 +202,19 @@ class AudioPlayback(QThread):
 
         sd.play(self.metronome_data)
         return False # Keep counting
-    
+
     def get_pos(self) -> None:
         """Return the audio playback's current time position in seconds."""
         pos = self.position / self.RATE
         return pos
-    
+
     def set_pos(self, pos: float) -> None:
         """Set the audio playback's time position to a new time in seconds."""
-        if self.ended: self.ended = False
+        if self.ended:
+            self.ended = False
         self.position = int(pos * self.RATE)
 
-    def _callback(self, outdata, frames, time, status) -> None:
+    def _callback(self, outdata, frames, t, s) -> None: # pylint: disable=W0613
         """
         The callback function called by the sounddevice output stream. 
         Generates output audio data.
@@ -239,7 +259,7 @@ class AudioPlayback(QThread):
         outdata[:frames] = audio_batch.reshape(-1,1)
 
         self.position = new_pos # Update song position
-    
+
     def _zero_score_data(self) -> None:
         """Reset all user score data to zero."""
         self.score_data = {
@@ -248,9 +268,10 @@ class AudioPlayback(QThread):
             "total_notes": 0,
             "accuracy": 0
         }
-    
+
     def in_loop_bounds(self) -> bool:
-        if (self.looping 
+        """Check playback is currently looping and within the loop marker bounds."""
+        if (self.looping
             and (self.position > self.loop_markers[0]
             and self.position < self.loop_markers[1])):
             return True

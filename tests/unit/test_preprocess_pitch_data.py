@@ -1,4 +1,1 @@
-import pytest
-from guitaraoke.utils import preprocess_pitch_data
-
-
+"""Module performing unit testing of the preprocess_pitch_data function."""

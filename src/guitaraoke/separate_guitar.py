@@ -1,3 +1,8 @@
+"""
+Module providing a function to perform guitar separation using the 6-stem
+HT Demucs MSS model.
+"""
+
 import os
 import demucs.separate
 
@@ -14,7 +19,7 @@ def separate_guitar(path: str) -> tuple[str, str]:
 
     Returns
     -------
-    separated_track_paths : tuple of str
+    separated_track_paths : tuple[str, str]
         The paths to the separated guitar [0] and no_guitar tracks [1].
     """
     assert os.path.isfile(path), "File does not exist"

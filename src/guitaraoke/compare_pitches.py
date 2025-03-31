@@ -1,18 +1,14 @@
-import numpy as np
-from collections import defaultdict
+"""
+Module providing a function to compare user and song pitches and return
+resultant scoring data (score, notes hit, total notes).
+"""
 
-# TODO: Testing and improvement. Many notes aren't being accurately detected,
-# there may be significant input latency offsetting all user notes by varying
-# degree, and algorithm needs to be reworked in general to better capture user
-# performance.
-#
-# Potential improvement is to consider note off events as well as notes on,
-# to better gauge timing and how well the user is holding the notes.
-#
-# Due to overlapping recordings, duplicate notes are being counted every loop.
-# A method of filtering duplicates from score calculations needs to be found.
+from collections import defaultdict
+import numpy as np
+
+
 def compare_pitches(
-    user_pitches: dict[int, list], 
+    user_pitches: dict[int, list],
     song_pitches: dict[int, list]
 ) -> tuple[int, float, int]:
     """
@@ -40,15 +36,15 @@ def compare_pitches(
     for note in range(128):
         song_note_times, user_note_times = song_pitches[note], user_pitches[note]
 
-        # Case: No notes in song
-        if len(song_note_times) == 0: continue
+        # Case: No notes in song at thus pitch
+        if len(song_note_times) == 0:
+            continue
 
         total_notes += len(song_note_times)
-        
-        # TODO: At some point the issue of the user not being able to play
-        # the rhythm and lead notes concurrently needs to be addressed 
-        # somehow to make scoring fairer
-        if len(user_note_times) == 0: continue
+
+        # Case: User played no notes at this pitch
+        if len(user_note_times) == 0:
+            continue
 
         # Take the shortest distances between note sequences: this allows
         # every song note to match with its nearest unique user note, as
@@ -67,7 +63,7 @@ def compare_pitches(
             nearest_times.append(
                 [user_note_times[d] for d in sorted_dist_idxs]
             )
-        
+
         # Ensure all user notes are paired to a unique song note by iterating
         # over song notes nearest times and checking for duplicates.
         unique_pairs = False
@@ -76,7 +72,7 @@ def compare_pitches(
                 for j in range(i+1, len(nearest_times)):
                     # First song note has been removed
                     if not nearest_times[i]:
-                        break 
+                        break
                     # Second song note removed or nearest user notes are dissimilar
                     if (not nearest_times[j]
                         or nearest_times[i][0] != nearest_times[j][0]):
@@ -86,8 +82,8 @@ def compare_pitches(
                     j_dist = np.abs(song_note_times[j] - nearest_times[j][0])
 
                     # The song note time with the larger distance has the user
-                    # note time deleted from its corresponding array, updating 
-                    # index 0 to the next closest user note time. 
+                    # note time deleted from its corresponding array, updating
+                    # index 0 to the next closest user note time.
                     if i_dist > j_dist:
                         del nearest_times[i][0]
                     else:
@@ -96,18 +92,21 @@ def compare_pitches(
             # Check for duplicates
             freq = defaultdict(int)
             for t in nearest_times:
-                if t: freq[t[0]] += 1
+                if t:
+                    freq[t[0]] += 1
 
             # End loop if no song notes are sharing the same nearest user note
-            if not [t for t in freq if freq[t] > 1]: unique_pairs = True
-                
+            if not [t for t in freq if freq[t] > 1]:
+                unique_pairs = True
+
         # Append all note distances that will be scored to a new array. Any song
         # notes with no unique neighbour user notes were eliminated by the
         # above algorithm, and will automatically be considered a miss.
         distances = []
         for i, times in enumerate(nearest_times):
-            if times: distances.append(np.abs(times[0] - song_note_times[i]))
-        
+            if times:
+                distances.append(np.abs(times[0] - song_note_times[i]))
+
         # Perform scoring logic
         for dist in distances:
             if dist <= note_hit_window:

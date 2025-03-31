@@ -1,9 +1,12 @@
+"""Module performing unit testing of the compare_pitches function."""
+
 import pytest
 from guitaraoke.compare_pitches import compare_pitches
 
 
-@pytest.fixture
-def pitches() -> tuple[dict[int, list], dict[int, list]]:
+@pytest.fixture(name="pitches")
+def pitches_fixture() -> tuple[dict[int, list], dict[int, list]]:
+    """Create user and song pitches needed for tests."""
     user_pitches = {k: [] for k in range(128)}
     song_pitches = {k: [] for k in range(128)}
     user_pitches[60] = [0.1, 0.2, 0.3, 0.4, 0.52, 0.54, 0.61, 0.62, 0.63,
@@ -15,6 +18,7 @@ def pitches() -> tuple[dict[int, list], dict[int, list]]:
 def test_compare_pitches(
     pitches: tuple[dict[int, list], dict[int, list]]
 ) -> None:
+    """Assert compare_pitches functions returns correct score results."""
     result = compare_pitches(*pitches)
 
     assert result == (950, 9.5, 14)

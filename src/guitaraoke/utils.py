@@ -1,3 +1,14 @@
+"""
+Module providing various utility functions.
+
+Functions
+---------
+time_format(time)
+hex_to_rgb(hex_string)
+csv_to_pitches_dataframe(path)
+preprocess_pitch_data(pitches, slice_start=None, slice_end=None)
+"""
+
 import math
 import pandas as pd
 
@@ -7,16 +18,14 @@ def time_format(time: float) -> str:
     mins = math.floor(time / 60)
     secs = math.floor(time % 60)
     cents = int((time - math.floor(time)) * 100)
-    
-    formatted_time = '{:02d}'.format(mins) + ":"
-    formatted_time +='{:02d}'.format(secs) + "."
-    formatted_time += '{:02d}'.format(cents)
 
-    return formatted_time
+    return f"{mins:02d}:{secs:02d}.{cents:02d}"
+
 
 def hex_to_rgb(hex_string: str) -> tuple:
     """Takes a hex triplet and converts it to RGB values."""
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
+
 
 def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
     """
@@ -24,15 +33,16 @@ def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
     unwanted columns and sorting by note onset times.
     """
     return pd.read_csv(
-        path, 
+        path,
         sep=None,
         engine="python",
         index_col=False
     ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
 
+
 def preprocess_pitch_data(
-    pitches: pd.DataFrame, 
-    slice_start: float | None = None, 
+    pitches: pd.DataFrame,
+    slice_start: float | None = None,
     slice_end: float | None = None
 ) -> dict[int, list]:
     """
@@ -53,13 +63,13 @@ def preprocess_pitch_data(
         for every possible MIDI pitch (0-127).
     """
     new_pitches = pitches.copy()
-    
+
     if slice_start and slice_end:
         new_pitches = pitches[
             (pitches["start_time_s"] >= slice_start)
             & (pitches["start_time_s"] < slice_end)
         ]
-        
+
     pitch_sequences = {k: [] for k in range(128)}
     for row in new_pitches.itertuples():
         pitch_sequences[row.pitch_midi].append(row.start_time_s)
