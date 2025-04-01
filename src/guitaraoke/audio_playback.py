@@ -4,99 +4,46 @@ import os
 import librosa
 import numpy as np
 import sounddevice as sd
-from PyQt5.QtCore import QThread, QTimer # pylint: disable=E0611
+from PyQt5.QtCore import QThread, QTimer # pylint: disable=no-name-in-module
+import config
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe
 
 
-class AudioPlayback(QThread):
+class LoadedAudio():
     """
-    Handles loading of new data from an audio file and provides playback
-    methods for the currently-loaded song.
+    Contains all necessary data received from an audio file such as its audio
+    time series, tempo, and duration.
 
     Parameters
     ----------
     path : str
-        The file path of the audio file to load.
-    CHANNELS : int
-        Specifies whether the audio channel is mono (1) or stereo (2).
-    RATE : int
-        The sample rate of the audio.
-    BLOCK_SIZE : int
-        The number of frames per buffer of streamed audio.
-    paused, ended : bool
-        The current state of audio playback's paused and ended status.
-    stream : OutputStream
-        The song's sounddevice output stream for audio playback.
-    position : int
-        The current position of audio playback in frames.
+        The file path of the song to load.
+    title : str, default="Unknown"
+        The title given to the loaded song.
+    artist : str, default="Unknown"
+        The artist attributed to the loaded song.
+    filename : str
+        The song's filename.
     guitar_data, no_guitar_data : ndarray
         The song's separated guitar and no_guitar track audio time series.
-    guitar_volume : float
-        The volume to scale the separated guitar track's amplitudes by. Should
-        be kept between 0 and 1.
+    pitches : DataFrame
+        The guitar note events predicted from the song in a DataFrame.
+    bpm : int
+        The song's tempo.
     duration : float
-        The length of the loaded song in seconds.
-    score_data : dict
-        The performance score derived from comparing the user's recorded pitch
-        to the guitar track's.
-
-    Methods
-    -------
-    load(path, title="Unknown", artist="Unknown")
-        Load important data from an audio file and prepare it for playback.
-    play()
-        Play or unpause audio playback.
-    play_metronome()
-        Initiate a metronome count-in, starting audio playback after the fourth count.
-    pause()
-        Pause audio playback.
-    get_pos()
-        Return the audio playback's current time position in seconds.
-    set_pos(pos):
-        Set the audio playback's time position to a new time in seconds.
+        The length of the song in seconds.
+    
     """
-    CHANNELS = 1
-    RATE = 44100
-    DTYPE = "float32" # Datatype preferred by audio processing libraries
-    sd.default.samplerate = RATE
-
-    def __init__(self) -> None:
-        """The constructor for the AudioPlayback class."""
-        super().__init__()
-        self.stream = None
-        self.path = None
-        self.title= None
-        self.artist = None
-        self.metronome_data = None
-        self.filename = None
-        self.pitches = None
-        self.guitar_data = None
-        self.no_guitar_data = None
-        self.bpm = None
-        self.count_interval = None
-        self.first_beat = None
-        self.paused = True
-        self.ended = True
-        self.duration = None
-        self.position = 0
-        self.metronome_count = 0
-        self.guitar_volume = 1
-        self.loop_markers = [None,None]
-        self.looping = False
-        self.count_in = True
-        self.score_data = None
-        # self.BLOCK_SIZE = 2048 # Minimise latency while preventing glitching/freezing
-
-    def load(
+    def __init__(
         self,
         path: str,
         title: str = "Unknown",
         artist: str = "Unknown"
     ) -> None:
         """
-        Load important data from an audio file and prepare it for playback.
+        The constructor for the LoadedAudio class.
 
         Parameters
         ----------
@@ -107,17 +54,9 @@ class AudioPlayback(QThread):
         artist : str, default="Unknown"
             The artist attributed to the loaded audio file.
         """
-        # When loading a new song, immediately terminate previous stream
-        if self.stream:
-            self.stream.abort()
-
         self.path = path
         self.title = title
         self.artist = artist
-
-        # Load metronome sound effect
-        metronome_path = "./assets/audio/Perc_MetronomeQuartz_lo.wav"
-        self.metronome_data = librosa.load(metronome_path, sr=self.RATE)[0]
 
         self.filename = path.split(".")[1].split("/")[-1]
         separated_tracks_dir = f"./assets/separated_tracks/htdemucs_6s/{self.filename}/"
@@ -137,31 +76,110 @@ class AudioPlayback(QThread):
         self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        self.guitar_data = librosa.load(guitar_track_path, sr=self.RATE)[0]
-        self.no_guitar_data = librosa.load(no_guitar_track_path, sr=self.RATE)[0]
+        self.guitar_data = librosa.load(guitar_track_path, sr=config.RATE)[0]
+        self.no_guitar_data = librosa.load(no_guitar_track_path, sr=config.RATE)[0]
 
         # Get tempo information
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
-            sr=self.RATE
+            sr=config.RATE
         )
         self.bpm = tempo[0]
-        self.count_interval = int(1000 / (self.bpm / 60))
         self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
+        self.duration = len(self.guitar_data) / float(config.RATE) # In secs
 
-        self.duration = len(self.guitar_data) / float(self.RATE) # In secs
+class AudioPlayback(QThread):
+    """
+    Provides audio playback methods for a currently-loaded song.
 
-        # Initialise user score data
-        self._zero_score_data()
+    Parameters
+    ----------
+    paused, ended : bool
+        The current state of audio playback's paused and ended status.
+    stream : OutputStream
+        The song's sounddevice output stream for audio playback.
+    position : int
+        The current position of audio playback in frames.
+    guitar_volume : float
+        The volume to scale the separated guitar track's amplitudes by. Should
+        be kept between 0 and 1.
+    score_data : dict
+        The performance score derived from comparing the user's recorded pitch
+        to the guitar track's.
+
+    Methods
+    -------
+    load(path, title="Unknown", artist="Unknown")
+        Load important data from an audio file and prepare it for playback.
+    play()
+        Play or unpause audio playback.
+    play_metronome()
+        Initiate a metronome count-in, starting audio playback after the fourth count.
+    pause()
+        Pause audio playback.
+    get_pos()
+        Return the audio playback's current time position in seconds.
+    set_pos(pos):
+        Set the audio playback's time position to a new time in seconds.
+    """
+    def __init__(self) -> None:
+        """The constructor for the AudioPlayback class."""
+        super().__init__()
+
+        self.song = None
+        self.paused = None
+        self.ended = None
+        self.position = None
+        self.metronome_count = None
+        self.count_interval = None
+        self.guitar_volume = None
+        self.loop_markers = None
+        self.looping = None
+        self.count_in = None
+        self.score_data = None
 
         # Open output stream
         self.stream = sd.OutputStream(
-            samplerate=self.RATE,
-            blocksize=0,
-            channels=self.CHANNELS,
+            samplerate=config.RATE,
+            blocksize=1024,
+            channels=config.CHANNELS,
             callback=self._callback,
-            dtype=self.DTYPE
+            dtype=config.DTYPE
         )
+
+        # Load metronome sound effect
+        metronome_path = "./assets/audio/Perc_MetronomeQuartz_lo.wav"
+        self.metronome_data = librosa.load(metronome_path, sr=config.RATE)[0]
+
+        # Initialise playback attributes
+        self._reset_playback()
+
+    def load_song(self, song: LoadedAudio) -> None:
+        """Load a song's data to be used for playback."""
+        self.song = song
+        self._reset_playback()
+        self.count_interval = int(1000 / (self.song.bpm / 60))
+
+    def _reset_playback(self):
+        """Set all playback attributes to their initial values."""
+        self.paused = True
+        self.ended = True
+        self.position = 0
+        self.metronome_count = 0
+        self.guitar_volume = 1
+        self.loop_markers = [None,None]
+        self.looping = False
+        self.count_in = True
+        self.score_data = self._zero_score_data()
+
+    def _zero_score_data(self):
+        """Return a score data dictionary with values set to zero."""
+        return {
+            "score": 0,
+            "notes_hit": 0,
+            "total_notes": 0,
+            "accuracy": 0
+        }
 
     def run(self) -> None:
         """Play or unpause audio playback."""
@@ -169,7 +187,7 @@ class AudioPlayback(QThread):
         if self.ended:
             # Reset song pos to start of song
             self.position = 0
-            self._zero_score_data()
+            self.score_data = self._zero_score_data()
 
         self.paused, self.ended = False, False
         self.stream.start()
@@ -200,21 +218,21 @@ class AudioPlayback(QThread):
             self.metronome_count = 0
             return True # Start song
 
-        sd.play(self.metronome_data)
+        sd.play(self.metronome_data, samplerate=config.RATE)
         return False # Keep counting
 
     def get_pos(self) -> None:
         """Return the audio playback's current time position in seconds."""
-        pos = self.position / self.RATE
+        pos = self.position / config.RATE
         return pos
 
     def set_pos(self, pos: float) -> None:
         """Set the audio playback's time position to a new time in seconds."""
         if self.ended:
             self.ended = False
-        self.position = int(pos * self.RATE)
+        self.position = int(pos * config.RATE)
 
-    def _callback(self, outdata, frames, t, s) -> None: # pylint: disable=W0613
+    def _callback(self, outdata, frames, t, s) -> None: # pylint: disable=unused-argument
         """
         The callback function called by the sounddevice output stream. 
         Generates output audio data.
@@ -236,38 +254,29 @@ class AudioPlayback(QThread):
             # Get all frames before right loop marker, and concatenate with
             # all frames needed after loop
             guitar_batch = np.concatenate((
-                self.guitar_data[self.position:self.loop_markers[1]],
-                self.guitar_data[self.loop_markers[0]:new_pos]
+                self.song.guitar_data[self.position:self.loop_markers[1]],
+                self.song.guitar_data[self.loop_markers[0]:new_pos]
             ))
             no_guitar_batch = np.concatenate((
-                self.no_guitar_data[self.position:self.loop_markers[1]],
-                self.no_guitar_data[self.loop_markers[0]:new_pos]
+                self.song.no_guitar_data[self.position:self.loop_markers[1]],
+                self.song.no_guitar_data[self.loop_markers[0]:new_pos]
             ))
         else:
             # Case: no looping and end of song is reached in this batch
-            if new_pos >= len(self.guitar_data):
-                new_pos = len(self.guitar_data)
+            if new_pos >= len(self.song.guitar_data):
+                new_pos = len(self.song.guitar_data)
                 frames = new_pos - self.position
                 self.ended = True
 
             # No looping, load guitar and no_guitar batches as normal
-            guitar_batch = self.guitar_data[self.position:new_pos]
-            no_guitar_batch = self.no_guitar_data[self.position:new_pos]
+            guitar_batch = self.song.guitar_data[self.position:new_pos]
+            no_guitar_batch = self.song.no_guitar_data[self.position:new_pos]
 
         # Sum the amplitudes of the two tracks to get full mix values
         audio_batch = (guitar_batch * self.guitar_volume) + no_guitar_batch
         outdata[:frames] = audio_batch.reshape(-1,1)
 
         self.position = new_pos # Update song position
-
-    def _zero_score_data(self) -> None:
-        """Reset all user score data to zero."""
-        self.score_data = {
-            "score": 0,
-            "notes_hit": 0,
-            "total_notes": 0,
-            "accuracy": 0
-        }
 
     def in_loop_bounds(self) -> bool:
         """Check playback is currently looping and within the loop marker bounds."""

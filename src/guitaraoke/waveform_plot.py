@@ -3,7 +3,8 @@
 import librosa
 import numpy as np
 import pyqtgraph as pg
-from guitaraoke.audio_playback import AudioPlayback
+import config
+from guitaraoke.audio_playback import LoadedAudio
 
 
 class WaveformPlot(pg.PlotWidget):
@@ -62,26 +63,26 @@ class WaveformPlot(pg.PlotWidget):
         self.setMouseEnabled(False, False)
         self.setMenuEnabled(False) # Disable context menu blocking right click
 
-    def draw_plot(self, audio: AudioPlayback) -> None:
+    def draw_plot(self, song: LoadedAudio) -> None:
         """
         Draw the plot of an audio file's maximum and minimum window amplitudes
         as two lines, filling between the points to create a waveform.
 
         Parameters
         ----------
-        audio : AudioPlayback
-            The AudioPlayback object whose audio time series data (frames) 
+        song : LoadedAudio
+            The LoadedAudio object whose audio time series data (frames) 
             will be used.
         """
         # Preserves a minimum number of 1000 points on the graph if audio file
         # is too short, otherwise one point represents a window of ~100 ms
-        num_points = np.max([1000, int(audio.duration * 10)])
+        num_points = np.max([1000, int(song.duration * 10)])
 
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
-            y=audio.guitar_data + audio.no_guitar_data, # Sum to get full mix
-            orig_sr=audio.RATE,
-            target_sr=audio.RATE/16
+            y=song.guitar_data + song.no_guitar_data, # Sum to get full mix
+            orig_sr=config.RATE,
+            target_sr=config.RATE/16
         )
         w_size = int(len(plot_frames) / num_points)
         x_vals = np.arange(0, num_points)
@@ -102,8 +103,8 @@ class WaveformPlot(pg.PlotWidget):
         min_windows /= np.abs(np.min(min_windows))
 
         # Set axis ranges for plot
-        self.setYRange(-1, 1, padding=0) # pylint: disable=E1124
-        self.setXRange(0, num_points, padding=0) # pylint: disable=E1124
+        self.setYRange(-1, 1, padding=0) # pylint: disable=redundant-keyword-arg
+        self.setXRange(0, num_points, padding=0) # pylint: disable=redundant-keyword-arg
 
         # Set line colour
         pen = pg.mkPen(self.colour)

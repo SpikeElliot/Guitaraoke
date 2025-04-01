@@ -1,21 +1,24 @@
 """The main file of the application."""
 
 import sys
+import time
 import numpy as np
-from PyQt5.QtCore import Qt, QTimer # pylint: disable=E0611
-from PyQt5.QtWidgets import ( # pylint: disable=E0611
+from PyQt5.QtCore import Qt, QTimer # pylint: disable=no-name-in-module
+from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QSlider
 )
+import config
 from guitaraoke.audio_input import AudioInput
 from guitaraoke.waveform_plot import WaveformPlot
-from guitaraoke.audio_playback import AudioPlayback
+from guitaraoke.audio_playback import AudioPlayback, LoadedAudio
 from guitaraoke.utils import time_format, hex_to_rgb
 
 
 class MainWindow(QMainWindow):
     """The main window of the GUI application."""
     WIDTH, HEIGHT = 1440, 500
+
     def __init__(self) -> None:
         """The constructor for the MainWindow class."""
         super().__init__()
@@ -24,12 +27,14 @@ class MainWindow(QMainWindow):
 
         # Hard-coded for now
         self.playback = AudioPlayback()
-        self.playback.load(
-            path="./assets/audio/sweetchildomine_intro_riff.wav",
-            title="Sweet Child O' Mine (Intro Riff)",
-            artist="Guns N' Roses"
+        self.playback.load_song(
+            LoadedAudio(
+                path="./assets/audio/sweetchildomine_intro_riff.wav",
+                title="Sweet Child O' Mine (Intro Riff)",
+                artist="Guns N' Roses"
+            )
         )
-        self.input = AudioInput(self.playback)
+        self.input = AudioInput(self.playback.song.pitches)
         self.input.set_input_device(2)
         self.input.score_processed.connect(self._on_score_processed)
 
@@ -51,15 +56,15 @@ class MainWindow(QMainWindow):
         song_info_bottom_row = QHBoxLayout()
 
         self.artist_label = QLabel()
-        self.artist_label.setText(self.playback.artist)
+        self.artist_label.setText(self.playback.song.artist)
 
         self.title_label = QLabel()
-        self.title_label.setText(self.playback.title)
+        self.title_label.setText(self.playback.song.title)
 
         self.duration_label = QLabel()
         self.duration_label.setText(
             f"<font color='{self.theme_colour}'>00:00.00</font>"
-            f" / {time_format(self.playback.duration)}"
+            f" / {time_format(self.playback.song.duration)}"
         )
 
         self.score_label = QLabel()
@@ -133,7 +138,7 @@ class MainWindow(QMainWindow):
             colour=hex_to_rgb(self.theme_colour)
         )
         self.waveform.setObjectName("waveform")
-        self.waveform.draw_plot(self.playback)
+        self.waveform.draw_plot(self.playback.song)
         self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
@@ -361,21 +366,21 @@ class MainWindow(QMainWindow):
             # Reset song time display to 0
             self.duration_label.setText(
                 f"<font color='{self.theme_colour}'>00:00.00</font>"
-                f" / {time_format(self.playback.duration)}"
+                f" / {time_format(self.playback.song.duration)}"
             )
         else:
             # Update the song duration label with new time
             self.duration_label.setText(
                 f"<font color='{self.theme_colour}'>"
                 f"{time_format(self.playback.get_pos())}</font>"
-                f" / {time_format(self.playback.duration)}"
+                f" / {time_format(self.playback.song.duration)}"
             )
 
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
         song_pos = self.playback.get_pos()
-        head_pos = int((song_pos/self.playback.duration)
+        head_pos = int((song_pos/self.playback.song.duration)
                         * self.waveform.width)
         self.playhead.move(head_pos, 2)
 
@@ -409,6 +414,10 @@ class MainWindow(QMainWindow):
 
     def _start_song_processes(self) -> None:
         self.playback.start()
+        self.input.stream_start = { # Give the input stream start time
+            "time": time.time(),
+            "song_pos": self.playback.position/config.RATE
+        }
         self.input.start()
         self.songpos_timer.start()
 
@@ -432,10 +441,10 @@ class MainWindow(QMainWindow):
 
     def _skip_forward_button_pressed(self) -> None:
         # Prevent position from running over end of loop or end of song
-        end = self.playback.duration
+        end = self.playback.song.duration
         if self.playback.in_loop_bounds():
-            end = self.playback.loop_markers[1]/self.playback.RATE
-        pos_in_s = self.playback.position/self.playback.RATE
+            end = self.playback.loop_markers[1]/config.RATE
+        pos_in_s = self.playback.position/config.RATE
 
         if pos_in_s + 5 < end:
             self.playback.set_pos(pos_in_s + 5)
@@ -448,8 +457,8 @@ class MainWindow(QMainWindow):
         # Prevent position from falling behind start of loop or start of song
         start = 0
         if self.playback.in_loop_bounds():
-            start = self.playback.loop_markers[0]/self.playback.RATE
-        pos_in_s = self.playback.position/self.playback.RATE
+            start = self.playback.loop_markers[0]/config.RATE
+        pos_in_s = self.playback.position/config.RATE
 
         if pos_in_s - 5 > start:
             self.playback.set_pos(pos_in_s - 5)
@@ -506,10 +515,11 @@ class MainWindow(QMainWindow):
         right_marker = self.playback.loop_markers[1]
 
         marker_pos = round(( # Marker time position in frames
-            (x_pos/self.waveform.width) * self.playback.duration
-            * self.playback.RATE
+            (x_pos/self.waveform.width)
+            * self.playback.song.duration
+            * config.RATE
         ))
-        time_constraint = 2 * self.playback.RATE # Minimum loop time of 2 secs
+        time_constraint = 2 * config.RATE # Minimum loop time of 2 secs
 
         # Update left marker when left mouse pressed
         if button == 1:
@@ -574,12 +584,12 @@ class MainWindow(QMainWindow):
         """Skips to song position based on x-pos of left-click on waveform plot."""
         self.playhead.move(x_pos, 2) # Update playhead x position
 
-        song_pos = (x_pos/self.waveform.width) * self.playback.duration
+        song_pos = (x_pos/self.waveform.width) * self.playback.song.duration
         self.playback.set_pos(song_pos) # Update song time position
 
         self.duration_label.setText( # Update song time display
             f"<font color='{self.theme_colour}'>{time_format(song_pos)}</font>"
-            f" / {time_format(self.playback.duration)}"
+            f" / {time_format(self.playback.song.duration)}"
         )
 
         print(f"\nSong skipped to: {time_format(song_pos)}") # Testing

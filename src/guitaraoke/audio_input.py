@@ -5,11 +5,12 @@ import time
 import tempfile
 import threading
 import numpy as np
+import pandas as pd
 import sounddevice as sd
-from scipy.io.wavfile import write
-from PyQt5.QtCore import QThread, pyqtSignal # pylint: disable=E0611
+from PyQt5.QtCore import QThread, pyqtSignal # pylint: disable=no-name-in-module
+from scipy.io.wavfile import write as write_wav
+import config
 from guitaraoke.save_pitches import save_pitches
-from guitaraoke.audio_playback import AudioPlayback
 from guitaraoke.compare_pitches import compare_pitches
 from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
 
@@ -17,27 +18,19 @@ from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
 class AudioInput(QThread):
     """
     Handles operations relating to audio input such as streaming and recording.
-    Inherits from PyQt5 QThread.
 
     Attributes
     ----------
-    CHANNELS : int
-        Specifies whether the audio channel is mono (1) or stereo (2).
-    RATE : int
-        The sample rate of the audio.
-    DTYPE : str
-        Specifies the audio's datatype.
-    input_devices : list of dicts
-        A list of available audio input devices.
-    input_device_index : int
-        The index of the input device used.
     BUFFER_SIZE : int
         The size of the audio input buffer in frames.
     OVERLAP_SIZE : int
         The size of the audio input overlapping window in frames.
-    song : AudioPlayback
-        The AudioPlayback object whose current time position and pitch data
-        is needed.
+    input_devices : list of dicts
+        A list of available audio input devices.
+    input_device_index : int
+        The index of the input device used.
+    song_pitches : AudioPlayback
+        The song pitch data needed to compare against for score calculation.
     streaming : bool
         Whether the user's audio input is currently being recorded or not.
 
@@ -48,13 +41,12 @@ class AudioInput(QThread):
         in input_devices list.
     """
     score_processed = pyqtSignal(int, float, int) # Connects the QThread to the GUI
-    CHANNELS = 1
-    RATE = 44100
-    DTYPE = "float32"
-    BUFFER_SIZE = int(RATE * 6)
-    OVERLAP_SIZE = int(RATE * 2)
+    # Audio input stream is saved in 2 second windows to prevent notes from
+    # being cut off, as is the case when using sounddevice's rec function.
+    BUFFER_SIZE = int(6 * config.RATE)
+    OVERLAP_SIZE = int(2 * config.RATE)
 
-    def __init__(self, song: AudioPlayback) -> None:
+    def __init__(self, song_pitches: pd.DataFrame) -> None:
         """
         The constructor for the AudioInput class.
         
@@ -65,11 +57,11 @@ class AudioInput(QThread):
             is needed.
         """
         super().__init__()
-        self.song = song
-        # Audio input stream is saved in 2 second windows to prevent notes from
-        # being cut off, as is the case when using sounddevice's rec function.
+        self.song_pitches = song_pitches
+
         self.stream = None
         self.streaming = False
+        self.stream_start = {}
 
         self.buffer = np.zeros(self.BUFFER_SIZE)
         self.audio_blocks = np.ndarray(0)
@@ -99,15 +91,14 @@ class AudioInput(QThread):
         """
         # Terminate previous input stream
         if self.stream:
-            self.stream.abort()
 
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
         self.stream = sd.InputStream(
             samplerate=self.RATE,
             device=self.input_device_index,
-            channels=self.CHANNELS,
-            dtype=self.DTYPE,
+            channels=config.CHANNELS,
+            dtype=config.DTYPE,
             callback=self._callback,
             latency="low",
         )
@@ -127,8 +118,6 @@ class AudioInput(QThread):
         time. The resultant score data is sent to the GUI.
         """
         while self.streaming:
-            current_time = self.song.position / self.RATE # Update time
-
             if self.audio_blocks.size >= self.OVERLAP_SIZE:
                 # Add new window to buffer and shift to the left by overlap duration
                 self.buffer = np.append(
@@ -139,24 +128,23 @@ class AudioInput(QThread):
                 self.audio_blocks = self.audio_blocks[self.OVERLAP_SIZE:]
 
                 # Save recorded audio as a temp WAV file
-                temp_recording = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-                write(temp_recording.name, self.RATE, self.buffer)
-                print(f"\nCreated temp file: {temp_recording.name}")
+                with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
 
                 buffer_size_s = self.BUFFER_SIZE / self.RATE # In seconds
 
-                # Save predicted user pitches to a temp CSV file
                 user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
                 user_pitches = csv_to_pitches_dataframe(user_pitches_path)
+                current_time = ( # Get current time in song
 
                 # Align user note event times to current song position
-                user_pitches["start_time_s"] += current_time - buffer_size_s
+                user_pitches = csv_to_pitches_dataframe(user_pitches_path)
+                user_pitches["start_time_s"] += current_time - (self.BUFFER_SIZE/config.RATE)
 
                 # Convert user and song pitches to dicts of note event sequences
                 user_pitches = preprocess_pitch_data(user_pitches)
                 song_pitches = preprocess_pitch_data(
-                    self.song.pitches,
-                    slice_start=current_time - (self.BUFFER_SIZE / self.RATE),
+                    self.song_pitches,
+                    slice_start=current_time - (self.BUFFER_SIZE/config.RATE),
                     slice_end=current_time
                 )
 
@@ -164,18 +152,12 @@ class AudioInput(QThread):
                 # print("user pitches:",user_pitches)
                 # print("song pitches:",song_pitches)
 
-                score_results = compare_pitches(
-                    user_pitches,
-                    song_pitches
-                )
+                # Perform scoring
+                score_results = compare_pitches(user_pitches, song_pitches)
+                self.score_processed.emit(*score_results) # Send score to GUI
 
-                # Delete temp files when processing complete
+                # Clean up
                 os.remove(user_pitches_path)
-                temp_recording.close()
-                os.unlink(temp_recording.name)
-
-                # Send score information to GUI
-                self.score_processed.emit(*score_results)
 
             time.sleep(0.01) # Reduce CPU load
 
