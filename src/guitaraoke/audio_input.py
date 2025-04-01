@@ -89,13 +89,10 @@ class AudioInput(QThread):
         input_dev_idx : int
             The input_devices list index of the desired input device.
         """
-        # Terminate previous input stream
-        if self.stream:
-
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
         self.stream = sd.InputStream(
-            samplerate=self.RATE,
+            samplerate=config.RATE,
             device=self.input_device_index,
             channels=config.CHANNELS,
             dtype=config.DTYPE,
@@ -129,12 +126,16 @@ class AudioInput(QThread):
 
                 # Save recorded audio as a temp WAV file
                 with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
+                    write_wav(temp_recording.name, config.RATE, self.buffer)
+                    print(f"\nCreated temp file: {temp_recording.name}")
 
-                buffer_size_s = self.BUFFER_SIZE / self.RATE # In seconds
+                    # Save predicted user pitches to a temp CSV file
+                    user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
 
-                user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
-                user_pitches = csv_to_pitches_dataframe(user_pitches_path)
                 current_time = ( # Get current time in song
+                    time.time() + self.stream_start["song_pos"]
+                    - self.stream_start["time"]
+                )
 
                 # Align user note event times to current song position
                 user_pitches = csv_to_pitches_dataframe(user_pitches_path)
