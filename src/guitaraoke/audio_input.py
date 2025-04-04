@@ -9,7 +9,7 @@ import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QThread, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
-import config
+from config import CHANNELS, RATE, DTYPE
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.compare_pitches import compare_pitches
 from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
@@ -43,8 +43,8 @@ class AudioInput(QThread):
     score_processed = pyqtSignal(int, float, int) # Connects the QThread to the GUI
     # Audio input stream is saved in 2 second windows to prevent notes from
     # being cut off, as is the case when using sounddevice's rec function.
-    BUFFER_SIZE = int(6 * config.RATE)
-    OVERLAP_SIZE = int(2 * config.RATE)
+    BUFFER_SIZE = int(6 * RATE)
+    OVERLAP_SIZE = int(2 * RATE)
 
     def __init__(self, song_pitches: pd.DataFrame) -> None:
         """
@@ -92,10 +92,10 @@ class AudioInput(QThread):
         self.input_device_index = input_dev_idx
         # Create new stream using this input device
         self.stream = sd.InputStream(
-            samplerate=config.RATE,
+            samplerate=RATE,
             device=self.input_device_index,
-            channels=config.CHANNELS,
-            dtype=config.DTYPE,
+            channels=CHANNELS,
+            dtype=DTYPE,
             callback=self._callback,
             latency="low",
         )
@@ -126,7 +126,7 @@ class AudioInput(QThread):
 
                 # Save recorded audio as a temp WAV file
                 with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
-                    write_wav(temp_recording.name, config.RATE, self.buffer)
+                    write_wav(temp_recording.name, RATE, self.buffer)
                     print(f"\nCreated temp file: {temp_recording.name}")
 
                     # Save predicted user pitches to a temp CSV file
@@ -139,13 +139,13 @@ class AudioInput(QThread):
 
                 # Align user note event times to current song position
                 user_pitches = csv_to_pitches_dataframe(user_pitches_path)
-                user_pitches["start_time_s"] += current_time - (self.BUFFER_SIZE/config.RATE)
+                user_pitches["start_time_s"] += current_time - (self.BUFFER_SIZE/RATE)
 
                 # Convert user and song pitches to dicts of note event sequences
                 user_pitches = preprocess_pitch_data(user_pitches)
                 song_pitches = preprocess_pitch_data(
                     self.song_pitches,
-                    slice_start=current_time - (self.BUFFER_SIZE/config.RATE),
+                    slice_start=current_time - (self.BUFFER_SIZE/RATE),
                     slice_end=current_time
                 )
 

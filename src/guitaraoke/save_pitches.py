@@ -9,9 +9,9 @@ from basic_pitch.inference import predict_and_save
 
 
 def save_pitches(
-        path: str,
-        sonify: bool = False,
-        temp: bool = False
+    path: str,
+    sonify: bool = False,
+    temp: bool = False
 ) -> list[str]:
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction

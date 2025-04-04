@@ -37,7 +37,9 @@ def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
         sep=None,
         engine="python",
         index_col=False
-    ).drop(columns=["end_time_s", "velocity", "pitch_bend"]).sort_values("start_time_s")
+    ).drop(
+        columns=["end_time_s", "velocity", "pitch_bend"]
+    ).sort_values("start_time_s")
 
 
 def preprocess_pitch_data(

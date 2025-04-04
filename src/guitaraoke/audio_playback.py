@@ -5,7 +5,7 @@ import librosa
 import numpy as np
 import sounddevice as sd
 from PyQt5.QtCore import QThread, QTimer # pylint: disable=no-name-in-module
-import config
+from config import CHANNELS, RATE, DTYPE
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe
@@ -16,14 +16,8 @@ class LoadedAudio():
     Contains all necessary data received from an audio file such as its audio
     time series, tempo, and duration.
 
-    Parameters
+    Attributes
     ----------
-    path : str
-        The file path of the song to load.
-    title : str, default="Unknown"
-        The title given to the loaded song.
-    artist : str, default="Unknown"
-        The artist attributed to the loaded song.
     filename : str
         The song's filename.
     guitar_data, no_guitar_data : ndarray
@@ -34,7 +28,15 @@ class LoadedAudio():
         The song's tempo.
     duration : float
         The length of the song in seconds.
-    
+
+    Parameters
+    ----------
+    path : str
+        The file path of the song to load.
+    title : str, default="Unknown"
+        The title given to the loaded song.
+    artist : str, default="Unknown"
+        The artist attributed to the loaded song.
     """
     def __init__(
         self,
@@ -76,23 +78,23 @@ class LoadedAudio():
         self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        self.guitar_data = librosa.load(guitar_track_path, sr=config.RATE)[0]
-        self.no_guitar_data = librosa.load(no_guitar_track_path, sr=config.RATE)[0]
+        self.guitar_data = librosa.load(guitar_track_path, sr=RATE)[0]
+        self.no_guitar_data = librosa.load(no_guitar_track_path, sr=RATE)[0]
 
         # Get tempo information
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
-            sr=config.RATE
+            sr=RATE
         )
         self.bpm = tempo[0]
         self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
-        self.duration = len(self.guitar_data) / float(config.RATE) # In secs
+        self.duration = len(self.guitar_data) / float(RATE) # In secs
 
 class AudioPlayback(QThread):
     """
     Provides audio playback methods for a currently-loaded song.
 
-    Parameters
+    Attributes
     ----------
     paused, ended : bool
         The current state of audio playback's paused and ended status.
@@ -140,16 +142,16 @@ class AudioPlayback(QThread):
 
         # Open output stream
         self.stream = sd.OutputStream(
-            samplerate=config.RATE,
+            samplerate=RATE,
             blocksize=1024,
-            channels=config.CHANNELS,
+            channels=CHANNELS,
             callback=self._callback,
-            dtype=config.DTYPE
+            dtype=DTYPE
         )
 
         # Load metronome sound effect
         metronome_path = "./assets/audio/Perc_MetronomeQuartz_lo.wav"
-        self.metronome_data = librosa.load(metronome_path, sr=config.RATE)[0]
+        self.metronome_data = librosa.load(metronome_path, sr=RATE)[0]
 
         # Initialise playback attributes
         self._reset_playback()
@@ -218,19 +220,19 @@ class AudioPlayback(QThread):
             self.metronome_count = 0
             return True # Start song
 
-        sd.play(self.metronome_data, samplerate=config.RATE)
+        sd.play(self.metronome_data, samplerate=RATE)
         return False # Keep counting
 
     def get_pos(self) -> None:
         """Return the audio playback's current time position in seconds."""
-        pos = self.position / config.RATE
+        pos = self.position / RATE
         return pos
 
     def set_pos(self, pos: float) -> None:
         """Set the audio playback's time position to a new time in seconds."""
         if self.ended:
             self.ended = False
-        self.position = int(pos * config.RATE)
+        self.position = int(pos * RATE)
 
     def _callback(self, outdata, frames, t, s) -> None: # pylint: disable=unused-argument
         """

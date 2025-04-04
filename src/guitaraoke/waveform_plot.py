@@ -3,7 +3,7 @@
 import librosa
 import numpy as np
 import pyqtgraph as pg
-import config
+from config import RATE
 from guitaraoke.audio_playback import LoadedAudio
 
 
@@ -11,7 +11,7 @@ class WaveformPlot(pg.PlotWidget):
     """
     A waveform representation of audio data plotted using PyQtGraph. Inherits from PlotWidget class.
 
-    Attributes
+    Parameters
     ----------
     width : int
         The fixed width of the PlotWidget.
@@ -21,13 +21,6 @@ class WaveformPlot(pg.PlotWidget):
         The RGB values to use for the plot's background colour.
     colour : tuple[int,int,int], default=(0,0,0)
         The RGB values to use for the plot's fill colour.
-
-    Methods
-    -------
-    draw_plot(audio)
-        Draw the plot of max and min waveform lines, filling between the points.
-    clicked_connect(function)
-        Add a mouse click connection to the waveform plot widget.
     """
     def __init__(
         self,
@@ -81,8 +74,8 @@ class WaveformPlot(pg.PlotWidget):
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
             y=song.guitar_data + song.no_guitar_data, # Sum to get full mix
-            orig_sr=config.RATE,
-            target_sr=config.RATE/16
+            orig_sr=RATE,
+            target_sr=RATE/16
         )
         w_size = int(len(plot_frames) / num_points)
         x_vals = np.arange(0, num_points)
