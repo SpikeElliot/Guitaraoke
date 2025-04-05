@@ -19,7 +19,7 @@ def separate_guitar(path: str) -> tuple[str, str]:
 
     Returns
     -------
-    separated_track_paths : tuple[str, str]
+    tuple[str, str]
         The paths to the separated guitar [0] and no_guitar tracks [1].
     """
     assert os.path.isfile(path), "File does not exist"
