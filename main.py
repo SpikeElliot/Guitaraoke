@@ -52,10 +52,10 @@ class MainWindow(QMainWindow):
         song_info_bottom_row = QHBoxLayout()
 
         self.artist_label = QLabel()
-        self.artist_label.setText(self.playback.song.artist)
+        self.artist_label.setText(self.playback.song.metadata["artist"])
 
         self.title_label = QLabel()
-        self.title_label.setText(self.playback.song.title)
+        self.title_label.setText(self.playback.song.metadata["title"])
 
         self.duration_label = QLabel()
         self.duration_label.setText(
@@ -386,18 +386,19 @@ class MainWindow(QMainWindow):
         self.pause_button.show()
 
         # Case: song count-in is disabled
-        if not self.playback.count_in:
+        if not self.playback.metronome["count_in_enabled"]:
             self._start_song_processes()
             return
 
         # Set count-in timer interval to estimated beat interval of song
-        self.count_in_timer.setInterval(self.playback.count_interval)
-        self.playback.metronome_count = 0
+        self.count_in_timer.setInterval(self.playback.metronome["interval"])
+        self.playback.metronome["count"] = 0
         self.count_in_timer.start()
 
     def _count_in_button_pressed(self) -> None:
-        self.playback.count_in = not self.playback.count_in
-        if self.playback.count_in:
+        self.playback.metronome["count_in_enabled"] = (
+            not self.playback.metronome["count_in_enabled"])
+        if self.playback.metronome["count_in_enabled"]:
             self.count_in_button.setStyleSheet(self.active_button_style)
         else:
             self.count_in_button.setStyleSheet(self.inactive_button_style)
@@ -430,7 +431,7 @@ class MainWindow(QMainWindow):
         # Case: pause button pressed during count-in timer
         if self.count_in_timer.isActive():
             self.count_in_timer.stop()
-            self.playback.metronome_count = 0
+            self.playback.metronome["count"] = 0
 
         # Pause playback and recording
         self._pause_song_processes()
@@ -591,14 +592,14 @@ class MainWindow(QMainWindow):
         print(f"\nSong skipped to: {time_format(song_pos)}") # Testing
 
         # Case: song count-in is disabled
-        if not self.playback.count_in:
+        if not self.playback.metronome["count_in_enabled"]:
             return
 
         # Case: song skipped during count-in
         if self.count_in_timer.isActive():
             # Restart count
             self.count_in_timer.stop()
-            self.playback.metronome_count = 0
+            self.playback.metronome["count"] = 0
             self.count_in_timer.start()
             return
         if self.playback.paused:

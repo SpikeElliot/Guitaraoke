@@ -3,6 +3,7 @@
 import os
 import librosa
 import numpy as np
+import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QThread, QTimer # pylint: disable=no-name-in-module
 from config import CHANNELS, RATE, DTYPE
@@ -18,25 +19,18 @@ class LoadedAudio():
 
     Attributes
     ----------
-    filename : str
-        The song's filename.
+    metadata : dict[str, str]
+        The song's title, artist, and filename stored in a dictionary.
     guitar_data, no_guitar_data : ndarray
         The song's separated guitar and no_guitar track audio time series.
     pitches : DataFrame
         The guitar note events predicted from the song in a DataFrame.
-    bpm : int
+    bpm : float
         The song's tempo.
+    first_beat : float
+        The estimated time position of the onset of the song's first beat.
     duration : float
         The length of the song in seconds.
-
-    Parameters
-    ----------
-    path : str
-        The file path of the song to load.
-    title : str, default="Unknown"
-        The title given to the loaded song.
-    artist : str, default="Unknown"
-        The artist attributed to the loaded song.
     """
     def __init__(
         self,
@@ -56,43 +50,70 @@ class LoadedAudio():
         artist : str, default="Unknown"
             The artist attributed to the loaded audio file.
         """
-        self.path = path
-        self.title = title
-        self.artist = artist
+        self.metadata = {
+            "title": title,
+            "artist": artist,
+            "filename": path.split(".")[1].split("/")[-1]
+        }
+        (self.pitches, self.guitar_data,
+         self.no_guitar_data) = self._get_audio_data(path)
+        self.bpm, self.first_beat = self._get_tempo_data()
+        self.duration = len(self.guitar_data) / RATE # In secs
 
-        self.filename = path.split(".")[1].split("/")[-1]
-        separated_tracks_dir = f"./assets/separated_tracks/htdemucs_6s/{self.filename}/"
-        guitar_pitches_path = ""
+    def _get_audio_data(
+        self,
+        path: str
+    ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+        """
+        Load a song's predicted pitches DataFrame and its guitar-separated
+        audio time series (guitar_data and no_guitar_data).
+        """
+        separated_tracks_dir = (
+            "./assets/separated_tracks/htdemucs_6s"
+            f"/{self.metadata['filename']}"
+        )
 
         # If song has not been processed, perform guitar separation and pitch detection
         if not os.path.isdir(separated_tracks_dir):
-            guitar_track_path, no_guitar_track_path = separate_guitar(self.path)
-            guitar_pitches_path = save_pitches(guitar_track_path)[0]
+            guitar_track_path, no_guitar_track_path = separate_guitar(path)
+            save_pitches(guitar_track_path)
         else: # Otherwise, load tracks and pitches
-            guitar_track_path = separated_tracks_dir + "guitar.wav"
-            no_guitar_track_path = separated_tracks_dir + "no_guitar.wav"
-            guitar_pitches_path = ("./assets/pitch_predictions/songs/"
-            f"{self.filename}/guitar_basic_pitch.csv")
+            guitar_track_path = f"{separated_tracks_dir}/guitar.wav"
+            no_guitar_track_path = f"{separated_tracks_dir}/no_guitar.wav"
+
+        guitar_pitches_path = (
+            "./assets/pitch_predictions/songs"
+            f"/{self.metadata['filename']}"
+            "/guitar_basic_pitch.csv"
+        )
 
         # Convert pitches CSV to a pandas DataFrame
-        self.pitches = csv_to_pitches_dataframe(guitar_pitches_path)
+        pitches = csv_to_pitches_dataframe(guitar_pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        self.guitar_data = librosa.load(guitar_track_path, sr=RATE)[0]
-        self.no_guitar_data = librosa.load(no_guitar_track_path, sr=RATE)[0]
+        guitar_data = librosa.load(guitar_track_path, sr=RATE)[0]
+        no_guitar_data = librosa.load(no_guitar_track_path, sr=RATE)[0]
 
-        # Get tempo information
+        return pitches, guitar_data, no_guitar_data
+
+    def _get_tempo_data(self) -> tuple[float, float]:
+        """
+        Find a song's predicted BPM and the estimated time position of its
+        first beat.
+        """
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
             sr=RATE
         )
-        self.bpm = tempo[0]
-        self.first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
-        self.duration = len(self.guitar_data) / float(RATE) # In secs
+        bpm = tempo[0]
+        first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
+
+        return bpm, first_beat
+
 
 class AudioPlayback(QThread):
     """
-    Provides audio playback methods for a currently-loaded song.
+    Provides audio playback methods for a loaded song.
 
     Attributes
     ----------
@@ -103,11 +124,14 @@ class AudioPlayback(QThread):
     position : int
         The current position of audio playback in frames.
     guitar_volume : float
-        The volume to scale the separated guitar track's amplitudes by. Should
-        be kept between 0 and 1.
-    score_data : dict
-        The performance score derived from comparing the user's recorded pitch
-        to the guitar track's.
+        The volume to linearly scale the separated guitar track's amplitudes
+        by. Should be kept between 0 and 1.
+    metronome : dict[str, Any]
+        Information relating to the metronome such as its audio time series
+        and count-in status.
+    score_data : dict[str, int]
+        The user's performance data: score, notes hit, total notes, and
+        accuracy.
 
     Methods
     -------
@@ -116,7 +140,8 @@ class AudioPlayback(QThread):
     play()
         Play or unpause audio playback.
     play_metronome()
-        Initiate a metronome count-in, starting audio playback after the fourth count.
+        Initiate a metronome count-in, starting audio playback after the 
+        fourth count.
     pause()
         Pause audio playback.
     get_pos()
@@ -129,16 +154,21 @@ class AudioPlayback(QThread):
         super().__init__()
 
         self.song = None
-        self.paused = None
-        self.ended = None
-        self.position = None
-        self.metronome_count = None
-        self.count_interval = None
-        self.guitar_volume = None
-        self.loop_markers = None
-        self.looping = None
-        self.count_in = None
-        self.score_data = None
+        self.paused = True
+        self.ended = True
+        self.position = 0
+        self.guitar_volume = 1.0
+        self.loop_markers = [None,None]
+        self.looping = False
+        self.score_data = self._zero_score_data()
+
+        # Metronome information
+        self.metronome = {
+            "data": librosa.load("./assets/audio/metronome.wav", sr=RATE)[0],
+            "count_in_enabled": True,
+            "count": 0,
+            "interval": None
+        }
 
         # Open output stream
         self.stream = sd.OutputStream(
@@ -146,32 +176,24 @@ class AudioPlayback(QThread):
             blocksize=1024,
             channels=CHANNELS,
             callback=self._callback,
-            dtype=DTYPE
+            dtype=DTYPE,
+            latency="low",
         )
-
-        # Load metronome sound effect
-        metronome_path = "./assets/audio/Perc_MetronomeQuartz_lo.wav"
-        self.metronome_data = librosa.load(metronome_path, sr=RATE)[0]
-
-        # Initialise playback attributes
-        self._reset_playback()
 
     def load_song(self, song: LoadedAudio) -> None:
         """Load a song's data to be used for playback."""
         self.song = song
         self._reset_playback()
-        self.count_interval = int(1000 / (self.song.bpm / 60))
+        self.metronome["interval"] = int(1000 / (self.song.bpm / 60))
 
     def _reset_playback(self):
         """Set all playback attributes to their initial values."""
         self.paused = True
         self.ended = True
         self.position = 0
-        self.metronome_count = 0
-        self.guitar_volume = 1
+        self.guitar_volume = 1.0
         self.loop_markers = [None,None]
         self.looping = False
-        self.count_in = True
         self.score_data = self._zero_score_data()
 
     def _zero_score_data(self):
@@ -199,28 +221,29 @@ class AudioPlayback(QThread):
         print("\nPlayback stopped.")
         if not self.paused:
             self.paused = True
+        self.stream.stop()
         self.quit()
         self.wait()
 
     def play_count_in_metronome(self, count_in_timer: QTimer) -> None:
         """
-        Use sounddevice to play the count-in metronome sound and increment the
-        metronome_count attribute, playing the song after the fourth count.
+        Play the count-in metronome sound and increment the metronome's count
+        value, starting song playback after the fourth count.
 
         Parameters
         ----------
         count_in_timer : QTimer
             The QTimer whose interval will be updated after 4 counts.
         """
-        self.metronome_count += 1
+        self.metronome["count"] += 1
 
         # Stop counting when metronome aligned to song position
-        if self.metronome_count > 4:
+        if self.metronome["count"] > 4:
             count_in_timer.stop()
-            self.metronome_count = 0
+            self.metronome["count"] = 0
             return True # Start song
 
-        sd.play(self.metronome_data, samplerate=RATE)
+        sd.play(self.metronome["data"], samplerate=RATE)
         return False # Keep counting
 
     def get_pos(self) -> None:
