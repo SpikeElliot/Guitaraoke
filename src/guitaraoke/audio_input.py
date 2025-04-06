@@ -101,16 +101,19 @@ class AudioInput(QThread):
         )
         self.streaming = False
 
-    def _callback(self, indata, f, t, s) -> None: # pylint: disable=W0613
+    def _callback(self, indata, f, t, status) -> None: # pylint: disable=unused-argument
         """
         The callback function called by the sounddevice input stream. 
         Generates input audio data.
         """
-        self.audio_blocks = np.append(self.audio_blocks, indata)
+        if status:
+            print(status, flush=True)
+
+        self.audio_blocks = np.append(self.audio_blocks, indata.copy())
 
     def _process_recording(self) -> None:
         """
-        Convert the user input recording into a MIDI file, and compare the
+        Converts the user input recording into a MIDI file and compares the
         user's predicted pitches to the audio file's aligned at the correct
         time. The resultant score data is sent to the GUI.
         """
@@ -132,33 +135,34 @@ class AudioInput(QThread):
                     # Save predicted user pitches to a temp CSV file
                     user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
 
-                current_time = ( # Get current time in song
-                    time.time() + self.stream_start["song_pos"]
-                    - self.stream_start["time"]
-                )
+                try:
+                    current_time = ( # Get current time in song
+                        time.time() + self.stream_start["song_pos"]
+                        - self.stream_start["time"]
+                    )
 
-                # Align user note event times to current song position
-                user_pitches = csv_to_pitches_dataframe(user_pitches_path)
-                user_pitches["start_time_s"] += current_time - (self.BUFFER_SIZE/RATE)
+                    # Align user note event times to current song position
+                    user_pitches = csv_to_pitches_dataframe(user_pitches_path)
+                    user_pitches["start_time_s"] += current_time - (self.BUFFER_SIZE/RATE)
 
-                # Convert user and song pitches to dicts of note event sequences
-                user_pitches = preprocess_pitch_data(user_pitches)
-                song_pitches = preprocess_pitch_data(
-                    self.song_pitches,
-                    slice_start=current_time - (self.BUFFER_SIZE/RATE),
-                    slice_end=current_time
-                )
+                    # Convert user and song pitches to dicts of note event sequences
+                    user_pitches = preprocess_pitch_data(user_pitches)
+                    song_pitches = preprocess_pitch_data(
+                        self.song_pitches,
+                        slice_start=current_time - (self.BUFFER_SIZE/RATE),
+                        slice_end=current_time
+                    )
 
-                # TESTING
-                # print("user pitches:",user_pitches)
-                # print("song pitches:",song_pitches)
+                    # TESTING
+                    # print("user pitches:",user_pitches)
+                    # print("song pitches:",song_pitches)
 
-                # Perform scoring
-                score_results = compare_pitches(user_pitches, song_pitches)
-                self.score_processed.emit(*score_results) # Send score to GUI
-
-                # Clean up
-                os.remove(user_pitches_path)
+                    # Perform scoring
+                    score_results = compare_pitches(user_pitches, song_pitches)
+                    self.score_processed.emit(*score_results) # Send score to GUI
+                finally:
+                    # Clean up
+                    os.remove(user_pitches_path)
 
             time.sleep(0.01) # Reduce CPU load
 

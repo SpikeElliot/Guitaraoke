@@ -248,11 +248,14 @@ class AudioPlayback(QThread):
             self.ended = False
         self.position = int(pos * RATE)
 
-    def _callback(self, outdata, frames, t, s) -> None: # pylint: disable=unused-argument
+    def _callback(self, outdata, frames, t, status) -> None: # pylint: disable=unused-argument
         """
         The callback function called by the sounddevice output stream. 
         Generates output audio data.
         """
+        if status:
+            print(status, flush=True)
+
         new_pos = self.position + frames
 
         # Case: audio should not be playing

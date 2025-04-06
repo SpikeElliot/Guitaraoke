@@ -46,10 +46,6 @@ def compare_pitches(
         if len(user_note_times) == 0:
             continue
 
-        # Take the shortest distances between note sequences: this allows
-        # every song note to match with its nearest unique user note, as
-        # opposed to simply pairing notes by index order.
-
         # nearest_times is a 2D array whose first dimension indexes correspond
         # to the song_note_times array, and its second dimension contains a
         # given song note time's sorted distances from all user note times.

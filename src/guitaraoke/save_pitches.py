@@ -56,9 +56,9 @@ def save_pitches(
     if not paths[0].exists():
         predict_and_save(
             [str(path)], # Input file path
-            str(out_folder), # Directory resultant files will be saved to
-            save_midi=False, # Save MIDI file of predicted notes
-            sonify_midi=sonify, # Save wav file of sonified MIDI for testing
+            str(out_folder), # Directory pitch files will be saved to
+            save_midi=False, # Saving the actual MIDI file is not necessary
+            sonify_midi=sonify, # Save rendered MIDI as WAV file for testing
             save_model_outputs=False, # Model outputs are not necessary
             save_notes=True, # Save note events in CSV file
             model_or_model_path=ICASSP_2022_MODEL_PATH, # Default model
