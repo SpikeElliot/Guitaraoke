@@ -3,8 +3,9 @@ Module providing a function to perform guitar separation using the 6-stem
 HT Demucs MSS model.
 """
 
-import os
+from pathlib import Path
 import demucs.separate
+from config import SEP_TRACKS_DIR
 
 
 def separate_guitar(path: str) -> tuple[str, str]:
@@ -19,21 +20,24 @@ def separate_guitar(path: str) -> tuple[str, str]:
 
     Returns
     -------
-    tuple[str, str]
+    tuple[Path, Path]
         The paths to the separated guitar [0] and no_guitar tracks [1].
     """
-    assert os.path.isfile(path), "File does not exist"
-    filename = path.split(".")[1].split("/")[-1]
+    path = Path(path)
+    assert path.exists(), "File does not exist"
 
-    separation_args = [
-        "--two-stems", "guitar", # Specify two-stem separation (guitar and no guitar)
-        "-n", "htdemucs_6s", # Model to use (6s features guitar separation)
-        "-o", "./assets/separated_tracks", # Output folder for separated files
-        "-d", "cuda", # Specifies to use CUDA instead of CPU
-        "--float32", # Saves the wav file as a float32 instead of int24
-        path # Input file path
-    ]
-    demucs.separate.main(separation_args)
+    # Check tracks not already separated
+    filename = path.stem
+    if not (SEP_TRACKS_DIR / filename).exists():
+        separation_args = [
+            "--two-stems", "guitar", # Specify two-stem separation (guitar)
+            "-n", "htdemucs_6s", # Model to use (6s features guitar separation)
+            "-o", SEP_TRACKS_DIR, # Output folder for separated files
+            "-d", "cuda", # Specifies to use CUDA instead of CPU
+            "--float32", # Saves the wav file as a float32 instead of int24
+            str(path) # Input file path
+        ]
+        demucs.separate.main(separation_args)
 
-    return (f"./assets/separated_tracks/htdemucs_6s/{filename}/guitar.wav",
-            f"./assets/separated_tracks/htdemucs_6s/{filename}/no_guitar.wav")
+    return (SEP_TRACKS_DIR / filename / "guitar.wav",
+            SEP_TRACKS_DIR / filename / "no_guitar.wav")

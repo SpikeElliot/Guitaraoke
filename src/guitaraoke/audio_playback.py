@@ -1,12 +1,12 @@
 """Module providing an AudioPlayback class."""
 
-import os
+from pathlib import Path
 import librosa
 import numpy as np
 import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QThread, QTimer # pylint: disable=no-name-in-module
-from config import CHANNELS, RATE, DTYPE
+from config import CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe
@@ -68,31 +68,23 @@ class LoadedAudio():
         Load a song's predicted pitches DataFrame and its guitar-separated
         audio time series (guitar_data and no_guitar_data).
         """
-        separated_tracks_dir = (
-            "./assets/separated_tracks/htdemucs_6s"
-            f"/{self.metadata['filename']}"
-        )
+        path = Path(path)
+        assert path.exists(), "File does not exist"
 
-        # If song has not been processed, perform guitar separation and pitch detection
-        if not os.path.isdir(separated_tracks_dir):
-            guitar_track_path, no_guitar_track_path = separate_guitar(path)
-            save_pitches(guitar_track_path)
-        else: # Otherwise, load tracks and pitches
-            guitar_track_path = f"{separated_tracks_dir}/guitar.wav"
-            no_guitar_track_path = f"{separated_tracks_dir}/no_guitar.wav"
+        audio_dir = SEP_TRACKS_DIR / self.metadata["filename"]
+        guitar_path = audio_dir / "guitar.wav"
+        no_guitar_path = audio_dir / "no_guitar.wav"
 
-        guitar_pitches_path = (
-            "./assets/pitch_predictions/songs"
-            f"/{self.metadata['filename']}"
-            "/guitar_basic_pitch.csv"
-        )
+        # Perform guitar separation and pitch detection
+        guitar_path, no_guitar_data = separate_guitar(path)
+        pitches_path = save_pitches(guitar_path)[0]
 
         # Convert pitches CSV to a pandas DataFrame
-        pitches = csv_to_pitches_dataframe(guitar_pitches_path)
+        pitches = csv_to_pitches_dataframe(pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        guitar_data = librosa.load(guitar_track_path, sr=RATE)[0]
-        no_guitar_data = librosa.load(no_guitar_track_path, sr=RATE)[0]
+        guitar_data = librosa.load(guitar_path, sr=RATE)[0]
+        no_guitar_data = librosa.load(no_guitar_path, sr=RATE)[0]
 
         return pitches, guitar_data, no_guitar_data
 
@@ -173,11 +165,10 @@ class AudioPlayback(QThread):
         # Open output stream
         self.stream = sd.OutputStream(
             samplerate=RATE,
-            blocksize=1024,
+            blocksize=2048,
             channels=CHANNELS,
             callback=self._callback,
             dtype=DTYPE,
-            latency="low",
         )
 
     def load_song(self, song: LoadedAudio) -> None:

@@ -10,6 +10,7 @@ preprocess_pitch_data(pitches, slice_start=None, slice_end=None)
 """
 
 import math
+from pathlib import Path
 import pandas as pd
 
 
@@ -27,7 +28,7 @@ def hex_to_rgb(hex_string: str) -> tuple:
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 
 
-def csv_to_pitches_dataframe(path: str) -> pd.DataFrame:
+def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
     """
     Use pandas read_csv function to read a CSV file as a DataFrame, dropping
     unwanted columns and sorting by note onset times.
