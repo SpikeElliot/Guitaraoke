@@ -14,7 +14,7 @@ from guitaraoke.save_pitches import save_pitches
 from guitaraoke.utils import csv_to_pitches_dataframe
 
 
-@pytest.fixture
+@pytest.fixture(name="silent_audio")
 def silent_audio_fixture() -> np.ndarray:
     """Create mock silent audio for testing."""
     return np.zeros(shape=(2*config.RATE,)) # 2 seconds of silence
@@ -29,7 +29,7 @@ def test_no_notes_predicted_from_silent_audio(silent_audio: np.ndarray) -> None:
 
         # Save predicted note events
         test_pitches_path = save_pitches(
-            temp_recording.name, 
+            temp_recording.name,
             temp=True,
         )[0]
         test_note_events = pd.read_csv(test_pitches_path)

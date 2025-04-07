@@ -144,11 +144,11 @@ class MainWindow(QMainWindow):
         self.playhead.move(0, 2)
         self.playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
 
-        # Loop window
-        self.loop_window = QWidget(self.waveform)
-        self.loop_window.setObjectName("loop_window")
-        self.loop_window.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.loop_window.hide()
+        # Loop overlay
+        self.loop_overlay = QWidget(self.waveform)
+        self.loop_overlay.setObjectName("loop_overlay")
+        self.loop_overlay.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.loop_overlay.hide()
 
         # Left loop marker
         self.left_marker_img = QWidget(self.waveform)
@@ -371,10 +371,10 @@ class MainWindow(QMainWindow):
                 f"{time_format(self.playback.get_pos())}</font>"
                 f" / {time_format(self.playback.song.duration)}"
             )
-
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
+        """Set playhead position relative to current song playback position."""
         song_pos = self.playback.get_pos()
         head_pos = int((song_pos/self.playback.song.duration)
                         * self.waveform.width)
@@ -396,6 +396,7 @@ class MainWindow(QMainWindow):
         self.count_in_timer.start()
 
     def _count_in_button_pressed(self) -> None:
+        """Toggles metronome count-in when count-in button pressed."""
         self.playback.metronome["count_in_enabled"] = (
             not self.playback.metronome["count_in_enabled"])
         if self.playback.metronome["count_in_enabled"]:
@@ -410,6 +411,7 @@ class MainWindow(QMainWindow):
             self._start_song_processes()
 
     def _start_song_processes(self) -> None:
+        "Start all I/O streaming processes."
         self.playback.start()
         self.input.stream_start = { # Give the input stream start time
             "time": time.time(),
@@ -419,6 +421,7 @@ class MainWindow(QMainWindow):
         self.songpos_timer.start()
 
     def _pause_song_processes(self) -> None:
+        """Stop all I/O streaming processes."""
         self.playback.stop()
         self.input.stop()
         self.songpos_timer.stop()
@@ -437,6 +440,7 @@ class MainWindow(QMainWindow):
         self._pause_song_processes()
 
     def _skip_forward_button_pressed(self) -> None:
+        """Skips the song's playback position a maximum of 5 seconds back."""
         # Prevent position from running over end of loop or end of song
         end = self.playback.song.duration
         if self.playback.in_loop_bounds():
@@ -451,6 +455,7 @@ class MainWindow(QMainWindow):
         self._update_songpos()
 
     def _skip_back_button_pressed(self) -> None:
+        """Skips the song's playback position a maximum of 5 seconds forward."""
         # Prevent position from falling behind start of loop or start of song
         start = 0
         if self.playback.in_loop_bounds():
@@ -474,21 +479,19 @@ class MainWindow(QMainWindow):
 
         self.playback.looping = not self.playback.looping
         if self.playback.looping:
-            self.loop_window.show()
+            self.loop_overlay.show()
             self.loop_button.setStyleSheet(self.active_button_style)
             self.left_marker_img.setStyleSheet(self.active_marker_style)
             self.right_marker_img.setStyleSheet(self.active_marker_style)
         else:
-            self.loop_window.hide()
+            self.loop_overlay.hide()
             self.loop_button.setStyleSheet(self.inactive_button_style)
             self.left_marker_img.setStyleSheet(self.inactive_marker_style)
             self.right_marker_img.setStyleSheet(self.inactive_marker_style)
 
     def _waveform_pressed(self, mouse_event) -> None:
         """
-        Method called when mouse click event signal sent by waveform plot.
-        Sets a loop marker if shift button held, otherwise if left mouse button
-        pressed, skip to song position based on x position clicked.
+        Called when mouse click event signal sent by waveform plot. Sets a loop
         """
         x_pos = np.max(int(mouse_event.scenePos()[0]), 0)
         button = mouse_event.button()
@@ -533,8 +536,7 @@ class MainWindow(QMainWindow):
 
                     right_marker = marker_pos
                     self.right_marker_img.move(x_pos-12, 2)
-                # Otherwise, set left marker to new position
-                else:
+                else: # Otherwise, set left marker to new position
                     left_marker = marker_pos
                     self.left_marker_img.move(x_pos-12, 2)
             self.left_marker_img.show() # Show marker when set
@@ -554,28 +556,31 @@ class MainWindow(QMainWindow):
 
                     left_marker = marker_pos
                     self.left_marker_img.move(x_pos-12, 2)
-                # Otherwise, set right marker to new position
-                else:
+                else: # Otherwise, set right marker to new position
                     right_marker = marker_pos
                     self.right_marker_img.move(x_pos-12, 2)
             self.right_marker_img.show() # Show marker when set
 
         if self.playback.looping:
-            # Set active styles for loop markers and button
-            self.left_marker_img.setStyleSheet(self.active_marker_style)
-            self.right_marker_img.setStyleSheet(self.active_marker_style)
-            self.loop_button.setStyleSheet(self.active_button_style)
-
-            # Show the loop window widget when its area has been created by
-            # the left and right markers
-            left_x, right_x = self.left_marker_img.x()+12, self.right_marker_img.x()+12
-            self.loop_window.move(left_x, 2)
-            self.loop_window.resize(np.abs(right_x - left_x), self.waveform.height-4)
-            self.loop_window.show()
+            self._display_looping()
 
         # Update playback loop markers (in frames)
         self.playback.loop_markers[0] = left_marker
         self.playback.loop_markers[1] = right_marker
+
+    def _display_looping(self) -> None:
+        """Set looping elements to active styles and display loop overlay."""
+        # Set active styles for loop markers and button
+        self.left_marker_img.setStyleSheet(self.active_marker_style)
+        self.right_marker_img.setStyleSheet(self.active_marker_style)
+        self.loop_button.setStyleSheet(self.active_button_style)
+
+        # Show the loop overlay widget when its area has been created by
+        # the left and right markers
+        left_x, right_x = self.left_marker_img.x()+12, self.right_marker_img.x()+12
+        self.loop_overlay.move(left_x, 2)
+        self.loop_overlay.resize(np.abs(right_x - left_x), self.waveform.height-4)
+        self.loop_overlay.show()
 
     def _skip_song_position(self, x_pos: int) -> None:
         """Skips to song position based on x-pos of left-click on waveform plot."""
@@ -616,8 +621,8 @@ class MainWindow(QMainWindow):
             total_notes: int
         ) -> None:
         """
-        Method called when the next input recording has been processed. Updates
-        the AudioPlayback's score_data and the GUI's labels with new values.
+        Called when the next input recording has been processed. Updates the
+        AudioPlayback's score_data and the GUI's labels with new values.
         """
         self.playback.score_data["score"] += score
         self.playback.score_data["notes_hit"] += notes_hit

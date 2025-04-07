@@ -28,7 +28,7 @@ QWidget#playhead {
     border: none;
 }
 
-QWidget#loop_window {
+QWidget#loop_overlay {
     background-color: rgba(170,70,240,0.4);
     border: none;
 }
