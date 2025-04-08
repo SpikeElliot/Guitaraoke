@@ -14,7 +14,7 @@ def save_pitches(
     path: str,
     sonify: bool = False,
     temp: bool = False
-) -> list[str]:
+) -> list[Path]:
     """
     Saves the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.
@@ -34,6 +34,7 @@ def save_pitches(
         The file paths to the note events CSV file [0] and the sonified
         MIDI file [1] if sonify=True.
     """
+    assert isinstance(path, (Path, str)), "File path should be a string or pathlib Path"
     path = Path(path)
     assert path.exists(), "File does not exist"
 

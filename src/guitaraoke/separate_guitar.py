@@ -8,7 +8,7 @@ import demucs.separate
 from config import SEP_TRACKS_DIR
 
 
-def separate_guitar(path: str) -> tuple[str, str]:
+def separate_guitar(path: str | Path) -> tuple[Path, Path]:
     """
     Uses the HT Demucs 6-stem model to perform guitar separation from a given
     audio file, saving "guitar" and "no_guitar" tracks as WAV files.
@@ -23,6 +23,7 @@ def separate_guitar(path: str) -> tuple[str, str]:
     tuple[Path, Path]
         The paths to the separated guitar [0] and no_guitar tracks [1].
     """
+    assert isinstance(path, (Path, str)), "File path should be a string or pathlib Path"
     path = Path(path)
     assert path.exists(), "File does not exist"
 

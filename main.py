@@ -32,7 +32,6 @@ class MainWindow(QMainWindow):
         )
         self.input = AudioInput(self.playback.song.pitches)
         self.input.set_input_device(2)
-        self.input.score_processed.connect(self._on_score_processed)
 
         self.setWindowTitle("Guitaraoke")
 
@@ -492,6 +491,8 @@ class MainWindow(QMainWindow):
     def _waveform_pressed(self, mouse_event) -> None:
         """
         Called when mouse click event signal sent by waveform plot. Sets a loop
+        marker if shift button held. Otherwise, if left mouse button pressed,
+        skip to song position based on x position clicked.
         """
         x_pos = np.max(int(mouse_event.scenePos()[0]), 0)
         button = mouse_event.button()
@@ -637,6 +638,8 @@ class MainWindow(QMainWindow):
 
     def _guitar_vol_slider_moved(self, value: int) -> None:
         """Updates the AudioPlayback's guitar_volume based on new slider value."""
+        assert 0 <= value <= 100, "guitar_volume should be between 0 and 1."
+
         self.playback.guitar_volume = value / 100
         self.guitar_vol_val_label.setText(f"{value}%")
 

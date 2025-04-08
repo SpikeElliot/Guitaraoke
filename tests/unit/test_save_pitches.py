@@ -7,4 +7,9 @@ from guitaraoke.save_pitches import save_pitches
 def test_nonexistent_file_error_raised() -> None:
     """Assert exception is raised when given a non-existent file path."""
     with pytest.raises(AssertionError):
-        save_pitches(path="i_do_not_exist")
+        save_pitches(path="   ")
+
+def test_path_type_error_raised() -> None:
+    """Assert exception is raised when given a non-existent file path."""
+    with pytest.raises(AssertionError):
+        save_pitches(path=42)

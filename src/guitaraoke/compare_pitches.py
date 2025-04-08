@@ -50,7 +50,7 @@ def compare_pitches(
         # to the song_note_times array, and its second dimension contains a
         # given song note time's sorted distances from all user note times.
         nearest_times = []
-        for time in song_note_times:
+        for time in song_note_times: # O(n*m*log(m))
             # Get a list of user time indexes sorted by distance from song time
             sorted_dist_idxs = np.argsort(
                 np.abs(np.array(user_note_times) - time)
@@ -93,7 +93,7 @@ def unique_nearest_notes(
     over song notes' nearest user note times and checking for duplicates.
     """
     unique_pairs = False
-    while not unique_pairs:
+    while not unique_pairs: # O(n^2*m)
         for i in range(len(sorted_user_times)-1):
             for j in range(i+1, len(sorted_user_times)):
                 # First song note has been removed

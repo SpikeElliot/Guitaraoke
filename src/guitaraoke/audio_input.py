@@ -7,7 +7,6 @@ import threading
 import numpy as np
 import pandas as pd
 import sounddevice as sd
-from PyQt5.QtCore import QThread, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
 from config import CHANNELS, RATE, DTYPE
 from guitaraoke.save_pitches import save_pitches
@@ -15,7 +14,7 @@ from guitaraoke.compare_pitches import compare_pitches
 from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
 
 
-class AudioInput(QThread):
+class AudioInput():
     """
     Handles operations relating to audio input such as streaming and recording.
 
@@ -40,7 +39,6 @@ class AudioInput(QThread):
         Sets the input device to use for the sounddevice input stream by index
         in input_devices list.
     """
-    score_processed = pyqtSignal(int, float, int) # Connects the QThread to the GUI
     # Audio input stream is saved in 2 second windows to prevent notes from
     # being cut off, as is the case when using sounddevice's rec function.
     BUFFER_SIZE = int(6 * RATE)
@@ -159,14 +157,14 @@ class AudioInput(QThread):
 
                     # Perform scoring
                     score_results = compare_pitches(user_pitches, song_pitches)
-                    self.score_processed.emit(*score_results) # Send score to GUI
+                    print(score_results)
                 finally:
                     # Clean up
                     os.remove(user_pitches_path)
 
             time.sleep(0.01) # Reduce CPU load
 
-    def run(self) -> None:
+    def start(self) -> None:
         """Starts the user input recording-processing loop."""
         print("\nRecording...")
         self.stream.start()
@@ -183,5 +181,3 @@ class AudioInput(QThread):
         self.stream.stop()
         self.buffer = np.zeros(self.BUFFER_SIZE) # Reset buffer when streaming ends
         self.streaming = False
-        self.quit()
-        self.wait()

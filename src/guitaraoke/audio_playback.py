@@ -5,7 +5,7 @@ import librosa
 import numpy as np
 import pandas as pd
 import sounddevice as sd
-from PyQt5.QtCore import QThread, QTimer # pylint: disable=no-name-in-module
+from PyQt5.QtCore import QTimer # pylint: disable=no-name-in-module
 from config import CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
@@ -103,7 +103,7 @@ class LoadedAudio():
         return bpm, first_beat
 
 
-class AudioPlayback(QThread):
+class AudioPlayback():
     """
     Provides audio playback methods for a loaded song.
 
@@ -196,7 +196,7 @@ class AudioPlayback(QThread):
             "accuracy": 0
         }
 
-    def run(self) -> None:
+    def start(self) -> None:
         """Play or unpause audio playback."""
         print("\nPlayback started...")
         if self.ended:
@@ -213,8 +213,6 @@ class AudioPlayback(QThread):
         if not self.paused:
             self.paused = True
         self.stream.stop()
-        self.quit()
-        self.wait()
 
     def play_count_in_metronome(self, count_in_timer: QTimer) -> None:
         """
