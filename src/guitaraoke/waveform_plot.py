@@ -4,7 +4,7 @@ import librosa
 import numpy as np
 import pyqtgraph as pg
 from config import RATE
-from guitaraoke.audio_playback import LoadedAudio
+from guitaraoke.audio_streaming import AudioOutput
 
 
 class WaveformPlot(pg.PlotWidget):
@@ -56,15 +56,15 @@ class WaveformPlot(pg.PlotWidget):
         self.setMouseEnabled(False, False)
         self.setMenuEnabled(False) # Disable context menu blocking right click
 
-    def draw_plot(self, song: LoadedAudio) -> None:
+    def draw_plot(self, song: AudioOutput) -> None:
         """
         Draw the plot of an audio file's maximum and minimum window amplitudes
         as two lines, filling between the points to create a waveform.
 
         Parameters
         ----------
-        song : LoadedAudio
-            The LoadedAudio object whose audio time series data (frames) 
+        song : AudioOutput
+            The AudioOutput object whose audio time series data (frames) 
             will be used.
         """
         # Preserves a minimum number of 1000 points on the graph if audio file

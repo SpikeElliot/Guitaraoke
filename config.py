@@ -8,6 +8,7 @@ RATE = 44100
 DTYPE = "float32" # Datatype preferred by audio processing libraries
 SEP_TRACKS_DIR = Path("./assets/separated_tracks/htdemucs_6s")
 SAVED_PITCHES_DIR = Path("./assets/pitch_predictions")
+REC_BUFFER_SIZE = int(2 * RATE)
 
 # GUI
 WIDTH, HEIGHT = 1440, 500
