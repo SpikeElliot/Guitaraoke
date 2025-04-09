@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
 from config import RATE, WIDTH, HEIGHT, THEME_COLOUR, INACTIVE_COLOUR
 from guitaraoke.waveform_plot import WaveformPlot
 from guitaraoke.audio_streaming import AudioStreamHandler, AudioInput, AudioOutput
+from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.utils import time_format, hex_to_rgb
 
 
@@ -28,6 +29,10 @@ class MainWindow(QMainWindow):
                 artist="Guns N' Roses"
             )
         )
+        self.song.input_audio_buffer.connect(self._receive_new_input_audio)
+
+        self.scorer = ScoringSystem()
+        self.scorer.sent_score_data.connect(self._receive_new_score_data)
 
         self.setWindowTitle("Guitaraoke")
 
@@ -367,15 +372,15 @@ class MainWindow(QMainWindow):
             # Update the song duration label with new time
             self.duration_label.setText(
                 f"<font color='{THEME_COLOUR}'>"
-                f"{time_format(self.song.get_pos())}</font>"
+                f"{time_format(self.song.position/RATE)}</font>"
                 f" / {time_format(self.song.audio_out.duration)}"
             )
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
         """Set playhead position relative to current song playback position."""
-        song_pos = self.song.get_pos()
-        head_pos = int((song_pos/self.song.audio_out.duration)
+        song_pos_in_s = self.song.position/RATE
+        head_pos = int((song_pos_in_s/self.song.audio_out.duration)
                         * self.waveform.width)
         self.playhead.move(head_pos, 2)
 
@@ -441,9 +446,9 @@ class MainWindow(QMainWindow):
         pos_in_s = self.song.position/RATE
 
         if pos_in_s + 5 < end:
-            self.song.set_pos(pos_in_s + 5)
+            self.song.seek(pos_in_s + 5)
         else:
-            self.song.set_pos(end-0.1)
+            self.song.seek(end-0.1)
 
         self._update_songpos()
 
@@ -456,9 +461,9 @@ class MainWindow(QMainWindow):
         pos_in_s = self.song.position/RATE
 
         if pos_in_s - 5 > start:
-            self.song.set_pos(pos_in_s - 5)
+            self.song.seek(pos_in_s - 5)
         else:
-            self.song.set_pos(start)
+            self.song.seek(start)
 
         self._update_songpos()
 
@@ -582,7 +587,7 @@ class MainWindow(QMainWindow):
         self.playhead.move(x_pos, 2) # Update playhead x position
 
         song_pos = (x_pos/self.waveform.width) * self.song.audio_out.duration
-        self.song.set_pos(song_pos) # Update song time position
+        self.song.seek(song_pos) # Update song time position
 
         self.duration_label.setText( # Update song time display
             f"<font color='{THEME_COLOUR}'>{time_format(song_pos)}</font>"
@@ -609,33 +614,30 @@ class MainWindow(QMainWindow):
         self._pause_song_processes()
         self.count_in_timer.start()
 
-    def _on_score_processed(
-            self,
-            score: int,
-            notes_hit: float,
-            total_notes: int
-        ) -> None:
-        """
-        Called when the next input recording has been processed. Updates the
-        AudioPlayback's score_data and the GUI's labels with new values.
-        """
-        self.song.score_data["score"] += score
-        self.song.score_data["notes_hit"] += notes_hit
-        self.song.score_data["total_notes"] += total_notes
-
-        if self.song.score_data["total_notes"] != 0: # Avoid div by 0 error
-            accuracy = (self.song.score_data["notes_hit"]
-                        /self.song.score_data["total_notes"]) * 100
-            new_acc = self.song.score_data["accuracy"] = accuracy
-            self.accuracy_label.setText(f"Accuracy: {round(new_acc, 1)}%")
-        self.score_label.setText(f"Score: {self.song.score_data['score']}")
-
     def _guitar_vol_slider_moved(self, value: int) -> None:
-        """Updates the AudioPlayback's guitar_volume based on new slider value."""
-        assert 0 <= value <= 100, "guitar_volume should be between 0 and 1."
-
-        self.song.guitar_volume = value / 100
+        """Updates the song's guitar_volume based on new slider value."""
+        self.song.guitar_volume = value/100
         self.guitar_vol_val_label.setText(f"{value}%")
+
+    def _receive_new_input_audio(
+        self,
+        data: tuple[np.ndarray, int, dict[int, list]]
+    ) -> None:
+        """
+        Schedule the process_recording method to be called when a new audio
+        input buffer received.
+        """
+        buffer, position, pitches = data
+        self.scorer.submit_process_recording(buffer, position, pitches)
+
+    def _receive_new_score_data(
+        self,
+        data: tuple[int, float]
+    ) -> None:
+        """Update GUI score information with new score data."""
+        score, accuracy = data
+        self.score_label.setText(f"Score: {score}")
+        self.accuracy_label.setText(f"Accuracy: {accuracy:.1f}%")
 
 
 def main() -> None:

@@ -15,7 +15,7 @@ def separate_guitar(path: str | Path) -> tuple[Path, Path]:
 
     Parameters
     ----------
-    path : str
+    path : str | Path
         The path of the audio file to separate.
 
     Returns

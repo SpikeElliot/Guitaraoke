@@ -11,7 +11,7 @@ from config import SAVED_PITCHES_DIR
 
 
 def save_pitches(
-    path: str,
+    path: str | Path,
     sonify: bool = False,
     temp: bool = False
 ) -> list[Path]:
@@ -21,7 +21,7 @@ def save_pitches(
 
     Parameters
     ----------
-    path : str
+    path : str | Path
         The path of the audio file to make pitch predictions for.
     sonify : bool, default=False
         Whether to render audio from predicted MIDI and save to an audio file.
