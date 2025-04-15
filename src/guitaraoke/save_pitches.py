@@ -2,9 +2,8 @@
 
 import os
 from pathlib import Path
-from basic_pitch import ICASSP_2022_MODEL_PATH
 from basic_pitch.inference import predict_and_save
-from config import SAVED_PITCHES_DIR
+from config import SAVED_PITCHES_DIR, PITCH_MODEL
 
 
 def save_pitches(
@@ -59,7 +58,7 @@ def save_pitches(
             sonify_midi=sonify, # Save rendered MIDI as WAV file for testing
             save_model_outputs=False, # Model outputs are not necessary
             save_notes=True, # Save note events in CSV file
-            model_or_model_path=ICASSP_2022_MODEL_PATH, # Default model
+            model_or_model_path=PITCH_MODEL, # Preloaded model from config
             minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
             multiple_pitch_bends=True, # More accurate to bending of guitar notes
         )

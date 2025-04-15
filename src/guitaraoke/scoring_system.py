@@ -55,7 +55,9 @@ class ScoringSystem(QObject):
     def __init__(self) -> None:
         """The constructor for the ScoringSystem class."""
         super().__init__()
-        self._executor = concurrent.futures.ProcessPoolExecutor()
+        self._executor = concurrent.futures.ProcessPoolExecutor(max_workers=1)
+        self._executor.submit(preload_basic_pitch_model)
+
         self._score = 0
         self._notes_hit = 0
         self._total_notes = 0
@@ -73,8 +75,9 @@ class ScoringSystem(QObject):
         pitches: dict[int, list]
     ) -> None:
         """
-        Schedule a method to be executed, adding a function that will
-        be called when the future is complete.
+        Schedule the process_recording function to be executed by a process,
+        providing a callback function that updates score attributes with new
+        data when the future is complete.
         """
         future = self._executor.submit(
             process_recording,
@@ -122,6 +125,11 @@ class ScoringSystem(QObject):
     def zero_score_data(self) -> None:
         """Reset all score data (called when song skipped in practice mode)."""
         self._score, self._notes_hit, self._total_notes, self._accuracy = (0,0,0,0)
+
+
+def preload_basic_pitch_model() -> None:
+    """Preload the Basic Pitch model when a worker process is created."""
+    from config import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
 
 
 def compare_pitches(

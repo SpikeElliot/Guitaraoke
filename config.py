@@ -1,6 +1,8 @@
 """Provides config variables used across the codebase."""
 
 from pathlib import Path
+from basic_pitch.inference import Model
+from basic_pitch import ICASSP_2022_MODEL_PATH
 
 # Audio
 CHANNELS = 1
@@ -9,6 +11,7 @@ DTYPE = "float32" # Datatype preferred by audio processing libraries
 SEP_TRACKS_DIR = Path("./assets/separated_tracks/htdemucs_6s")
 SAVED_PITCHES_DIR = Path("./assets/pitch_predictions")
 REC_BUFFER_SIZE = int(3 * RATE)
+PITCH_MODEL = Model(ICASSP_2022_MODEL_PATH) # Preload the Basic Pitch model
 INPUT_DEVICE_INDEX = 2
 
 # GUI
