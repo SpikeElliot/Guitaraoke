@@ -646,7 +646,14 @@ def main() -> None:
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(app_exec(app, window))
+
+
+def app_exec(app: QApplication, window: MainWindow) -> None:
+    """End all processes when the application's window is closed."""
+    app.exec()
+    window.scorer.shutdown_processes()
+
 
 if __name__ == "__main__":
     main()

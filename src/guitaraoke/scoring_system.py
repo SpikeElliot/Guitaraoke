@@ -68,6 +68,10 @@ class ScoringSystem(QObject):
         """Getter for the process pool executor."""
         return self._executor
 
+    def shutdown_processes(self) -> None:
+        """Shut down all worker processes."""
+        self._executor.shutdown(wait=False)
+
     def submit_process_recording(
         self,
         buffer: np.ndarray,
