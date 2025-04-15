@@ -1,7 +1,4 @@
-"""
-Module providing a function to perform pitch detection using a model from
-Spotify's Basic Pitch library.
-"""
+"""Provides a function that abstracts pitch detection of an audio file."""
 
 import os
 from pathlib import Path
@@ -16,7 +13,7 @@ def save_pitches(
     temp: bool = False
 ) -> list[Path]:
     """
-    Saves the note events CSV file from Spotify's Basic Pitch model prediction
+    Save the note events CSV file from Spotify's Basic Pitch model prediction
     run on a given audio file.
 
     Parameters

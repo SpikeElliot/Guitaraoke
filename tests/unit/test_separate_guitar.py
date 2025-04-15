@@ -1,4 +1,4 @@
-"""Module performing unit testing of the separate_guitar function."""
+"""Performs unit testing of the separate_guitar function."""
 
 import pytest
 from guitaraoke.separate_guitar import separate_guitar

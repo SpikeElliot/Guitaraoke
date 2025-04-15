@@ -1,7 +1,4 @@
-"""
-Module performing integration testing of the pitch saving and reading 
-functionality.
-"""
+"""Performs integration testing of pitch saving and reading functionality."""
 
 import os
 import tempfile

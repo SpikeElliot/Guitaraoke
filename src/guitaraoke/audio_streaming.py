@@ -1,5 +1,13 @@
 """
-Module providing AudioInput, AudioOutput, and AudioStreamHandlers classes.
+Provides classes for audio streaming and playback functionality.
+
+Classes
+-------
+LoadedAudio()
+    Contains all needed data from an audio file.
+
+AudioStreamHandler()
+    Handle audio I/O streaming and playback functionality.
 """
 
 from pathlib import Path
@@ -8,40 +16,13 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
-from config import CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR, REC_BUFFER_SIZE
+from config import CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR, REC_BUFFER_SIZE, INPUT_DEVICE_INDEX
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe, preprocess_pitch_data
 
 
-class AudioInput():
-    """
-    Handles operations relating to audio input such as streaming and recording.
-
-    Attributes
-    ----------
-    audio_blocks : ndarray
-        An ndarray that holds recorded input audio data to be added to a
-        buffer once it meets the necessary size required.
-    input_device_index : int
-        The index of the input device used.
-    """
-    def __init__(self) -> None:
-        """The constructor for the AudioInput class."""
-        self.audio_blocks = np.ndarray(0)
-        self.device_index = 2
-
-    def find_devices(self) -> None:
-        """Return a list of available audio input devices."""
-        devices = sd.query_devices()
-        input_devs = []
-        for d in devices:
-            if d["max_input_channels"] > 0 and d["hostapi"] == 0:
-                input_devs.append(d)
-        return input_devs
-
-
-class AudioOutput():
+class LoadedAudio():
     """
     Contains all necessary data received from an audio file such as its audio
     time series, tempo, and duration.
@@ -138,10 +119,16 @@ class AudioStreamHandler(QObject):
 
     Attributes
     ----------
+    song : LoadedAudio
+        A LoadedAudio instance containing song data such as its audio time
+        series and pitches DataFrame.
+    input_audio_buffer : ndarray
+        An ndarray containing recorded input audio data that is sent to the
+        main file when size has reached the minimum buffer size.
     paused, ended : bool
         The current state of audio playback's paused and ended status.
-    stream : OutputStream
-        The song's sounddevice output stream for audio playback.
+    stream : Stream
+        The sounddevice I/O stream.
     position : int
         The current position of audio playback in frames.
     guitar_volume : float
@@ -154,12 +141,15 @@ class AudioStreamHandler(QObject):
         The user's performance data: score, notes hit, total notes, and
         accuracy.
     """
-    input_audio_buffer = pyqtSignal(tuple)
+    send_buffer = pyqtSignal(tuple)
 
-    def __init__(self, audio_in: AudioInput, audio_out: AudioOutput) -> None:
+    def __init__(self, song: LoadedAudio) -> None:
         super().__init__()
-        self.audio_in = audio_in
-        self.audio_out = audio_out
+        # Audio data
+        self.song = song
+
+        # Input variables
+        self._input_audio_buffer = np.ndarray(0)
 
         # Playback data
         self._paused = True
@@ -174,13 +164,13 @@ class AudioStreamHandler(QObject):
             "audio_data": librosa.load("./assets/audio/metronome.wav", sr=RATE)[0],
             "count_in_enabled": True,
             "count": 0,
-            "interval": int(1000 / (self.audio_out.bpm / 60))
+            "interval": int(1000 / (self.song.bpm / 60))
         }
 
         # I/O Stream
         self._stream = sd.Stream(
             samplerate=RATE,
-            device=(self.audio_in.device_index, None),
+            device=(INPUT_DEVICE_INDEX, None),
             channels=CHANNELS,
             callback=self._callback,
             dtype=DTYPE,
@@ -216,7 +206,7 @@ class AudioStreamHandler(QObject):
 
     def seek(self, position: float) -> None:
         """Set the position to a new time in seconds."""
-        if not 0 <= int(position * RATE) <= int(self.audio_out.duration * RATE):
+        if not 0 <= int(position * RATE) <= int(self.song.duration * RATE):
             raise ValueError("Position must be between 0 and song duration.")
         if self._ended:
             self._ended = False
@@ -238,26 +228,29 @@ class AudioStreamHandler(QObject):
             self._paused = True
         self._stream.stop()
         # Reset buffer when streaming ends
-        self.audio_in.buffer = np.zeros(REC_BUFFER_SIZE)
+        self._input_audio_buffer = np.ndarray(0)
 
     def _callback(self, indata, outdata, frames, time, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
+        """Callback function for the sounddevice Stream."""
         if status: # Print callback flags if any
             print(f"Stream callback flags: {status}", flush=True)
 
         # INPUT HANDLING
 
-        self.audio_in.audio_blocks = np.append(self.audio_in.audio_blocks, indata.copy())
+        self._input_audio_buffer = np.append(
+            self._input_audio_buffer, indata.copy()
+        )
 
-        if self.audio_in.audio_blocks.size >= REC_BUFFER_SIZE:
+        if self._input_audio_buffer.size >= REC_BUFFER_SIZE:
             # Send buffered audio to connected function in main file
-            buffer = self.audio_in.audio_blocks[:REC_BUFFER_SIZE].copy()
+            buffer = self._input_audio_buffer[:REC_BUFFER_SIZE].copy()
             pitches = preprocess_pitch_data(
-                self.audio_out.pitches,
+                self.song.pitches,
                 slice_start=(self._position-REC_BUFFER_SIZE)/RATE,
                 slice_end=self._position/RATE
             )
-            self.input_audio_buffer.emit((buffer, self._position, pitches))
-            self.audio_in.audio_blocks = self.audio_in.audio_blocks[REC_BUFFER_SIZE:]
+            self.send_buffer.emit((buffer, self._position, pitches))
+            self._input_audio_buffer = self._input_audio_buffer[REC_BUFFER_SIZE:]
 
         # OUTPUT HANDLING
 
@@ -278,23 +271,23 @@ class AudioStreamHandler(QObject):
             # Get all frames before right loop marker, and concatenate with
             # all frames needed after loop
             guitar_batch = np.concatenate((
-                self.audio_out.guitar_data[self._position:self.loop_markers[1]],
-                self.audio_out.guitar_data[self.loop_markers[0]:new_pos]
+                self.song.guitar_data[self._position:self.loop_markers[1]],
+                self.song.guitar_data[self.loop_markers[0]:new_pos]
             ))
             no_guitar_batch = np.concatenate((
-                self.audio_out.no_guitar_data[self._position:self.loop_markers[1]],
-                self.audio_out.no_guitar_data[self.loop_markers[0]:new_pos]
+                self.song.no_guitar_data[self._position:self.loop_markers[1]],
+                self.song.no_guitar_data[self.loop_markers[0]:new_pos]
             ))
         else:
             # Case: no looping and end of song is reached in this batch
-            if new_pos >= len(self.audio_out.guitar_data):
-                new_pos = len(self.audio_out.guitar_data)
+            if new_pos >= len(self.song.guitar_data):
+                new_pos = len(self.song.guitar_data)
                 frames = new_pos - self._position
                 self._ended = True
 
             # No looping, load guitar and no_guitar batches as normal
-            guitar_batch = self.audio_out.guitar_data[self._position:new_pos]
-            no_guitar_batch = self.audio_out.no_guitar_data[self._position:new_pos]
+            guitar_batch = self.song.guitar_data[self._position:new_pos]
+            no_guitar_batch = self.song.no_guitar_data[self._position:new_pos]
 
         # Sum the amplitudes of the two tracks to get full mix values
         audio_batch = (guitar_batch * self._guitar_volume) + no_guitar_batch

@@ -1,1 +1,1 @@
-"""Module performing unit testing of the preprocess_pitch_data function."""
+"""Performs unit testing of the preprocess_pitch_data function."""

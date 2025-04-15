@@ -1,6 +1,22 @@
 """
-Module providing a ScoringSystem class that performs karaoke-style user
-scoring.
+Provides a class and functions for karaoke-style scoring system functionality.
+
+Classes
+-------
+ScoringSystem(QObject)
+    Contains score data and performs multiprocessing for real-time scoring.
+
+Functions
+---------
+compare_pitches
+    Take two pitch dictionaries (user and song) and return user scores.
+
+unique_nearest_notes
+    Get all unique nearest song-user note pairs (used in compare_pitches).
+
+process_recording
+    Compare the user input recording's pitches against the song's,
+    returning the resultant score data.
 """
 
 import os
@@ -18,7 +34,21 @@ NOTE_HIT_WINDOW = 0.1 # 100ms tolerance to account for latency
 
 class ScoringSystem(QObject):
     """
-    Performs user scoring logic by comparing user and song predicted notes.
+    Contains the current score data, provides functionality for real-time
+    scoring during user performance.
+
+    Attributes
+    ----------
+    executor: ProcessPoolExecutor
+        The process pool executor that creates futures for scoring processes.
+    score: int
+        The user's current score.
+    notes_hit : float
+        The number of notes the user has correctly played.
+    total_notes : int
+        The total number of song notes up to the current point of playback.
+    accuracy : float
+        The percentage out of total song notes hit by the user.
     """
     sent_score_data = pyqtSignal(tuple)
 
@@ -90,7 +120,7 @@ class ScoringSystem(QObject):
         return self._accuracy
 
     def zero_score_data(self) -> None:
-        """Reset all score data (called when song skipped in pratice mode)."""
+        """Reset all score data (called when song skipped in practice mode)."""
         self._score, self._notes_hit, self._total_notes, self._accuracy = (0,0,0,0)
 
 
@@ -99,15 +129,15 @@ def compare_pitches(
     song_pitches: dict[int, list]
 ) -> tuple[int, float, int]:
     """
-    Take two dictionaries containing 128 arrays (one for each MIDI pitch), 
-    find the shortest unique distances between each user and song note, 
-    and return the resultant score information.
+    Take two pitch dictionaries (user and song), find the shortest 
+    unique distances between each user and song note, and return the
+    resultant score information.
 
     Parameters
     ----------
     user_pitches, song_pitches : dict[int, list]
-        A dictionary converted from a pandas DataFrame containing a list of note
-        event times for each possible MIDI pitch predicted from an audio file.
+        Dictionaries containing lists of the times in seconds of note
+        onsets for every possible MIDI pitch (0-127).
     
     Returns
     -------
@@ -221,15 +251,12 @@ def process_recording(
     preprocessed_song_pitches: dict[int, list]
 ) -> tuple[int, float]:
     """
-    Converts the user input recording into a MIDI file and compares the
-    user's predicted pitches to the audio file's aligned at the correct
-    time, saving the resultant score data.
+    Compare the user input recording's pitches against the song's,
+    returning the resultant score data.
     """
     assert isinstance(buffer, np.ndarray), "Audio buffer must be an ndarray."
     assert isinstance(position, int), "Position must be an int."
-    assert isinstance(
-        preprocessed_song_pitches, dict
-    ), "Song pitches must be a dictionary of int keys and list vals."
+    assert isinstance(preprocessed_song_pitches, dict), "Song pitches must be a dictionary."
 
     # Save recorded audio as a temp WAV file
     with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
@@ -239,6 +266,7 @@ def process_recording(
         # Save predicted user pitches to a temp CSV file
         user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
 
+    score_data = (0,0,0)
     try:
         # Align user note event times to passed song position
         user_pitches = csv_to_pitches_dataframe(user_pitches_path)

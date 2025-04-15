@@ -1,12 +1,19 @@
 """
-Module providing various utility functions.
+Provides miscellaneous utility functions used across the application.
 
 Functions
 ---------
 time_format(time)
+    Return a time in MM:SS.CC format.
+
 hex_to_rgb(hex_string)
+    Get an RGB equivalent from a hex triplet.
+
 csv_to_pitches_dataframe(path)
+    Return sorted Pandas DataFrame converted from a pitches CSV file.
+
 preprocess_pitch_data(pitches, slice_start=None, slice_end=None)
+    Return a dict of note events for 128 pitches from a pitches Dataframe.
 """
 
 import math
@@ -15,7 +22,7 @@ import pandas as pd
 
 
 def time_format(time: float) -> str:
-    """Takes time in seconds and returns a time string converted to MM:SS.CC format."""
+    """Take a time in seconds and return it in MM:SS.CC format."""
     mins = math.floor(time / 60)
     secs = math.floor(time % 60)
     cents = int((time - math.floor(time)) * 100)
@@ -24,14 +31,14 @@ def time_format(time: float) -> str:
 
 
 def hex_to_rgb(hex_string: str) -> tuple:
-    """Takes a hex triplet and converts it to RGB values."""
+    """Take a hex triplet and convert it to RGB values."""
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 
 
 def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
     """
-    Use pandas read_csv function to read a CSV file as a DataFrame, dropping
-    unwanted columns and sorting by note onset times.
+    Return a Pandas DataFrame from a pitches CSV file, dropping
+    unnecessary columns and sorting by note onset times.
     """
     return pd.read_csv(
         path,
@@ -49,8 +56,8 @@ def preprocess_pitch_data(
     slice_end: float | None = None
 ) -> dict[int, list]:
     """
-    Takes a pandas DataFrame read from a Basic Pitch note events CSV file
-    and performs pre-processing, returning a 2D array of note sequences.
+    Take a pitches DataFrame and perform pre-processing, returning a
+    2D array containg note onset times for all 128 MIDI pitches.
 
     Parameters
     ----------
@@ -62,8 +69,8 @@ def preprocess_pitch_data(
     Returns
     -------
     pitch_sequences : dict[int, list]
-        A dictionary containing lists of the times in seconds of note on events
-        for every possible MIDI pitch (0-127).
+        A dictionary containing lists of the times in seconds of note
+        onsets for every possible MIDI pitch (0-127).
     """
     new_pitches = pitches.copy()
 

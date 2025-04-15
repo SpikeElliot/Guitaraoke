@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
 )
 from config import RATE, WIDTH, HEIGHT, THEME_COLOUR, INACTIVE_COLOUR
 from guitaraoke.waveform_plot import WaveformPlot
-from guitaraoke.audio_streaming import AudioStreamHandler, AudioInput, AudioOutput
+from guitaraoke.audio_streaming import AudioStreamHandler, LoadedAudio
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.utils import time_format, hex_to_rgb
 
@@ -21,15 +21,14 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Hard-coded for now
-        self.song = AudioStreamHandler(
-            AudioInput(),
-            AudioOutput(
+        self.audio = AudioStreamHandler(
+            LoadedAudio(
                 path="./assets/audio/sweetchildomine_intro_riff.wav",
                 title="Sweet Child O' Mine (Intro Riff)",
                 artist="Guns N' Roses"
             )
         )
-        self.song.input_audio_buffer.connect(self._receive_new_input_audio)
+        self.audio.send_buffer.connect(self._receive_new_input_audio)
 
         self.scorer = ScoringSystem()
         self.scorer.sent_score_data.connect(self._receive_new_score_data)
@@ -53,18 +52,18 @@ class MainWindow(QMainWindow):
 
         self.artist_label = QLabel()
         self.artist_label.setText(
-            self.song.audio_out.metadata["artist"]
+            self.audio.song.metadata["artist"]
         )
 
         self.title_label = QLabel()
         self.title_label.setText(
-            self.song.audio_out.metadata["title"]
+            self.audio.song.metadata["title"]
             )
 
         self.duration_label = QLabel()
         self.duration_label.setText(
             f"<font color='{THEME_COLOUR}'>00:00.00</font>"
-            f" / {time_format(self.song.audio_out.duration)}"
+            f" / {time_format(self.audio.song.duration)}"
         )
 
         self.score_label = QLabel()
@@ -138,7 +137,7 @@ class MainWindow(QMainWindow):
             colour=hex_to_rgb(THEME_COLOUR)
         )
         self.waveform.setObjectName("waveform")
-        self.waveform.draw_plot(self.song.audio_out)
+        self.waveform.draw_plot(self.audio.song)
         self.waveform.clicked_connect(self._waveform_pressed)
 
         # Song playhead
@@ -169,9 +168,9 @@ class MainWindow(QMainWindow):
         self.right_marker_img.hide()
 
         # Song time position timer
-        self.songpos_timer = QTimer()
-        self.songpos_timer.setInterval(10)
-        self.songpos_timer.timeout.connect(self._update_songpos)
+        self.audiopos_timer = QTimer()
+        self.audiopos_timer.setInterval(10)
+        self.audiopos_timer.timeout.connect(self._update_songpos)
 
         # Audio Playback Controls
 
@@ -359,28 +358,28 @@ class MainWindow(QMainWindow):
 
     def _update_songpos(self) -> None:
         """Updates song_duration label and moves playhead every 10ms."""
-        if self.song.ended:
+        if self.audio.ended:
             # Stop time progressing when song ends
             self._pause_button_pressed()
 
             # Reset song time display to 0
             self.duration_label.setText(
                 f"<font color='{THEME_COLOUR}'>00:00.00</font>"
-                f" / {time_format(self.song.audio_out.duration)}"
+                f" / {time_format(self.audio.song.duration)}"
             )
         else:
             # Update the song duration label with new time
             self.duration_label.setText(
                 f"<font color='{THEME_COLOUR}'>"
-                f"{time_format(self.song.position/RATE)}</font>"
-                f" / {time_format(self.song.audio_out.duration)}"
+                f"{time_format(self.audio.position/RATE)}</font>"
+                f" / {time_format(self.audio.song.duration)}"
             )
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
         """Set playhead position relative to current song playback position."""
-        song_pos_in_s = self.song.position/RATE
-        head_pos = int((song_pos_in_s/self.song.audio_out.duration)
+        song_pos_in_s = self.audio.position/RATE
+        head_pos = int((song_pos_in_s/self.audio.song.duration)
                         * self.waveform.width)
         self.playhead.move(head_pos, 2)
 
@@ -390,39 +389,40 @@ class MainWindow(QMainWindow):
         self.pause_button.show()
 
         # Case: song count-in is disabled
-        if not self.song.metronome["count_in_enabled"]:
+        if not self.audio.metronome["count_in_enabled"]:
             self._start_song_processes()
             return
 
         # Set count-in timer interval to estimated beat interval of song
-        self.count_in_timer.setInterval(self.song.metronome["interval"])
-        self.song.metronome["count"] = 0
+        self.count_in_timer.setInterval(self.audio.metronome["interval"])
+        self.audio.metronome["count"] = 0
         self.count_in_timer.start()
 
     def _count_in_button_pressed(self) -> None:
         """Toggles metronome count-in when count-in button pressed."""
-        self.song.metronome["count_in_enabled"] = (
-            not self.song.metronome["count_in_enabled"])
-        if self.song.metronome["count_in_enabled"]:
+        self.audio.metronome["count_in_enabled"] = (
+            not self.audio.metronome["count_in_enabled"])
+        if self.audio.metronome["count_in_enabled"]:
             self.count_in_button.setStyleSheet(self.active_button_style)
         else:
             self.count_in_button.setStyleSheet(self.inactive_button_style)
 
     def _count_in(self) -> None:
         """Starts audio playback and recording when count-in timer finished."""
-        if self.song.play_count_in_metronome(self.count_in_timer):
+        if self.audio.play_count_in_metronome(self.count_in_timer):
             # Start playback and recording
             self._start_song_processes()
 
     def _start_song_processes(self) -> None:
         "Start all I/O streaming processes."
-        self.song.start()
-        self.songpos_timer.start()
+        self.scorer.zero_score_data()
+        self.audio.start()
+        self.audiopos_timer.start()
 
     def _pause_song_processes(self) -> None:
         """Stop all I/O streaming processes."""
-        self.song.stop()
-        self.songpos_timer.stop()
+        self.audio.stop()
+        self.audiopos_timer.stop()
 
     def _pause_button_pressed(self) -> None:
         """Stops audio playback and recording when pause button pressed."""
@@ -432,7 +432,7 @@ class MainWindow(QMainWindow):
         # Case: pause button pressed during count-in timer
         if self.count_in_timer.isActive():
             self.count_in_timer.stop()
-            self.song.metronome["count"] = 0
+            self.audio.metronome["count"] = 0
 
         # Pause playback and recording
         self._pause_song_processes()
@@ -440,15 +440,15 @@ class MainWindow(QMainWindow):
     def _skip_forward_button_pressed(self) -> None:
         """Skips the song's playback position a maximum of 5 seconds back."""
         # Prevent position from running over end of loop or end of song
-        end = self.song.audio_out.duration
-        if self.song.in_loop_bounds():
-            end = self.song.loop_markers[1]/RATE
-        pos_in_s = self.song.position/RATE
+        end = self.audio.song.duration
+        if self.audio.in_loop_bounds():
+            end = self.audio.loop_markers[1]/RATE
+        pos_in_s = self.audio.position/RATE
 
         if pos_in_s + 5 < end:
-            self.song.seek(pos_in_s + 5)
+            self.audio.seek(pos_in_s + 5)
         else:
-            self.song.seek(end-0.1)
+            self.audio.seek(end-0.1)
 
         self._update_songpos()
 
@@ -456,14 +456,14 @@ class MainWindow(QMainWindow):
         """Skips the song's playback position a maximum of 5 seconds forward."""
         # Prevent position from falling behind start of loop or start of song
         start = 0
-        if self.song.in_loop_bounds():
-            start = self.song.loop_markers[0]/RATE
-        pos_in_s = self.song.position/RATE
+        if self.audio.in_loop_bounds():
+            start = self.audio.loop_markers[0]/RATE
+        pos_in_s = self.audio.position/RATE
 
         if pos_in_s - 5 > start:
-            self.song.seek(pos_in_s - 5)
+            self.audio.seek(pos_in_s - 5)
         else:
-            self.song.seek(start)
+            self.audio.seek(start)
 
         self._update_songpos()
 
@@ -472,11 +472,11 @@ class MainWindow(QMainWindow):
         Toggles song section looping when loop button pressed if both loop
         markers are set.
         """
-        if None in self.song.loop_markers:
+        if None in self.audio.loop_markers:
             return
 
-        self.song.looping = not self.song.looping
-        if self.song.looping:
+        self.audio.looping = not self.audio.looping
+        if self.audio.looping:
             self.loop_overlay.show()
             self.loop_button.setStyleSheet(self.active_button_style)
             self.left_marker_img.setStyleSheet(self.active_marker_style)
@@ -511,12 +511,12 @@ class MainWindow(QMainWindow):
         Sets a new time position (in frames) for the left or right loop marker.
         When both markers have values set, song looping logic is actuated.
         """
-        left_marker = self.song.loop_markers[0]
-        right_marker = self.song.loop_markers[1]
+        left_marker = self.audio.loop_markers[0]
+        right_marker = self.audio.loop_markers[1]
 
         marker_pos = round(( # Marker time position in frames
             (x_pos/self.waveform.width)
-            * self.song.audio_out.duration
+            * self.audio.song.duration
             * RATE
         ))
         time_constraint = 2 * RATE # Minimum loop time of 2 secs
@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
                 self.left_marker_img.move(x_pos-12, 2)
             elif np.abs(right_marker - marker_pos) >= time_constraint:
                 # Looping set to true when both markers set
-                self.song.looping = True
+                self.audio.looping = True
                 # Invert markers if new left marker > right marker
                 if marker_pos > right_marker:
                     left_marker = right_marker
@@ -548,7 +548,7 @@ class MainWindow(QMainWindow):
                 self.right_marker_img.move(x_pos-12, 2)
             elif np.abs(marker_pos - left_marker) >= time_constraint:
                 # Looping set to true when both markers set
-                self.song.looping = True
+                self.audio.looping = True
                 # Invert markers if new right marker < left marker
                 if marker_pos < left_marker:
                     right_marker = left_marker
@@ -561,12 +561,12 @@ class MainWindow(QMainWindow):
                     self.right_marker_img.move(x_pos-12, 2)
             self.right_marker_img.show() # Show marker when set
 
-        if self.song.looping:
+        if self.audio.looping:
             self._display_looping()
 
         # Update playback loop markers (in frames)
-        self.song.loop_markers[0] = left_marker
-        self.song.loop_markers[1] = right_marker
+        self.audio.loop_markers[0] = left_marker
+        self.audio.loop_markers[1] = right_marker
 
     def _display_looping(self) -> None:
         """Set looping elements to active styles and display loop overlay."""
@@ -586,28 +586,29 @@ class MainWindow(QMainWindow):
         """Skips to song position based on x-pos of left-click on waveform plot."""
         self.playhead.move(x_pos, 2) # Update playhead x position
 
-        song_pos = (x_pos/self.waveform.width) * self.song.audio_out.duration
-        self.song.seek(song_pos) # Update song time position
+        song_pos = (x_pos/self.waveform.width) * self.audio.song.duration
+        self.audio.seek(song_pos) # Update song time position
+        self.scorer.zero_score_data()
 
         self.duration_label.setText( # Update song time display
             f"<font color='{THEME_COLOUR}'>{time_format(song_pos)}</font>"
-            f" / {time_format(self.song.audio_out.duration)}"
+            f" / {time_format(self.audio.song.duration)}"
         )
 
         print(f"\nSong skipped to: {time_format(song_pos)}") # Testing
 
         # Case: song count-in is disabled
-        if not self.song.metronome["count_in_enabled"]:
+        if not self.audio.metronome["count_in_enabled"]:
             return
 
         # Case: song skipped during count-in
         if self.count_in_timer.isActive():
             # Restart count
             self.count_in_timer.stop()
-            self.song.metronome["count"] = 0
+            self.audio.metronome["count"] = 0
             self.count_in_timer.start()
             return
-        if self.song.paused:
+        if self.audio.paused:
             return
 
         # Case: song skipped mid-playback
@@ -616,7 +617,7 @@ class MainWindow(QMainWindow):
 
     def _guitar_vol_slider_moved(self, value: int) -> None:
         """Updates the song's guitar_volume based on new slider value."""
-        self.song.guitar_volume = value/100
+        self.audio.guitar_volume = value/100
         self.guitar_vol_val_label.setText(f"{value}%")
 
     def _receive_new_input_audio(

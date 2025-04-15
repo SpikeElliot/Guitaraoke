@@ -1,4 +1,4 @@
-"""Module performing unit testing of the save_pitches function."""
+"""Performs unit testing of the save_pitches function."""
 
 import pytest
 from guitaraoke.save_pitches import save_pitches

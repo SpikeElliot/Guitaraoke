@@ -1,7 +1,4 @@
-"""
-Module providing a function to perform guitar separation using the 6-stem
-HT Demucs MSS model.
-"""
+"""Provides a function that abstracts guitar separation from an audio file."""
 
 from pathlib import Path
 import demucs.separate

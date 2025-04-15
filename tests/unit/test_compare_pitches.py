@@ -1,4 +1,4 @@
-"""Module performing unit testing of the compare_pitches function."""
+"""Performs unit testing of the compare_pitches function."""
 
 from guitaraoke.scoring_system import compare_pitches
 
