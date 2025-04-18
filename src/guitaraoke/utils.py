@@ -19,6 +19,7 @@ preprocess_pitch_data(pitches, slice_start=None, slice_end=None)
 import math
 from pathlib import Path
 import pandas as pd
+from config import INPUT_LATENCY, OUTPUT_LATENCY
 
 
 def time_format(time: float) -> str:
@@ -53,7 +54,8 @@ def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
 def preprocess_pitch_data(
     pitches: pd.DataFrame,
     slice_start: float | None = None,
-    slice_end: float | None = None
+    slice_end: float | None = None,
+    offset_latency: bool = False
 ) -> dict[int, list]:
     """
     Take a pitches DataFrame and perform pre-processing, returning a
@@ -79,6 +81,9 @@ def preprocess_pitch_data(
             (pitches["start_time_s"] >= slice_start)
             & (pitches["start_time_s"] < slice_end)
         ]
+
+    if offset_latency:
+        new_pitches["start_time_s"] -= (INPUT_LATENCY + OUTPUT_LATENCY)
 
     pitch_sequences = {k: [] for k in range(128)}
     for row in new_pitches.itertuples():

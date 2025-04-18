@@ -16,7 +16,10 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
-from config import CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR, REC_BUFFER_SIZE, INPUT_DEVICE_INDEX
+from config import (
+    CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR,
+    REC_BUFFER_SIZE, INPUT_DEVICE_INDEX
+)
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import csv_to_pitches_dataframe, preprocess_pitch_data
@@ -176,6 +179,11 @@ class AudioStreamHandler(QObject):
             dtype=DTYPE,
             latency="low",
         )
+        in_lat, out_lat = self._stream.latency
+        print(
+            f"Input Latency: {in_lat*1000:.1f}ms\n"
+            f"Output Latency: {out_lat*1000:.1f}ms"
+        )
 
     @property
     def position(self) -> int:
@@ -247,7 +255,8 @@ class AudioStreamHandler(QObject):
             pitches = preprocess_pitch_data(
                 self.song.pitches,
                 slice_start=(self._position-REC_BUFFER_SIZE)/RATE,
-                slice_end=self._position/RATE
+                slice_end=self._position/RATE,
+                offset_latency="input",
             )
             self.send_buffer.emit((buffer, self._position, pitches))
             self._input_audio_buffer = self._input_audio_buffer[REC_BUFFER_SIZE:]

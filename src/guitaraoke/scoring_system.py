@@ -280,12 +280,17 @@ def process_recording(
 
     score_data = (0,0,0)
     try:
-        # Align user note event times to passed song position
+        # Align user note event times to song position
         user_pitches = csv_to_pitches_dataframe(user_pitches_path)
-        user_pitches["start_time_s"] += position/RATE - (REC_BUFFER_SIZE/RATE)
+        user_pitches["start_time_s"] += (
+            position/RATE - (REC_BUFFER_SIZE/RATE)
+        )
 
         # Convert user pitches to dict of note-onset time lists
-        user_pitches = preprocess_pitch_data(user_pitches)
+        user_pitches = preprocess_pitch_data(
+            user_pitches,
+            offset_latency=True,
+        )
 
         # TESTING
         print("user pitches:",user_pitches)
