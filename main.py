@@ -7,12 +7,13 @@ from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QSlider
 )
-from config import RATE, WIDTH, HEIGHT, THEME_COLOUR, INACTIVE_COLOUR
 from guitaraoke.waveform_plot import WaveformPlot
 from guitaraoke.audio_streaming import AudioStreamHandler, LoadedAudio
 from guitaraoke.scoring_system import ScoringSystem
-from guitaraoke.utils import time_format, hex_to_rgb
+from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
+gui_config = read_config("GUI")
+audio_config = read_config("Audio")
 
 class MainWindow(QMainWindow):
     """The main window of the GUI application."""
@@ -35,7 +36,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Guitaraoke")
 
-        self.setFixedSize(WIDTH, HEIGHT)
+        self.setFixedSize(gui_config["width"], gui_config["height"])
 
         self._set_components()
 
@@ -62,7 +63,7 @@ class MainWindow(QMainWindow):
 
         self.duration_label = QLabel()
         self.duration_label.setText(
-            f"<font color='{THEME_COLOUR}'>00:00.00</font>"
+            f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 
@@ -77,7 +78,7 @@ class MainWindow(QMainWindow):
 
         # Top row
 
-        song_info_top_row.addSpacing(int(WIDTH*0.05))
+        song_info_top_row.addSpacing(int(gui_config["width"]*0.05))
 
         song_info_top_row.addWidget(
             self.gamemode_label,
@@ -94,11 +95,11 @@ class MainWindow(QMainWindow):
             alignment=Qt.AlignRight
         )
 
-        song_info_top_row.addSpacing(int(WIDTH*0.05))
+        song_info_top_row.addSpacing(int(gui_config["width"]*0.05))
 
         # Middle row
 
-        song_info_middle_row.addSpacing(int(WIDTH*0.05))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.05))
 
         song_info_middle_row.addWidget(QLabel()) # Temporary
 
@@ -112,7 +113,7 @@ class MainWindow(QMainWindow):
             alignment=Qt.AlignRight
         )
 
-        song_info_middle_row.addSpacing(int(WIDTH*0.05))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.05))
 
         # Bottom row
 
@@ -132,9 +133,9 @@ class MainWindow(QMainWindow):
         # Waveform Plot
 
         self.waveform = WaveformPlot(
-            width=int(WIDTH*0.9),
+            width=int(gui_config["width"]*0.9),
             height=100,
-            colour=hex_to_rgb(THEME_COLOUR)
+            colour=hex_to_rgb(gui_config["theme_colour"])
         )
         self.waveform.setObjectName("waveform")
         self.waveform.draw_plot(self.audio.song)
@@ -315,8 +316,8 @@ class MainWindow(QMainWindow):
 
         controls_layout_bottom_row.setHorizontalSpacing(20)
         controls_layout_bottom_row.setContentsMargins(
-            int(WIDTH*0.05), int(HEIGHT*0.05),
-            int(WIDTH*0.05), int(HEIGHT*0.05)
+            int(gui_config["width"]*0.05), int(gui_config["height"]*0.05),
+            int(gui_config["width"]*0.05), int(gui_config["height"]*0.05)
         )
 
         controls_layout.addLayout(controls_layout_top_row)
@@ -344,8 +345,8 @@ class MainWindow(QMainWindow):
             _style = f.read()
             self.setStyleSheet(_style)
 
-        self.active_button_style = f"background-color: {THEME_COLOUR};"
-        self.inactive_button_style = f"background-color: {INACTIVE_COLOUR};"
+        self.active_button_style = f"background-color: {gui_config['theme_colour']};"
+        self.inactive_button_style = f"background-color: {gui_config['inactive_colour']};"
 
         self.active_marker_style = """
             border-image: url('./assets/images/loop_marker.png');
@@ -364,21 +365,21 @@ class MainWindow(QMainWindow):
 
             # Reset song time display to 0
             self.duration_label.setText(
-                f"<font color='{THEME_COLOUR}'>00:00.00</font>"
+                f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
                 f" / {time_format(self.audio.song.duration)}"
             )
         else:
             # Update the song duration label with new time
             self.duration_label.setText(
-                f"<font color='{THEME_COLOUR}'>"
-                f"{time_format(self.audio.position/RATE)}</font>"
+                f"<font color='{gui_config['theme_colour']}'>"
+                f"{time_format(self.audio.position/audio_config['rate'])}</font>"
                 f" / {time_format(self.audio.song.duration)}"
             )
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
         """Set playhead position relative to current song playback position."""
-        song_pos_in_s = self.audio.position/RATE
+        song_pos_in_s = self.audio.position/audio_config["rate"]
         head_pos = int((song_pos_in_s/self.audio.song.duration)
                         * self.waveform.width)
         self.playhead.move(head_pos, 2)
@@ -442,8 +443,8 @@ class MainWindow(QMainWindow):
         # Prevent position from running over end of loop or end of song
         end = self.audio.song.duration
         if self.audio.in_loop_bounds():
-            end = self.audio.loop_markers[1]/RATE
-        pos_in_s = self.audio.position/RATE
+            end = self.audio.loop_markers[1]/audio_config["rate"]
+        pos_in_s = self.audio.position/audio_config["rate"]
 
         if pos_in_s + 5 < end:
             self.audio.seek(pos_in_s + 5)
@@ -457,8 +458,8 @@ class MainWindow(QMainWindow):
         # Prevent position from falling behind start of loop or start of song
         start = 0
         if self.audio.in_loop_bounds():
-            start = self.audio.loop_markers[0]/RATE
-        pos_in_s = self.audio.position/RATE
+            start = self.audio.loop_markers[0]/audio_config["rate"]
+        pos_in_s = self.audio.position/audio_config["rate"]
 
         if pos_in_s - 5 > start:
             self.audio.seek(pos_in_s - 5)
@@ -517,9 +518,9 @@ class MainWindow(QMainWindow):
         marker_pos = round(( # Marker time position in frames
             (x_pos/self.waveform.width)
             * self.audio.song.duration
-            * RATE
+            * audio_config["rate"]
         ))
-        time_constraint = 2 * RATE # Minimum loop time of 2 secs
+        time_constraint = 2 * audio_config["rate"] # Minimum loop time of 2 secs
 
         # Update left marker when left mouse pressed
         if button == 1:
@@ -591,7 +592,7 @@ class MainWindow(QMainWindow):
         self.scorer.zero_score_data()
 
         self.duration_label.setText( # Update song time display
-            f"<font color='{THEME_COLOUR}'>{time_format(song_pos)}</font>"
+            f"<font color='{gui_config['theme_colour']}'>{time_format(song_pos)}</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 

@@ -3,8 +3,10 @@
 import os
 from pathlib import Path
 from basic_pitch.inference import predict_and_save
-from config import SAVED_PITCHES_DIR, PITCH_MODEL
+from guitaraoke.utils import read_config
+from preload import PITCH_MODEL
 
+config = read_config("Audio")
 
 def save_pitches(
     path: str | Path,
@@ -35,7 +37,7 @@ def save_pitches(
     assert path.exists(), "File does not exist"
 
     parent = path.parent.stem
-    out_folder = SAVED_PITCHES_DIR
+    out_folder = Path(config["saved_pitches_dir"])
 
     if temp:
         # Directory for input recording predicted pitches

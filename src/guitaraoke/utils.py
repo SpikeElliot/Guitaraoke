@@ -3,6 +3,9 @@ Provides miscellaneous utility functions used across the application.
 
 Functions
 ---------
+read_config(section)
+    Get Audio or GUI variables from the config file.
+
 time_format(time)
     Return a time in MM:SS.CC format.
 
@@ -12,15 +15,46 @@ hex_to_rgb(hex_string)
 csv_to_pitches_dataframe(path)
     Return sorted Pandas DataFrame converted from a pitches CSV file.
 
-preprocess_pitch_data(pitches, slice_start=None, slice_end=None)
+preprocess_pitch_data(
+    pitches, slice_start=None, slice_end=None, offset_latency=False
+)
     Return a dict of note events for 128 pitches from a pitches Dataframe.
 """
 
 import math
 from pathlib import Path
+from configparser import ConfigParser
 import pandas as pd
-from config import INPUT_LATENCY, OUTPUT_LATENCY
 
+
+def read_config(section: str):
+    """Get Audio or GUI variables from the config file."""
+    if section not in ("Audio", "GUI"):
+        raise ValueError("Only config sections are: Audio, GUI")
+
+    parser = ConfigParser()
+    parser.read("./config.ini")
+
+    if section == "Audio":
+        config_vals = {
+            "channels": parser.getint(section, "channels"),
+            "rate": parser.getint(section, "rate"),
+            "dtype": parser.get(section, "dtype"),
+            "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
+            "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
+            "rec_buffer_size": parser.getint(section, "rec_buffer_size"),
+            "input_device_index": parser.getint(section, "input_device_index"),
+            "in_latency": parser.getfloat(section, "in_latency"),
+            "out_latency": parser.getfloat(section, "out_latency")
+        }
+    else:
+        config_vals = {
+            "width": parser.getint(section, "width"),
+            "height": parser.getint(section, "height"),
+            "theme_colour": parser.get(section, "theme_colour"),
+            "inactive_colour": parser.get(section, "inactive_colour")
+        }
+    return config_vals
 
 def time_format(time: float) -> str:
     """Take a time in seconds and return it in MM:SS.CC format."""
@@ -50,6 +84,7 @@ def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
         columns=["end_time_s", "velocity", "pitch_bend"]
     ).sort_values("start_time_s")
 
+config = read_config("Audio")
 
 def preprocess_pitch_data(
     pitches: pd.DataFrame,
@@ -67,6 +102,8 @@ def preprocess_pitch_data(
         The pandas DataFrame containing note event information.
     slice_start, slice_end : float, optional
         The times in seconds to start and end time-slice.
+    offset_latency : bool
+        Whether to offset the note onset times by the user's round-trip latency
 
     Returns
     -------
@@ -83,7 +120,7 @@ def preprocess_pitch_data(
         ]
 
     if offset_latency:
-        new_pitches["start_time_s"] -= (INPUT_LATENCY + OUTPUT_LATENCY)
+        new_pitches["start_time_s"] -= (config["in_latency"] + config["out_latency"])
 
     pitch_sequences = {k: [] for k in range(128)}
     for row in new_pitches.itertuples():

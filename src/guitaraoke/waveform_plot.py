@@ -3,9 +3,10 @@
 import librosa
 import numpy as np
 import pyqtgraph as pg
-from config import RATE
+from guitaraoke.utils import read_config
 from guitaraoke.audio_streaming import LoadedAudio
 
+config = read_config("Audio")
 
 class WaveformPlot(pg.PlotWidget):
     """
@@ -75,8 +76,8 @@ class WaveformPlot(pg.PlotWidget):
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
             y=song.guitar_data + song.no_guitar_data, # Sum to get full mix
-            orig_sr=RATE,
-            target_sr=RATE/16
+            orig_sr=config["rate"],
+            target_sr=config["rate"]/16
         )
         w_size = int(len(plot_frames) / num_points)
         x_vals = np.arange(0, num_points)

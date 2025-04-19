@@ -26,10 +26,12 @@ from collections import defaultdict
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
-from config import RATE, REC_BUFFER_SIZE
 from guitaraoke.save_pitches import save_pitches
-from guitaraoke.utils import preprocess_pitch_data, csv_to_pitches_dataframe
+from guitaraoke.utils import (
+    preprocess_pitch_data, csv_to_pitches_dataframe, read_config
+)
 
+config = read_config("Audio")
 NOTE_HIT_WINDOW = 0.1 # 100ms tolerance to account for latency
 
 class ScoringSystem(QObject):
@@ -133,7 +135,7 @@ class ScoringSystem(QObject):
 
 def preload_basic_pitch_model() -> None:
     """Preload the Basic Pitch model when a worker process is created."""
-    from config import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
+    from preload import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
 
 
 def compare_pitches(
@@ -272,7 +274,7 @@ def process_recording(
 
     # Save recorded audio as a temp WAV file
     with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
-        write_wav(temp_recording.name, RATE, buffer)
+        write_wav(temp_recording.name, config["rate"], buffer)
         print(f"\nCreated temp file: {temp_recording.name}")
 
         # Save predicted user pitches to a temp CSV file
@@ -283,7 +285,7 @@ def process_recording(
         # Align user note event times to song position
         user_pitches = csv_to_pitches_dataframe(user_pitches_path)
         user_pitches["start_time_s"] += (
-            position/RATE - (REC_BUFFER_SIZE/RATE)
+            position/config["rate"] - (config["rec_buffer_size"]/config["rate"])
         )
 
         # Convert user pitches to dict of note-onset time lists

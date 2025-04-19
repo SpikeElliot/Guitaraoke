@@ -6,22 +6,22 @@ import pytest
 import numpy as np
 import pandas as pd
 from scipy.io.wavfile import write as write_wav
-import config
 from guitaraoke.save_pitches import save_pitches
-from guitaraoke.utils import csv_to_pitches_dataframe
+from guitaraoke.utils import csv_to_pitches_dataframe, read_config
 
+config = read_config("Audio")
 
 @pytest.fixture(name="silent_audio")
 def silent_audio_fixture() -> np.ndarray:
     """Create mock silent audio for testing."""
-    return np.zeros(shape=(2*config.RATE,)) # 2 seconds of silence
+    return np.zeros(shape=(2*config["rate"],)) # 2 seconds of silence
 
 
 def test_no_notes_predicted_from_silent_audio(silent_audio: np.ndarray) -> None:
     """Assert there are zero predicted notes from silent audio"""
     # Create temporary silent audio file
     with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
-        write_wav(temp_recording.name, config.RATE, silent_audio)
+        write_wav(temp_recording.name, config["rate"], silent_audio)
         print(f"\nCreated temp file: {temp_recording.name}")
 
         # Save predicted note events

@@ -16,14 +16,13 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
-from config import (
-    CHANNELS, RATE, DTYPE, SEP_TRACKS_DIR,
-    REC_BUFFER_SIZE, INPUT_DEVICE_INDEX
-)
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
-from guitaraoke.utils import csv_to_pitches_dataframe, preprocess_pitch_data
+from guitaraoke.utils import (
+    csv_to_pitches_dataframe, preprocess_pitch_data, read_config
+)
 
+config = read_config("Audio")
 
 class LoadedAudio():
     """
@@ -74,7 +73,7 @@ class LoadedAudio():
         (self.pitches, self.guitar_data,
          self.no_guitar_data) = self._get_audio_data(path)
         self.bpm, self.first_beat = self._get_tempo_data()
-        self.duration = len(self.guitar_data) / RATE # In secs
+        self.duration = len(self.guitar_data) / config["rate"] # In secs
 
     def _get_audio_data(
         self,
@@ -84,7 +83,7 @@ class LoadedAudio():
         Load a song's predicted pitches DataFrame and its guitar-separated
         audio time series (guitar_data and no_guitar_data).
         """
-        audio_dir = SEP_TRACKS_DIR / self.metadata["filename"]
+        audio_dir = Path(config["sep_tracks_dir"]) / self.metadata["filename"]
         guitar_path = audio_dir / "guitar.wav"
         no_guitar_path = audio_dir / "no_guitar.wav"
 
@@ -96,8 +95,8 @@ class LoadedAudio():
         pitches = csv_to_pitches_dataframe(pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        guitar_data = librosa.load(guitar_path, sr=RATE)[0]
-        no_guitar_data = librosa.load(no_guitar_path, sr=RATE)[0]
+        guitar_data = librosa.load(guitar_path, sr=config["rate"])[0]
+        no_guitar_data = librosa.load(no_guitar_path, sr=config["rate"])[0]
 
         return pitches, guitar_data, no_guitar_data
 
@@ -108,7 +107,7 @@ class LoadedAudio():
         """
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
-            sr=RATE
+            sr=config["rate"]
         )
         bpm = tempo[0]
         first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
@@ -164,7 +163,7 @@ class AudioStreamHandler(QObject):
 
         # Metronome data
         self.metronome = {
-            "audio_data": librosa.load("./assets/audio/metronome.wav", sr=RATE)[0],
+            "audio_data": librosa.load("./assets/audio/metronome.wav", sr=config["rate"])[0],
             "count_in_enabled": True,
             "count": 0,
             "interval": int(1000 / (self.song.bpm / 60))
@@ -172,11 +171,11 @@ class AudioStreamHandler(QObject):
 
         # I/O Stream
         self._stream = sd.Stream(
-            samplerate=RATE,
-            device=(INPUT_DEVICE_INDEX, None),
-            channels=CHANNELS,
+            samplerate=config["rate"],
+            device=(config["input_device_index"], None),
+            channels=config["channels"],
             callback=self._callback,
-            dtype=DTYPE,
+            dtype=config["dtype"],
             latency="low",
         )
         in_lat, out_lat = self._stream.latency
@@ -184,6 +183,20 @@ class AudioStreamHandler(QObject):
             f"Input Latency: {in_lat*1000:.1f}ms\n"
             f"Output Latency: {out_lat*1000:.1f}ms"
         )
+        print(self.find_audio_devices())
+
+    def find_audio_devices(self) -> None:
+        """Return two lists of available audio input and output devices."""
+        devices = sd.query_devices()
+        input_devs = []
+        output_devs = []
+        for d in devices:
+            if d["hostapi"] == 0:
+                if d["max_input_channels"] > 0:
+                    input_devs.append(d)
+                if d["max_output_channels"] > 0:
+                    output_devs.append(d)
+        return input_devs, output_devs
 
     @property
     def position(self) -> int:
@@ -214,11 +227,11 @@ class AudioStreamHandler(QObject):
 
     def seek(self, position: float) -> None:
         """Set the position to a new time in seconds."""
-        if not 0 <= int(position * RATE) <= int(self.song.duration * RATE):
+        if not 0 <= int(position * config["rate"]) <= int(self.song.duration * config["rate"]):
             raise ValueError("Position must be between 0 and song duration.")
         if self._ended:
             self._ended = False
-        self._position = int(position * RATE)
+        self._position = int(position * config["rate"])
 
     def start(self) -> None:
         """Play or unpause audio stream."""
@@ -249,17 +262,16 @@ class AudioStreamHandler(QObject):
             self._input_audio_buffer, indata.copy()
         )
 
-        if self._input_audio_buffer.size >= REC_BUFFER_SIZE:
+        if self._input_audio_buffer.size >= config["rec_buffer_size"]:
             # Send buffered audio to connected function in main file
-            buffer = self._input_audio_buffer[:REC_BUFFER_SIZE].copy()
+            buffer = self._input_audio_buffer[:config["rec_buffer_size"]].copy()
             pitches = preprocess_pitch_data(
                 self.song.pitches,
-                slice_start=(self._position-REC_BUFFER_SIZE)/RATE,
-                slice_end=self._position/RATE,
-                offset_latency="input",
+                slice_start=(self._position-config["rec_buffer_size"])/config["rate"],
+                slice_end=self._position/config["rate"],
             )
             self.send_buffer.emit((buffer, self._position, pitches))
-            self._input_audio_buffer = self._input_audio_buffer[REC_BUFFER_SIZE:]
+            self._input_audio_buffer = self._input_audio_buffer[config["rec_buffer_size"]:]
 
         # OUTPUT HANDLING
 
@@ -322,7 +334,7 @@ class AudioStreamHandler(QObject):
             self.metronome["count"] = 0
             return True # Start song
 
-        sd.play(self.metronome["audio_data"], samplerate=RATE)
+        sd.play(self.metronome["audio_data"], samplerate=config["rate"])
         return False # Keep counting
 
     def in_loop_bounds(self) -> bool:
