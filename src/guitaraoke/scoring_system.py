@@ -32,7 +32,10 @@ from guitaraoke.utils import (
 )
 
 config = read_config("Audio")
-NOTE_HIT_WINDOW = 0.1 # 100ms tolerance to account for latency
+# 100ms tolerance to account for latency, swing, and variance in predictions
+NOTE_HIT_WINDOW = 0.1
+# Amount to deduct from note score for inaccurate timing
+CLOSE_HIT_PENALTY = 0.5
 
 class ScoringSystem(QObject):
     """
@@ -99,7 +102,7 @@ class ScoringSystem(QObject):
         Called when the future is complete, emits the resultant score
         data to the connected function in the main file.
         """
-        score, notes_hit, total_notes = future.result(timeout=3)
+        score, notes_hit, total_notes = future.result()
         self._score += score
         self._notes_hit += notes_hit
         self._total_notes += total_notes
@@ -208,13 +211,13 @@ def compare_pitches(
             if dist <= NOTE_HIT_WINDOW:
                 notes_hit += 1
             elif dist <= NOTE_HIT_WINDOW * 2:
-                score_penalty = (
-                    0.5 * ((dist - NOTE_HIT_WINDOW)
-                    / NOTE_HIT_WINDOW)
-                )
-                notes_hit += 1 - score_penalty
+                notes_hit += 1 - CLOSE_HIT_PENALTY
 
-    return (round(notes_hit * 100), notes_hit, total_notes)
+    return (
+        round((notes_hit*100)/2, ndigits=-1),
+        round(notes_hit/2),
+        round(total_notes/2)
+    )
 
 
 def unique_nearest_notes(
@@ -272,6 +275,12 @@ def process_recording(
     assert isinstance(position, int), "Position must be an int."
     assert isinstance(preprocessed_song_pitches, dict), "Song pitches must be a dictionary."
 
+    # Offset user note times by size of data currently in the buffer
+    time_offset = config["rec_buffer_size"]
+    if not np.any(buffer[:config["rec_overlap_window_size"]]):
+        buffer = buffer[config["rec_overlap_window_size"]:]
+        time_offset = config["rec_overlap_window_size"]
+
     # Save recorded audio as a temp WAV file
     with tempfile.TemporaryFile(delete=False, suffix=".wav") as temp_recording:
         write_wav(temp_recording.name, config["rate"], buffer)
@@ -285,7 +294,7 @@ def process_recording(
         # Align user note event times to song position
         user_pitches = csv_to_pitches_dataframe(user_pitches_path)
         user_pitches["start_time_s"] += (
-            position/config["rate"] - (config["rec_buffer_size"]/config["rate"])
+            (position/config["rate"]) - (time_offset/config["rate"])
         )
 
         # Convert user pitches to dict of note-onset time lists
@@ -295,8 +304,15 @@ def process_recording(
         )
 
         # TESTING
-        print("user pitches:",user_pitches)
-        print("song pitches:",preprocessed_song_pitches)
+        print("USER PITCHES:\n")
+        for k, v in user_pitches.items():
+            if v:
+                print(f"{k}: {v}")
+
+        print("\nSONG PITCHES:\n")
+        for k, v in preprocessed_song_pitches.items():
+            if v:
+                print(f"{k}: {v}")
 
         # Perform scoring
         score_data = compare_pitches(

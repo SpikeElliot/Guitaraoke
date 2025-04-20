@@ -27,8 +27,8 @@ from configparser import ConfigParser
 import pandas as pd
 
 
-def read_config(section: str):
-    """Get Audio or GUI variables from the config file."""
+def read_config(section: str) -> dict[str]:
+    """Get Audio or GUI config variables."""
     if section not in ("Audio", "GUI"):
         raise ValueError("Only config sections are: Audio, GUI")
 
@@ -43,6 +43,7 @@ def read_config(section: str):
             "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
             "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
             "rec_buffer_size": parser.getint(section, "rec_buffer_size"),
+            "rec_overlap_window_size": parser.getint(section, "rec_overlap_window_size"),
             "input_device_index": parser.getint(section, "input_device_index"),
             "in_latency": parser.getfloat(section, "in_latency"),
             "out_latency": parser.getfloat(section, "out_latency")
@@ -120,7 +121,7 @@ def preprocess_pitch_data(
         ]
 
     if offset_latency:
-        new_pitches["start_time_s"] -= (config["in_latency"] + config["out_latency"])
+        new_pitches["start_time_s"] -= (config["in_latency"] + config["out_latency"] + 0.15)
 
     pitch_sequences = {k: [] for k in range(128)}
     for row in new_pitches.itertuples():

@@ -151,7 +151,8 @@ class AudioStreamHandler(QObject):
         self.song = song
 
         # Input variables
-        self._input_audio_buffer = np.ndarray(0)
+        self._in_buffer = np.zeros(config["rec_buffer_size"]) # Input audio buffer
+        self._in_overlap = np.ndarray(0) # Input audio overlap window
 
         # Playback data
         self._paused = True
@@ -183,7 +184,6 @@ class AudioStreamHandler(QObject):
             f"Input Latency: {in_lat*1000:.1f}ms\n"
             f"Output Latency: {out_lat*1000:.1f}ms"
         )
-        print(self.find_audio_devices())
 
     def find_audio_devices(self) -> None:
         """Return two lists of available audio input and output devices."""
@@ -248,8 +248,9 @@ class AudioStreamHandler(QObject):
         if not self._paused:
             self._paused = True
         self._stream.stop()
-        # Reset buffer when streaming ends
-        self._input_audio_buffer = np.ndarray(0)
+        # Reset buffers when streaming ends
+        self._in_buffer = np.zeros(config["rec_buffer_size"])
+        self._in_overlap = np.ndarray(0)
 
     def _callback(self, indata, outdata, frames, time, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
         """Callback function for the sounddevice Stream."""
@@ -258,20 +259,39 @@ class AudioStreamHandler(QObject):
 
         # INPUT HANDLING
 
-        self._input_audio_buffer = np.append(
-            self._input_audio_buffer, indata.copy()
+        self._in_overlap = np.append(
+            self._in_overlap, indata.copy()
         )
 
-        if self._input_audio_buffer.size >= config["rec_buffer_size"]:
-            # Send buffered audio to connected function in main file
-            buffer = self._input_audio_buffer[:config["rec_buffer_size"]].copy()
+        if self._in_overlap.size >= config["rec_overlap_window_size"]:
+            overlap_size = config["rec_overlap_window_size"]
+            # Add new overlap buffer data to main buffer, and push main buffer
+            # to the left by rec_overlap_window_size
+            self._in_buffer = np.append(
+                self._in_buffer,
+                self._in_overlap[:overlap_size]
+            )
+            self._in_buffer = self._in_buffer[overlap_size:]
+
+            # Remove data added to main buffer from overlap window buffer
+            self._in_overlap = self._in_overlap[overlap_size:]
+
+            # Only take pitch data from song time-slice equal to size of data
+            # currently in the buffer to avoid impacting user accuracy
+            if not np.any(self._in_buffer[:overlap_size]):
+                print("first half empty")
+                slice_start = (self._position-overlap_size)/config["rate"]
+            else:
+                slice_start = (self._position-config["rec_buffer_size"])/config["rate"]
+
+            # Send audio buffer data, position, and song pitches to
+            # connected function in main file to be
             pitches = preprocess_pitch_data(
                 self.song.pitches,
-                slice_start=(self._position-config["rec_buffer_size"])/config["rate"],
+                slice_start=slice_start,
                 slice_end=self._position/config["rate"],
             )
-            self.send_buffer.emit((buffer, self._position, pitches))
-            self._input_audio_buffer = self._input_audio_buffer[config["rec_buffer_size"]:]
+            self.send_buffer.emit((self._in_buffer.copy(), self._position, pitches))
 
         # OUTPUT HANDLING
 
