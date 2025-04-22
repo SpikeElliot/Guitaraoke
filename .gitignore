@@ -7,3 +7,4 @@ __pycache__/
 *.mid
 /.vscode
 .coverage
+*.xml
