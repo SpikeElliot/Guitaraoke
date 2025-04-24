@@ -54,15 +54,13 @@ def save_pitches(
     # Check pitches file does not already exist
     if not paths[0].exists():
         predict_and_save(
-            [str(path)], # Input file path
-            str(out_folder), # Directory pitch files will be saved to
-            save_midi=False, # Saving the actual MIDI file is not necessary
-            sonify_midi=sonify, # Save rendered MIDI as WAV file for testing
-            save_model_outputs=False, # Model outputs are not necessary
-            save_notes=True, # Save note events in CSV file
-            model_or_model_path=PITCH_MODEL, # Preloaded model from config
-            minimum_note_length=68, # A note every 68ms is ~16th notes at 220bpm
-            multiple_pitch_bends=True, # More accurate to bending of guitar notes
+            audio_path_list=[path], # Input audio path
+            output_directory=out_folder, # Saved pitches directory
+            save_midi=False, # Saving MIDI not necessary
+            sonify_midi=sonify, # Save WAV file of pred. notes for testing
+            save_model_outputs=False, # Saving model outputs not necessary
+            save_notes=True, # Save note events to CSV file
+            model_or_model_path=PITCH_MODEL, # Preloaded model
         )
 
     if sonify:
