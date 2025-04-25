@@ -6,6 +6,9 @@ Modules
 audio_streaming
     Provides classes for audio streaming and playback functionality.
 
+playback_controls
+    Provides a class for GUI audio playback control functionality.
+
 preload
     Preloads the Basic Pitch model and updates config latency 
     variables.

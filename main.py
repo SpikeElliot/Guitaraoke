@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
     QLabel, QPushButton, QSlider
 )
 from guitaraoke.waveform_plot import WaveformPlot
+from guitaraoke.playback_controls import PlaybackControls
 from guitaraoke.audio_streaming import AudioStreamHandler, LoadedAudio
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.utils import time_format, hex_to_rgb, read_config
@@ -29,20 +30,22 @@ class MainWindow(QMainWindow):
                 artist="Guns N' Roses"
             )
         )
-        self.audio.send_buffer.connect(self._receive_new_input_audio)
 
         self.scorer = ScoringSystem()
-        self.scorer.sent_score_data.connect(self._receive_new_score_data)
 
         self.setWindowTitle("Guitaraoke")
 
         self.setFixedSize(gui_config["width"], gui_config["height"])
 
-        self._set_components()
+        self.widgets = self.set_components()
 
-        self._set_styles()
+        self.styles = self.set_styles()
 
-    def _set_components(self) -> None:
+        self.controls = PlaybackControls(self.audio, self.widgets, self.styles)
+
+        self.set_connections()
+
+    def set_components(self) -> dict[str]:
         """Initialises all widgets and adds them to the main window."""
         # Song Information Labels
 
@@ -51,47 +54,47 @@ class MainWindow(QMainWindow):
         song_info_middle_row = QHBoxLayout()
         song_info_bottom_row = QHBoxLayout()
 
-        self.artist_label = QLabel()
-        self.artist_label.setText(
+        artist_label = QLabel()
+        artist_label.setText(
             self.audio.song.metadata["artist"]
         )
 
-        self.title_label = QLabel()
-        self.title_label.setText(
+        title_label = QLabel()
+        title_label.setText(
             self.audio.song.metadata["title"]
             )
 
-        self.duration_label = QLabel()
-        self.duration_label.setText(
+        duration_label = QLabel()
+        duration_label.setText(
             f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 
-        self.score_label = QLabel()
-        self.score_label.setText("Score: 0")
+        score_label = QLabel()
+        score_label.setText("Score: 0")
 
-        self.accuracy_label = QLabel()
-        self.accuracy_label.setText("Accuracy: 0%")
+        accuracy_label = QLabel()
+        accuracy_label.setText("Accuracy: 0%")
 
-        self.gamemode_label = QLabel()
-        self.gamemode_label.setText("PRACTICE")
+        gamemode_label = QLabel()
+        gamemode_label.setText("PRACTICE")
 
         # Top row
 
         song_info_top_row.addSpacing(int(gui_config["width"]*0.05))
 
         song_info_top_row.addWidget(
-            self.gamemode_label,
+            gamemode_label,
             alignment=Qt.AlignLeft
         )
 
         song_info_top_row.addWidget(
-            self.artist_label,
+            artist_label,
             alignment=Qt.AlignCenter
         )
 
         song_info_top_row.addWidget(
-            self.score_label,
+            score_label,
             alignment=Qt.AlignRight
         )
 
@@ -104,12 +107,12 @@ class MainWindow(QMainWindow):
         song_info_middle_row.addWidget(QLabel()) # Temporary
 
         song_info_middle_row.addWidget(
-            self.title_label,
+            title_label,
             alignment=Qt.AlignCenter
         )
 
         song_info_middle_row.addWidget(
-            self.accuracy_label,
+            accuracy_label,
             alignment=Qt.AlignRight
         )
 
@@ -120,7 +123,7 @@ class MainWindow(QMainWindow):
         song_info_bottom_row.addStretch(1)
 
         song_info_bottom_row.addWidget(
-            self.duration_label,
+            duration_label,
             alignment=Qt.AlignCenter
         )
 
@@ -132,46 +135,44 @@ class MainWindow(QMainWindow):
 
         # Waveform Plot
 
-        self.waveform = WaveformPlot(
+        waveform = WaveformPlot(
             width=int(gui_config["width"]*0.9),
             height=100,
             colour=hex_to_rgb(gui_config["theme_colour"])
         )
-        self.waveform.setObjectName("waveform")
-        self.waveform.draw_plot(self.audio.song)
-        self.waveform.clicked_connect(self._waveform_pressed)
+        waveform.setObjectName("waveform")
+        waveform.draw_plot(self.audio.song)
 
         # Song playhead
-        self.playhead = QWidget(self.waveform)
-        self.playhead.setObjectName("playhead")
-        self.playhead.setFixedSize(3, self.waveform.height-4)
-        self.playhead.move(0, 2)
-        self.playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        playhead = QWidget(waveform)
+        playhead.setObjectName("playhead")
+        playhead.setFixedSize(3, waveform.height-4)
+        playhead.move(0, 2)
+        playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
 
         # Loop overlay
-        self.loop_overlay = QWidget(self.waveform)
-        self.loop_overlay.setObjectName("loop_overlay")
-        self.loop_overlay.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.loop_overlay.hide()
+        loop_overlay = QWidget(waveform)
+        loop_overlay.setObjectName("loop_overlay")
+        loop_overlay.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        loop_overlay.hide()
 
         # Left loop marker
-        self.left_marker_img = QWidget(self.waveform)
-        self.left_marker_img.setObjectName("left_marker_img")
-        self.left_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.left_marker_img.resize(24, 24)
-        self.left_marker_img.hide()
+        left_marker_img = QWidget(waveform)
+        left_marker_img.setObjectName("left_marker_img")
+        left_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        left_marker_img.resize(24, 24)
+        left_marker_img.hide()
 
         # Right loop marker
-        self.right_marker_img = QWidget(self.waveform)
-        self.right_marker_img.setObjectName("right_marker_img")
-        self.right_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.right_marker_img.resize(24, 24)
-        self.right_marker_img.hide()
+        right_marker_img = QWidget(waveform)
+        right_marker_img.setObjectName("right_marker_img")
+        right_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        right_marker_img.resize(24, 24)
+        right_marker_img.hide()
 
         # Song time position timer
-        self.audiopos_timer = QTimer()
-        self.audiopos_timer.setInterval(10)
-        self.audiopos_timer.timeout.connect(self._update_songpos)
+        audiopos_timer = QTimer()
+        audiopos_timer.setInterval(10)
 
         # Audio Playback Controls
 
@@ -181,135 +182,125 @@ class MainWindow(QMainWindow):
         controls_layout_bottom_row = QGridLayout()
 
         # Guitar volume label
-        self.guitar_vol_label = QLabel()
-        self.guitar_vol_label.setText("Guitar Volume")
+        guitar_vol_label = QLabel()
+        guitar_vol_label.setText("Guitar Volume")
 
         # Guitar volume slider
-        self.guitar_vol_slider = QSlider(orientation=Qt.Horizontal)
-        self.guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
-        self.guitar_vol_slider.setFixedWidth(int(self.waveform.width/2))
-        self.guitar_vol_slider.setRange(0, 100)
-        self.guitar_vol_slider.setPageStep(5)
-        self.guitar_vol_slider.setSliderPosition(100)
-        self.guitar_vol_slider.valueChanged.connect(
-            self._guitar_vol_slider_moved
-        )
+        guitar_vol_slider = QSlider(orientation=Qt.Horizontal)
+        guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
+        guitar_vol_slider.setFixedWidth(int(waveform.width/2))
+        guitar_vol_slider.setRange(0, 100)
+        guitar_vol_slider.setPageStep(5)
+        guitar_vol_slider.setSliderPosition(100)
 
         # Guitar volume value label
-        self.guitar_vol_val_label = QLabel()
-        self.guitar_vol_val_label.setText("100%")
+        guitar_vol_val_label = QLabel()
+        guitar_vol_val_label.setText("100%")
 
         # Buttons
         button_width = 100
 
         # Count-in toggle button
-        self.count_in_button = QPushButton()
-        self.count_in_button.setObjectName("count_in_button")
-        self.count_in_button.setText("Count-in")
-        self.count_in_button.setToolTip("Toggle metronome count-in.")
-        self.count_in_button.setFixedWidth(button_width)
-        self.count_in_button.clicked.connect(self._count_in_button_pressed)
+        count_in_button = QPushButton()
+        count_in_button.setObjectName("count_in_button")
+        count_in_button.setText("Count-in")
+        count_in_button.setToolTip("Toggle metronome count-in.")
+        count_in_button.setFixedWidth(button_width)
 
         # Song count-in timer
-        self.count_in_timer = QTimer()
-        self.count_in_timer.timeout.connect(self._count_in)
+        count_in_timer = QTimer()
 
         # Skip back button
-        self.skip_back_button = QPushButton()
-        self.skip_back_button.setObjectName("skip_back_button")
-        self.skip_back_button.setText("Skip back")
-        self.skip_back_button.setToolTip("Skip back 5 seconds.")
-        self.skip_back_button.setFixedWidth(button_width)
-        self.skip_back_button.clicked.connect(self._skip_back_button_pressed)
+        skip_back_button = QPushButton()
+        skip_back_button.setObjectName("skip_back_button")
+        skip_back_button.setText("Skip back")
+        skip_back_button.setToolTip("Skip back 5 seconds.")
+        skip_back_button.setFixedWidth(button_width)
 
         # Play button
-        self.play_button = QPushButton()
-        self.play_button.setObjectName("play_button")
-        self.play_button.setText("Play")
-        self.play_button.setToolTip("Start or resume song playback.")
-        self.play_button.setFixedWidth(button_width)
-        self.play_button.clicked.connect(self._play_button_pressed)
+        play_button = QPushButton()
+        play_button.setObjectName("play_button")
+        play_button.setText("Play")
+        play_button.setToolTip("Start or resume song playback.")
+        play_button.setFixedWidth(button_width)
 
         # Pause button
-        self.pause_button = QPushButton()
-        self.pause_button.setObjectName("pause_button")
-        self.pause_button.setText("Pause")
-        self.pause_button.setToolTip("Pause song playback.")
-        self.pause_button.hide()
-        self.pause_button.setFixedWidth(button_width)
-        self.pause_button.clicked.connect(self._pause_button_pressed)
+        pause_button = QPushButton()
+        pause_button.setObjectName("pause_button")
+        pause_button.setText("Pause")
+        pause_button.setToolTip("Pause song playback.")
+        pause_button.hide()
+        pause_button.setFixedWidth(button_width)
 
         # Skip forward button
-        self.skip_forward_button = QPushButton()
-        self.skip_forward_button.setObjectName("skip_forward_button")
-        self.skip_forward_button.setText("Skip forward")
-        self.skip_forward_button.setToolTip("Skip forward 5 seconds.")
-        self.skip_forward_button.setFixedWidth(button_width)
-        self.skip_forward_button.clicked.connect(self._skip_forward_button_pressed)
+        skip_forward_button = QPushButton()
+        skip_forward_button.setObjectName("skip_forward_button")
+        skip_forward_button.setText("Skip forward")
+        skip_forward_button.setToolTip("Skip forward 5 seconds.")
+        skip_forward_button.setFixedWidth(button_width)
 
         # Loop toggle button
-        self.loop_button = QPushButton()
-        self.loop_button.setObjectName("loop_button")
-        self.loop_button.setText("Loop")
-        self.loop_button.setToolTip(
+        loop_button = QPushButton()
+        loop_button.setObjectName("loop_button")
+        loop_button.setText("Loop")
+        loop_button.setToolTip(
             "Toggle section looping.<br><br> \
             <b>shift+mouse1</b> sets the left loop marker.<br> \
             <b>shift+mouse2</b> sets the right loop marker."
         )
-        self.loop_button.setFixedWidth(button_width)
-        self.loop_button.clicked.connect(self._loop_button_pressed)
+        loop_button.setFixedWidth(button_width)
 
         # Top row
 
         controls_layout_top_row.addWidget( # "Guitar Volume" text label
-            self.guitar_vol_label,
+            guitar_vol_label,
             alignment=Qt.AlignRight
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume slider
-            self.guitar_vol_slider,
+            guitar_vol_slider,
             alignment=Qt.AlignCenter
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume value label
-            self.guitar_vol_val_label,
+            guitar_vol_val_label,
             alignment=Qt.AlignLeft
         )
 
         # Bottom row
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.count_in_button,
+            count_in_button,
             0, 0,
             alignment=Qt.AlignRight
         )
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.skip_back_button,
+            skip_back_button,
             0, 1
         )
 
         controls_layout_bottom_row.addWidget( # Play button
-            self.play_button,
+            play_button,
             0, 2
         )
 
         controls_layout_bottom_row.addWidget( # Pause button
-            self.pause_button,
+            pause_button,
             0, 2
         )
 
         controls_layout_bottom_row.addWidget( # Count-in button
-            self.skip_forward_button,
+            skip_forward_button,
             0, 3
         )
 
         controls_layout_bottom_row.addWidget( # Loop button
-            self.loop_button,
+            loop_button,
             0, 4,
             alignment=Qt.AlignLeft
         )
@@ -328,7 +319,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.addLayout(song_info_layout)
         layout.addWidget(
-            self.waveform,
+            waveform,
             alignment=Qt.AlignCenter
         )
         layout.addLayout(controls_layout)
@@ -338,300 +329,111 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-    def _set_styles(self) -> None:
+        return {
+            "artist_label": artist_label, 
+            "title_label": title_label,
+            "duration_label": duration_label, 
+            "score_label": score_label,
+            "accuracy_label": accuracy_label, 
+            "gamemode_label": gamemode_label,
+            "waveform": waveform, 
+            "playhead": playhead,
+            "loop_overlay": loop_overlay, 
+            "left_marker_img": left_marker_img,
+            "right_marker_img": right_marker_img, 
+            "audiopos_timer": audiopos_timer,
+            "guitar_vol_label": guitar_vol_label, 
+            "guitar_vol_slider": guitar_vol_slider,
+            "guitar_vol_val_label": guitar_vol_val_label, 
+            "count_in_button": count_in_button,
+            "count_in_timer": count_in_timer, 
+            "skip_back_button": skip_back_button,
+            "play_button": play_button, 
+            "pause_button": pause_button,
+            "skip_forward_button": skip_forward_button, 
+            "loop_button": loop_button
+        }
+
+    def set_styles(self) -> dict[str]:
         """Sets the CSS styling of window and widgets."""
         with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
             # Read main stylesheet and set main window style
             _style = f.read()
             self.setStyleSheet(_style)
 
-        self.active_button_style = f"background-color: {gui_config['theme_colour']};"
-        self.inactive_button_style = f"background-color: {gui_config['inactive_colour']};"
+        active_button_style = f"background-color: {gui_config['theme_colour']};"
+        inactive_button_style = f"background-color: {gui_config['inactive_colour']};"
 
-        self.active_marker_style = """
+        active_marker_style = """
             border-image: url('./assets/images/loop_marker.png');
             background-color: transparent;
             """
-        self.inactive_marker_style = """
+        inactive_marker_style = """
             border-image: url('./assets/images/loop_marker_inactive.png');
             background-color: transparent;
             """
 
-    def _update_songpos(self) -> None:
-        """Updates song_duration label and moves playhead every 10ms."""
-        if self.audio.ended:
-            # Stop time progressing when song ends
-            self._pause_button_pressed()
+        return {
+            "active_button": active_button_style,
+            "inactive_button": inactive_button_style,
+            "active_marker": active_marker_style,
+            "inactive_marker": inactive_marker_style
+        }
 
-            # Reset song time display to 0
-            self.duration_label.setText(
-                f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
-                f" / {time_format(self.audio.song.duration)}"
-            )
-        else:
-            # Update the song duration label with new time
-            self.duration_label.setText(
-                f"<font color='{gui_config['theme_colour']}'>"
-                f"{time_format(self.audio.position/audio_config['rate'])}</font>"
-                f" / {time_format(self.audio.song.duration)}"
-            )
-        self._update_playhead_pos()
-
-    def _update_playhead_pos(self) -> None:
+    def set_connections(self) -> None:
         """
-        Set playhead position relative to current song playback 
-        position.
+        Sets the connections between QObjects and their connected
+        functions.
         """
-        song_pos_in_s = self.audio.position/audio_config["rate"]
-        head_pos = int((song_pos_in_s/self.audio.song.duration)
-                        * self.waveform.width)
-        self.playhead.move(head_pos, 2)
-
-    def _play_button_pressed(self) -> None:
-        """Starts count-in timer when play button pressed."""
-        self.play_button.hide()
-        self.pause_button.show()
-
-        # Case: song count-in is disabled
-        if not self.audio.metronome["count_in_enabled"]:
-            self._start_song_processes()
-            return
-
-        # Set count-in timer interval to estimated beat interval of song
-        self.count_in_timer.setInterval(self.audio.metronome["interval"])
-        self.audio.metronome["count"] = 0
-        self.count_in_timer.start()
-
-    def _count_in_button_pressed(self) -> None:
-        """Toggles metronome count-in when count-in button pressed."""
-        self.audio.metronome["count_in_enabled"] = (
-            not self.audio.metronome["count_in_enabled"])
-        if self.audio.metronome["count_in_enabled"]:
-            self.count_in_button.setStyleSheet(self.active_button_style)
-        else:
-            self.count_in_button.setStyleSheet(self.inactive_button_style)
-
-    def _count_in(self) -> None:
-        """Starts audio processes when count-in timer finished."""
-        if self.audio.play_count_in_metronome(self.count_in_timer):
-            # Start playback and recording
-            self._start_song_processes()
-
-    def _start_song_processes(self) -> None:
-        "Start all I/O streaming processes."
-        self.scorer.zero_score_data()
-        self.audio.start()
-        self.audiopos_timer.start()
-
-    def _pause_song_processes(self) -> None:
-        """Stop all I/O streaming processes."""
-        self.audio.stop()
-        self.audiopos_timer.stop()
-
-    def _pause_button_pressed(self) -> None:
-        """Stops audio processes when pause button pressed."""
-        self.pause_button.hide()
-        self.play_button.show()
-
-        # Case: pause button pressed during count-in timer
-        if self.count_in_timer.isActive():
-            self.count_in_timer.stop()
-            self.audio.metronome["count"] = 0
-
-        # Pause playback and recording
-        self._pause_song_processes()
-
-    def _skip_forward_button_pressed(self) -> None:
-        """Skips playback position a maximum of 5 seconds back."""
-        # Prevent position from running over end of loop or end of song
-        end = self.audio.song.duration
-        if self.audio.in_loop_bounds():
-            end = self.audio.loop_markers[1]/audio_config["rate"]
-        pos_in_s = self.audio.position/audio_config["rate"]
-
-        if pos_in_s + 5 < end:
-            self.audio.seek(pos_in_s + 5)
-        else:
-            self.audio.seek(end-0.1)
-
-        self._update_songpos()
-
-    def _skip_back_button_pressed(self) -> None:
-        """Skips playback position a maximum of 5 seconds forward."""
-        # Prevent position from falling behind start of loop or start of song
-        start = 0
-        if self.audio.in_loop_bounds():
-            start = self.audio.loop_markers[0]/audio_config["rate"]
-        pos_in_s = self.audio.position/audio_config["rate"]
-
-        if pos_in_s - 5 > start:
-            self.audio.seek(pos_in_s - 5)
-        else:
-            self.audio.seek(start)
-
-        self._update_songpos()
-
-    def _loop_button_pressed(self) -> None:
-        """
-        Toggles song section looping when loop button pressed if both
-        loop markers are set.
-        """
-        if None in self.audio.loop_markers:
-            return
-
-        self.audio.looping = not self.audio.looping
-        if self.audio.looping:
-            self.loop_overlay.show()
-            self.loop_button.setStyleSheet(self.active_button_style)
-            self.left_marker_img.setStyleSheet(self.active_marker_style)
-            self.right_marker_img.setStyleSheet(self.active_marker_style)
-        else:
-            self.loop_overlay.hide()
-            self.loop_button.setStyleSheet(self.inactive_button_style)
-            self.left_marker_img.setStyleSheet(self.inactive_marker_style)
-            self.right_marker_img.setStyleSheet(self.inactive_marker_style)
-
-    def _waveform_pressed(self, mouse_event) -> None:
-        """
-        Called when mouse click event signal sent by waveform plot.
-        Sets a loop marker if shift button held. Otherwise, if left
-        mouse pressed, skip to song position based on x pos clicked.
-        """
-        x_pos = np.max(int(mouse_event.scenePos()[0]), 0)
-        button = mouse_event.button()
-        mods = mouse_event.modifiers()
-
-        # Case: shift button held
-        if mods == Qt.ShiftModifier:
-            self._loop_marker_set(x_pos, button)
-            return
-
-        # Case: only left mouse button pressed
-        if button == 1:
-            self._skip_song_position(x_pos)
-
-    def _loop_marker_set(self, x_pos: int, button: int) -> None:
-        """
-        Sets a new time position (in frames) for the left or right loop
-        marker. When both markers have values set, song looping
-        logic is actuated.
-        """
-        left_marker = self.audio.loop_markers[0]
-        right_marker = self.audio.loop_markers[1]
-
-        marker_pos = round(( # Marker time position in frames
-            (x_pos/self.waveform.width)
-            * self.audio.song.duration
-            * audio_config["rate"]
-        ))
-        time_constraint = 2 * audio_config["rate"] # Minimum loop time of 2 secs
-
-        # Update left marker when left mouse pressed
-        if button == 1:
-            if right_marker is None:
-                left_marker = marker_pos
-                self.left_marker_img.move(x_pos-12, 2)
-            elif np.abs(right_marker - marker_pos) >= time_constraint:
-                # Looping set to true when both markers set
-                self.audio.looping = True
-                # Invert markers if new left marker > right marker
-                if marker_pos > right_marker:
-                    left_marker = right_marker
-                    self.left_marker_img.move(self.right_marker_img.x(), 2)
-
-                    right_marker = marker_pos
-                    self.right_marker_img.move(x_pos-12, 2)
-                else: # Otherwise, set left marker to new position
-                    left_marker = marker_pos
-                    self.left_marker_img.move(x_pos-12, 2)
-            self.left_marker_img.show() # Show marker when set
-
-        # Update right marker when right mouse pressed
-        elif button == 2:
-            if left_marker is None:
-                right_marker = marker_pos
-                self.right_marker_img.move(x_pos-12, 2)
-            elif np.abs(marker_pos - left_marker) >= time_constraint:
-                # Looping set to true when both markers set
-                self.audio.looping = True
-                # Invert markers if new right marker < left marker
-                if marker_pos < left_marker:
-                    right_marker = left_marker
-                    self.right_marker_img.move(self.left_marker_img.x(), 2)
-
-                    left_marker = marker_pos
-                    self.left_marker_img.move(x_pos-12, 2)
-                else: # Otherwise, set right marker to new position
-                    right_marker = marker_pos
-                    self.right_marker_img.move(x_pos-12, 2)
-            self.right_marker_img.show() # Show marker when set
-
-        if self.audio.looping:
-            self._display_looping()
-
-        # Update playback loop markers (in frames)
-        self.audio.loop_markers[0] = left_marker
-        self.audio.loop_markers[1] = right_marker
-
-    def _display_looping(self) -> None:
-        """
-        Set looping elements to active styles and display loop
-        overlay.
-        """
-        # Set active styles for loop markers and button
-        self.left_marker_img.setStyleSheet(self.active_marker_style)
-        self.right_marker_img.setStyleSheet(self.active_marker_style)
-        self.loop_button.setStyleSheet(self.active_button_style)
-
-        # Show the loop overlay widget when its area has been created by
-        # the left and right markers
-        left_x, right_x = self.left_marker_img.x()+12, self.right_marker_img.x()+12
-        self.loop_overlay.move(left_x, 2)
-        self.loop_overlay.resize(np.abs(right_x - left_x), self.waveform.height-4)
-        self.loop_overlay.show()
-
-    def _skip_song_position(self, x_pos: int) -> None:
-        """
-        Skips to song position based on x position of left-click
-        on waveform plot.
-        """
-        self.playhead.move(x_pos, 2) # Update playhead x position
-
-        song_pos = (x_pos/self.waveform.width) * self.audio.song.duration
-        self.audio.seek(song_pos) # Update song time position
-        self.scorer.zero_score_data()
-
-        self.duration_label.setText( # Update song time display
-            f"<font color='{gui_config['theme_colour']}'>{time_format(song_pos)}</font>"
-            f" / {time_format(self.audio.song.duration)}"
+        self.audio.send_buffer.connect(
+            self.receive_new_input_audio
+        )
+        self.scorer.sent_score_data.connect(
+            self.receive_new_score_data
+        )
+        self.controls.send_reset_score_signal.connect(
+            self.receive_reset_score_signal
+        )
+        self.widgets["waveform"].clicked_connect(
+            self.controls.waveform_pressed
+        )
+        self.widgets["audiopos_timer"].timeout.connect(
+            self.controls.update_songpos
+        )
+        self.widgets["guitar_vol_slider"].valueChanged.connect(
+            self.controls.guitar_vol_slider_moved
+        )
+        self.widgets["count_in_button"].clicked.connect(
+            self.controls.count_in_button_pressed
+        )
+        self.widgets["count_in_timer"].timeout.connect(
+            self.controls.count_in
+        )
+        self.widgets["skip_back_button"].clicked.connect(
+            self.controls.skip_back_button_pressed
+        )
+        self.widgets["play_button"].clicked.connect(
+            self.controls.play_button_pressed
+        )
+        self.widgets["pause_button"].clicked.connect(
+            self.controls.pause_button_pressed
+        )
+        self.widgets["skip_forward_button"].clicked.connect(
+            self.controls.skip_forward_button_pressed
+        )
+        self.widgets["loop_button"].clicked.connect(
+            self.controls.loop_button_pressed
         )
 
-        print(f"\nSong skipped to: {time_format(song_pos)}") # Testing
+    def receive_reset_score_signal(self) -> None:
+        """
+        Resets the user score to zero when a signal is sent from the
+        PlaybackControls object indicating song position has been 
+        manually changed.
+        """
+        self.scorer.zero_score_data()
 
-        # Case: song count-in is disabled
-        if not self.audio.metronome["count_in_enabled"]:
-            return
-
-        # Case: song skipped during count-in
-        if self.count_in_timer.isActive():
-            # Restart count
-            self.count_in_timer.stop()
-            self.audio.metronome["count"] = 0
-            self.count_in_timer.start()
-            return
-        if self.audio.paused:
-            return
-
-        # Case: song skipped mid-playback
-        self._pause_song_processes()
-        self.count_in_timer.start()
-
-    def _guitar_vol_slider_moved(self, value: int) -> None:
-        """Updates the song's guitar_volume from new slider value."""
-        self.audio.guitar_volume = value/100
-        self.guitar_vol_val_label.setText(f"{value}%")
-
-    def _receive_new_input_audio(
+    def receive_new_input_audio(
         self,
         data: tuple[np.ndarray, int, dict[int, list]]
     ) -> None:
@@ -642,14 +444,14 @@ class MainWindow(QMainWindow):
         buffer, position, pitches = data
         self.scorer.submit_process_recording(buffer, position, pitches)
 
-    def _receive_new_score_data(
+    def receive_new_score_data(
         self,
         data: tuple[int, float]
     ) -> None:
         """Update GUI score information with new score data."""
         score, accuracy = data
-        self.score_label.setText(f"Score: {score}")
-        self.accuracy_label.setText(f"Accuracy: {accuracy:.1f}%")
+        self.widgets["score_label"].setText(f"Score: {score}")
+        self.widgets["accuracy_label"].setText(f"Accuracy: {accuracy:.1f}%")
 
 
 def main() -> None:
