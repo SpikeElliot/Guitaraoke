@@ -145,7 +145,7 @@ class ScoringSystem(QObject):
 
 def preload_basic_pitch_model() -> None:
     """Load the Basic Pitch model when a worker process is created."""
-    from preload import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
+    from guitaraoke.preload import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
 
 
 def compare_pitches(

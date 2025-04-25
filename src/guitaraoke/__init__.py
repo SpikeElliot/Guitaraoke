@@ -6,6 +6,10 @@ Modules
 audio_streaming
     Provides classes for audio streaming and playback functionality.
 
+preload
+    Preloads the Basic Pitch model and updates config latency 
+    variables.
+
 save_pitches
     Provides a function that abstracts pitch detection of an audio 
     file.

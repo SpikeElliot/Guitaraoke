@@ -1,4 +1,6 @@
-"""Preloads the Basic Pitch model and updates config latency variables."""
+"""
+Preloads the Basic Pitch model and updates config latency variables.
+"""
 
 from configparser import ConfigParser
 from basic_pitch.inference import Model

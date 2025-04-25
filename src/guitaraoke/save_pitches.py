@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from basic_pitch.inference import predict_and_save
 from guitaraoke.utils import read_config
-from preload import PITCH_MODEL
+from guitaraoke.preload import PITCH_MODEL
 
 config = read_config("Audio")
 
@@ -64,6 +64,7 @@ def save_pitches(
             save_model_outputs=False, # Saving model outputs not necessary
             save_notes=True, # Save note events to CSV file
             model_or_model_path=PITCH_MODEL, # Preloaded model
+            minimum_note_length=68, # A note every ~68ms is 16th notes at 220bpm
         )
 
     if sonify:
