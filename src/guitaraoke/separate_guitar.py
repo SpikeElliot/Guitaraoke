@@ -1,4 +1,7 @@
-"""Provides a function that abstracts guitar separation from an audio file."""
+"""
+Provides a function that abstracts guitar separation from an audio 
+file.
+"""
 
 from pathlib import Path
 import demucs.separate
@@ -8,8 +11,9 @@ config = read_config("Audio")
 
 def separate_guitar(path: str | Path) -> tuple[Path, Path]:
     """
-    Uses the HT Demucs 6-stem model to perform guitar separation from a given
-    audio file, saving "guitar" and "no_guitar" tracks as WAV files.
+    Uses the HT Demucs 6-stem model to perform guitar separation from
+    a given audio file, saving "guitar" and "no_guitar" tracks as WAV
+    files.
 
     Parameters
     ----------

@@ -378,7 +378,10 @@ class MainWindow(QMainWindow):
         self._update_playhead_pos()
 
     def _update_playhead_pos(self) -> None:
-        """Set playhead position relative to current song playback position."""
+        """
+        Set playhead position relative to current song playback 
+        position.
+        """
         song_pos_in_s = self.audio.position/audio_config["rate"]
         head_pos = int((song_pos_in_s/self.audio.song.duration)
                         * self.waveform.width)
@@ -409,7 +412,7 @@ class MainWindow(QMainWindow):
             self.count_in_button.setStyleSheet(self.inactive_button_style)
 
     def _count_in(self) -> None:
-        """Starts audio playback and recording when count-in timer finished."""
+        """Starts audio processes when count-in timer finished."""
         if self.audio.play_count_in_metronome(self.count_in_timer):
             # Start playback and recording
             self._start_song_processes()
@@ -426,7 +429,7 @@ class MainWindow(QMainWindow):
         self.audiopos_timer.stop()
 
     def _pause_button_pressed(self) -> None:
-        """Stops audio playback and recording when pause button pressed."""
+        """Stops audio processes when pause button pressed."""
         self.pause_button.hide()
         self.play_button.show()
 
@@ -439,7 +442,7 @@ class MainWindow(QMainWindow):
         self._pause_song_processes()
 
     def _skip_forward_button_pressed(self) -> None:
-        """Skips the song's playback position a maximum of 5 seconds back."""
+        """Skips playback position a maximum of 5 seconds back."""
         # Prevent position from running over end of loop or end of song
         end = self.audio.song.duration
         if self.audio.in_loop_bounds():
@@ -454,7 +457,7 @@ class MainWindow(QMainWindow):
         self._update_songpos()
 
     def _skip_back_button_pressed(self) -> None:
-        """Skips the song's playback position a maximum of 5 seconds forward."""
+        """Skips playback position a maximum of 5 seconds forward."""
         # Prevent position from falling behind start of loop or start of song
         start = 0
         if self.audio.in_loop_bounds():
@@ -470,8 +473,8 @@ class MainWindow(QMainWindow):
 
     def _loop_button_pressed(self) -> None:
         """
-        Toggles song section looping when loop button pressed if both loop
-        markers are set.
+        Toggles song section looping when loop button pressed if both
+        loop markers are set.
         """
         if None in self.audio.loop_markers:
             return
@@ -490,9 +493,9 @@ class MainWindow(QMainWindow):
 
     def _waveform_pressed(self, mouse_event) -> None:
         """
-        Called when mouse click event signal sent by waveform plot. Sets a loop
-        marker if shift button held. Otherwise, if left mouse button pressed,
-        skip to song position based on x position clicked.
+        Called when mouse click event signal sent by waveform plot.
+        Sets a loop marker if shift button held. Otherwise, if left
+        mouse pressed, skip to song position based on x pos clicked.
         """
         x_pos = np.max(int(mouse_event.scenePos()[0]), 0)
         button = mouse_event.button()
@@ -509,8 +512,9 @@ class MainWindow(QMainWindow):
 
     def _loop_marker_set(self, x_pos: int, button: int) -> None:
         """
-        Sets a new time position (in frames) for the left or right loop marker.
-        When both markers have values set, song looping logic is actuated.
+        Sets a new time position (in frames) for the left or right loop
+        marker. When both markers have values set, song looping
+        logic is actuated.
         """
         left_marker = self.audio.loop_markers[0]
         right_marker = self.audio.loop_markers[1]
@@ -570,7 +574,10 @@ class MainWindow(QMainWindow):
         self.audio.loop_markers[1] = right_marker
 
     def _display_looping(self) -> None:
-        """Set looping elements to active styles and display loop overlay."""
+        """
+        Set looping elements to active styles and display loop
+        overlay.
+        """
         # Set active styles for loop markers and button
         self.left_marker_img.setStyleSheet(self.active_marker_style)
         self.right_marker_img.setStyleSheet(self.active_marker_style)
@@ -584,7 +591,10 @@ class MainWindow(QMainWindow):
         self.loop_overlay.show()
 
     def _skip_song_position(self, x_pos: int) -> None:
-        """Skips to song position based on x-pos of left-click on waveform plot."""
+        """
+        Skips to song position based on x position of left-click
+        on waveform plot.
+        """
         self.playhead.move(x_pos, 2) # Update playhead x position
 
         song_pos = (x_pos/self.waveform.width) * self.audio.song.duration
@@ -617,7 +627,7 @@ class MainWindow(QMainWindow):
         self.count_in_timer.start()
 
     def _guitar_vol_slider_moved(self, value: int) -> None:
-        """Updates the song's guitar_volume based on new slider value."""
+        """Updates the song's guitar_volume from new slider value."""
         self.audio.guitar_volume = value/100
         self.guitar_vol_val_label.setText(f"{value}%")
 
@@ -626,8 +636,8 @@ class MainWindow(QMainWindow):
         data: tuple[np.ndarray, int, dict[int, list]]
     ) -> None:
         """
-        Schedule the process_recording method to be called when a new audio
-        input buffer received.
+        Schedule the process_recording method to be called when a new
+        audio input buffer received.
         """
         buffer, position, pitches = data
         self.scorer.submit_process_recording(buffer, position, pitches)

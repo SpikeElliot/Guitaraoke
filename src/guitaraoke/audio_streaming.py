@@ -26,21 +26,21 @@ config = read_config("Audio")
 
 class LoadedAudio():
     """
-    Contains all necessary data received from an audio file such as its audio
-    time series, tempo, and duration.
+    Contains all necessary data received from an audio file such as its
+    audio time series, tempo, and duration.
 
     Attributes
     ----------
     metadata : dict[str, str]
         The song's title, artist, and filename stored in a dictionary.
     guitar_data, no_guitar_data : ndarray
-        The song's separated guitar and no_guitar track audio time series.
+        The song's separated tracks' audio time series.
     pitches : DataFrame
         The guitar note events predicted from the song in a DataFrame.
     bpm : float
         The song's tempo.
     first_beat : float
-        The estimated time position of the onset of the song's first beat.
+        The estimated time position of the song's first beat onset.
     duration : float
         The length of the song in seconds.
     """
@@ -80,7 +80,7 @@ class LoadedAudio():
         path: Path
     ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         """
-        Load a song's predicted pitches DataFrame and its guitar-separated
+        Load a song's predicted pitches DataFrame and its separated
         audio time series (guitar_data and no_guitar_data).
         """
         audio_dir = Path(config["sep_tracks_dir"]) / self.metadata["filename"]
@@ -89,7 +89,7 @@ class LoadedAudio():
 
         # Perform guitar separation and pitch detection
         guitar_path, no_guitar_data = separate_guitar(path)
-        pitches_path = save_pitches(guitar_path)[0]
+        pitches_path = save_pitches(guitar_path, sonify=True)[0]
 
         # Convert pitches CSV to a pandas DataFrame
         pitches = csv_to_pitches_dataframe(pitches_path)
@@ -102,8 +102,8 @@ class LoadedAudio():
 
     def _get_tempo_data(self) -> tuple[float, float]:
         """
-        Find a song's predicted BPM and the estimated time position of its
-        first beat.
+        Find a song's predicted BPM and the estimated time position of 
+        its first beat.
         """
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
@@ -122,11 +122,11 @@ class AudioStreamHandler(QObject):
     Attributes
     ----------
     song : LoadedAudio
-        A LoadedAudio instance containing song data such as its audio time
-        series and pitches DataFrame.
+        A LoadedAudio instance containing song data such as its audio
+        time series and pitches DataFrame.
     input_audio_buffer : ndarray
-        An ndarray containing recorded input audio data that is sent to the
-        main file when size has reached the minimum buffer size.
+        An ndarray containing recorded input audio data that is sent to
+        the main file when size has reached the minimum buffer size.
     paused, ended : bool
         The current state of audio playback's paused and ended status.
     stream : Stream
@@ -134,11 +134,11 @@ class AudioStreamHandler(QObject):
     position : int
         The current position of audio playback in frames.
     guitar_volume : float
-        The volume to linearly scale the separated guitar track's amplitudes
-        by. Should be kept between 0 and 1.
+        The volume to linearly scale the separated guitar track's
+        amplitudes by. Should be kept between 0 and 1.
     metronome : dict[str, Any]
-        Information relating to the metronome such as its audio time series
-        and count-in status.
+        Information relating to the metronome such as its audio time
+        series and count-in status.
     score_data : dict[str, int]
         The user's performance data: score, notes hit, total notes, and
         accuracy.
@@ -186,7 +186,7 @@ class AudioStreamHandler(QObject):
         )
 
     def find_audio_devices(self) -> None:
-        """Return two lists of available audio input and output devices."""
+        """Return two lists of user audio input and output devices."""
         devices = sd.query_devices()
         input_devs = []
         output_devs = []
@@ -265,8 +265,8 @@ class AudioStreamHandler(QObject):
 
         if self._in_overlap.size >= config["rec_overlap_window_size"]:
             overlap_size = config["rec_overlap_window_size"]
-            # Add new overlap buffer data to main buffer, and push main buffer
-            # to the left by rec_overlap_window_size
+            # Add new overlap buffered data to main buffer, and push main
+            # buffer to the left by rec_overlap_window_size
             self._in_buffer = np.append(
                 self._in_buffer,
                 self._in_overlap[:overlap_size]
@@ -276,8 +276,9 @@ class AudioStreamHandler(QObject):
             # Remove data added to main buffer from overlap window buffer
             self._in_overlap = self._in_overlap[overlap_size:]
 
-            # Only take pitch data from song time-slice equal to size of data
-            # currently in the buffer to avoid impacting user accuracy
+            # Only take pitch data from song time-slice equal to size
+            # of data currently in the buffer to avoid negatively
+            # impacting user accuracy
             if not np.any(self._in_buffer[:overlap_size]):
                 print("first half empty")
                 slice_start = (self._position-overlap_size)/config["rate"]
@@ -309,8 +310,8 @@ class AudioStreamHandler(QObject):
             # Set new pos to correct position after loop
             new_pos = self.loop_markers[0] + overflow_frames
 
-            # Get all frames before right loop marker, and concatenate with
-            # all frames needed after loop
+            # Get all frames before right loop marker, and concatenate
+            # with all frames needed after loop
             guitar_batch = np.concatenate((
                 self.song.guitar_data[self._position:self.loop_markers[1]],
                 self.song.guitar_data[self.loop_markers[0]:new_pos]
@@ -338,8 +339,8 @@ class AudioStreamHandler(QObject):
 
     def play_count_in_metronome(self, count_in_timer: QTimer) -> None:
         """
-        Play the count-in metronome sound and increment the metronome's count
-        value, starting song playback after the fourth count.
+        Play the count-in metronome sound and increment the metronome's
+        count value, starting song playback after the fourth count.
 
         Parameters
         ----------
@@ -358,7 +359,7 @@ class AudioStreamHandler(QObject):
         return False # Keep counting
 
     def in_loop_bounds(self) -> bool:
-        """Check playback is looping and within the loop marker bounds."""
+        """Check playback is looping and within loop marker bounds."""
         if (self.looping
             and (self._position > self.loop_markers[0]
             and self._position < self.loop_markers[1])):

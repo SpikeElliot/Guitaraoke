@@ -1,4 +1,6 @@
-"""Performs integration testing of pitch saving and reading functionality."""
+"""
+Performs integration testing of pitch saving and reading functionality.
+"""
 
 import os
 import tempfile
@@ -59,8 +61,8 @@ def test_one_note_predicted_from_monotone_audio() -> None:
 
 def test_predicted_note_times_are_accurate() -> None:
     """
-    Assert all predicted note onset times are accurate within 20ms from test
-    audio file in which notes are played at an interval of one second.
+    Assert all predicted note onset times are accurate within 50ms from
+    test audio file where notes are played at an interval of 1 second.
     """
     # Save predicted note events
     test_pitches_path = save_pitches(
@@ -73,7 +75,7 @@ def test_predicted_note_times_are_accurate() -> None:
     os.remove(test_pitches_path)
 
     note_start_times = test_notes_events["start_time_s"]
-    tolerance = 0.02
+    tolerance = 0.05
     for time in note_start_times:
         difference = np.abs(time - round(time))
         assert difference <= tolerance

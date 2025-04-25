@@ -1,4 +1,7 @@
-"""Provides a class for plotting a waveform graph from an audio time series."""
+"""
+Provides a class for plotting a waveform graph from an audio time 
+series.
+"""
 
 import librosa
 import numpy as np
@@ -60,17 +63,19 @@ class WaveformPlot(pg.PlotWidget):
 
     def draw_plot(self, song: LoadedAudio) -> None:
         """
-        Draw the plot of an audio file's maximum and minimum window amplitudes
-        as two lines, filling between the points to create a waveform.
+        Draw the plot of an audio file's maximum and minimum window
+        amplitudes as two lines, filling between the points to create
+        a waveform.
 
         Parameters
         ----------
         song : LoadedAudio
-            The LoadedAudio object whose audio time series data (frames) 
-            will be used.
+            The LoadedAudio object whose audio time series data 
+            (frames) will be used.
         """
-        # Preserves a minimum number of 1000 points on the graph if audio file
-        # is too short, otherwise one point represents a window of ~100 ms
+        # Preserves a minimum number of 1000 points on the graph if
+        # audio file is too short, otherwise one point represents a
+        # window of ~100 ms
         num_points = np.max([1000, int(song.duration * 10)])
 
         # Downsampling for better performance when plotting waveform

@@ -16,9 +16,12 @@ csv_to_pitches_dataframe(path)
     Return sorted Pandas DataFrame converted from a pitches CSV file.
 
 preprocess_pitch_data(
-    pitches, slice_start=None, slice_end=None, offset_latency=False
+    pitches, 
+    slice_start=None, slice_end=None, 
+    offset_latency=False
 )
-    Return a dict of note events for 128 pitches from a pitches Dataframe.
+    Return a dict of note events for 128 pitches from a pitches 
+    Dataframe.
 """
 
 import math
@@ -104,7 +107,7 @@ def preprocess_pitch_data(
     slice_start, slice_end : float, optional
         The times in seconds to start and end time-slice.
     offset_latency : bool
-        Whether to offset the note onset times by the user's round-trip latency
+        Offset the note onset times by the user's round-trip latency.
 
     Returns
     -------
@@ -121,7 +124,8 @@ def preprocess_pitch_data(
         ]
 
     if offset_latency:
-        new_pitches["start_time_s"] -= (config["in_latency"] + config["out_latency"] + 0.15)
+        latency = config["in_latency"] + config["out_latency"] + 0.15
+        new_pitches["start_time_s"] -= latency
 
     pitch_sequences = {k: [] for k in range(128)}
     for row in new_pitches.itertuples():

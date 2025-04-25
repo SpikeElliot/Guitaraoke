@@ -1,10 +1,12 @@
 """
-Provides a class and functions for karaoke-style scoring system functionality.
+Provides a class and functions for karaoke-style scoring system 
+functionality.
 
 Classes
 -------
 ScoringSystem(QObject)
-    Contains score data and performs multiprocessing for real-time scoring.
+    Contains score data and performs multiprocessing for real-time
+    scoring.
 
 Functions
 ---------
@@ -12,7 +14,8 @@ compare_pitches
     Take two pitch dictionaries (user and song) and return user scores.
 
 unique_nearest_notes
-    Get all unique nearest song-user note pairs (used in compare_pitches).
+    Get all unique nearest song-user note pairs (used in 
+    compare_pitches).
 
 process_recording
     Compare the user input recording's pitches against the song's,
@@ -32,26 +35,28 @@ from guitaraoke.utils import (
 )
 
 config = read_config("Audio")
-# 100ms tolerance to account for latency, swing, and variance in predictions
+# 100ms tolerance to account for swing and variance in predictions
 NOTE_HIT_WINDOW = 0.1
 # Amount to deduct from note score for inaccurate timing
 CLOSE_HIT_PENALTY = 0.5
 
 class ScoringSystem(QObject):
     """
-    Contains the current score data, provides functionality for real-time
-    scoring during user performance.
+    Contains the current score data, provides functionality for 
+    real-time scoring during user performance.
 
     Attributes
     ----------
     executor: ProcessPoolExecutor
-        The process pool executor that creates futures for scoring processes.
+        The process pool executor that creates futures for scoring
+        processes.
     score: int
         The user's current score.
     notes_hit : float
         The number of notes the user has correctly played.
     total_notes : int
-        The total number of song notes up to the current point of playback.
+        The total number of song notes up to the current point of
+        playback.
     accuracy : float
         The percentage out of total song notes hit by the user.
     """
@@ -84,9 +89,9 @@ class ScoringSystem(QObject):
         pitches: dict[int, list]
     ) -> None:
         """
-        Schedule the process_recording function to be executed by a process,
-        providing a callback function that updates score attributes with new
-        data when the future is complete.
+        Schedule the process_recording function to be executed by a 
+        process, providing a callback function that updates score
+        attributes with new data when the future is complete.
         """
         future = self._executor.submit(
             process_recording,
@@ -103,9 +108,11 @@ class ScoringSystem(QObject):
         data to the connected function in the main file.
         """
         score, notes_hit, total_notes = future.result()
-        self._score += score
-        self._notes_hit += notes_hit
-        self._total_notes += total_notes
+        # Scores currently divided by 2 as workaround to user notes
+        # being counted twice
+        self._score += round(score/2, ndigits=-1)
+        self._notes_hit += round(notes_hit/2)
+        self._total_notes += round(total_notes/2)
         if self._total_notes != 0: # Avoid divide by zero error
             self._accuracy = (self._notes_hit / self.total_notes) * 100
 
@@ -132,12 +139,12 @@ class ScoringSystem(QObject):
         return self._accuracy
 
     def zero_score_data(self) -> None:
-        """Reset all score data (called when song skipped in practice mode)."""
+        """Reset score data (called when song skipped/restarted)."""
         self._score, self._notes_hit, self._total_notes, self._accuracy = (0,0,0,0)
 
 
 def preload_basic_pitch_model() -> None:
-    """Preload the Basic Pitch model when a worker process is created."""
+    """Load the Basic Pitch model when a worker process is created."""
     from preload import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
 
 
@@ -159,8 +166,8 @@ def compare_pitches(
     Returns
     -------
     tuple[int, float, int]
-        The user score, number of notes hit by the user, and total number
-        of notes.
+        The user score, number of notes hit by the user, and total 
+        number of notes.
     """
     total_notes = 0
     notes_hit = 0
@@ -213,11 +220,7 @@ def compare_pitches(
             elif dist <= NOTE_HIT_WINDOW * 2:
                 notes_hit += 1 - CLOSE_HIT_PENALTY
 
-    return (
-        round((notes_hit*100)/2, ndigits=-1),
-        round(notes_hit/2),
-        round(total_notes/2)
-    )
+    return notes_hit*100, notes_hit, total_notes
 
 
 def unique_nearest_notes(
@@ -226,7 +229,8 @@ def unique_nearest_notes(
 ) -> list:
     """
     Get all unique nearest song note - user note pairs by iterating
-    over song notes' nearest user note times and checking for duplicates.
+    over song notes' nearest user note times and checking for 
+    duplicates.
     """
     unique_pairs = False
     while not unique_pairs:

@@ -1,4 +1,6 @@
-"""Provides a function that abstracts pitch detection of an audio file."""
+"""
+Provides a function that abstracts pitch detection of an audio file.
+"""
 
 import os
 from pathlib import Path
@@ -14,17 +16,18 @@ def save_pitches(
     temp: bool = False
 ) -> list[Path]:
     """
-    Save the note events CSV file from Spotify's Basic Pitch model prediction
-    run on a given audio file.
+    Save the note events CSV file from Spotify's Basic Pitch model 
+    prediction run on a given audio file.
 
     Parameters
     ----------
     path : str | Path
         The path of the audio file to make pitch predictions for.
     sonify : bool, default=False
-        Whether to render audio from predicted MIDI and save to an audio file.
+        Render audio from predicted MIDI and save to an audio file.
     temp : bool, default=False
-        Whether the audio file is a saved song or a temporary recording.
+        The audio file is a temporary recording rather than a saved 
+        song.
         
     Returns
     -------
