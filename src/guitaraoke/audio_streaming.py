@@ -22,8 +22,6 @@ from guitaraoke.utils import (
     csv_to_pitches_dataframe, preprocess_pitch_data, read_config
 )
 
-config = read_config("Audio")
-
 class LoadedAudio():
     """
     Contains all necessary data received from an audio file such as its
@@ -44,6 +42,8 @@ class LoadedAudio():
     duration : float
         The length of the song in seconds.
     """
+    config = read_config("Audio")
+
     def __init__(
         self,
         path: str | Path,
@@ -73,7 +73,7 @@ class LoadedAudio():
         (self.pitches, self.guitar_data,
          self.no_guitar_data) = self._get_audio_data(path)
         self.bpm, self.first_beat = self._get_tempo_data()
-        self.duration = len(self.guitar_data) / config["rate"] # In secs
+        self.duration = len(self.guitar_data) / self.config["rate"] # In secs
 
     def _get_audio_data(
         self,
@@ -83,20 +83,20 @@ class LoadedAudio():
         Load a song's predicted pitches DataFrame and its separated
         audio time series (guitar_data and no_guitar_data).
         """
-        audio_dir = Path(config["sep_tracks_dir"]) / self.metadata["filename"]
+        audio_dir = Path(self.config["sep_tracks_dir"]) / self.metadata["filename"]
         guitar_path = audio_dir / "guitar.wav"
         no_guitar_path = audio_dir / "no_guitar.wav"
 
         # Perform guitar separation and pitch detection
         guitar_path, no_guitar_data = separate_guitar(path)
-        pitches_path = save_pitches(guitar_path, sonify=True)[0]
+        pitches_path = save_pitches(guitar_path)[0]
 
         # Convert pitches CSV to a pandas DataFrame
         pitches = csv_to_pitches_dataframe(pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        guitar_data = librosa.load(guitar_path, sr=config["rate"])[0]
-        no_guitar_data = librosa.load(no_guitar_path, sr=config["rate"])[0]
+        guitar_data = librosa.load(guitar_path, sr=self.config["rate"])[0]
+        no_guitar_data = librosa.load(no_guitar_path, sr=self.config["rate"])[0]
 
         return pitches, guitar_data, no_guitar_data
 
@@ -107,7 +107,7 @@ class LoadedAudio():
         """
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
-            sr=config["rate"]
+            sr=self.config["rate"]
         )
         bpm = tempo[0]
         first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
@@ -143,6 +143,8 @@ class AudioStreamHandler(QObject):
         The user's performance data: score, notes hit, total notes, and
         accuracy.
     """
+    config = read_config("Audio")
+
     send_buffer = pyqtSignal(tuple)
 
     def __init__(self, song: LoadedAudio) -> None:
@@ -151,7 +153,7 @@ class AudioStreamHandler(QObject):
         self.song = song
 
         # Input variables
-        self._in_buffer = np.zeros(config["rec_buffer_size"]) # Input audio buffer
+        self._in_buffer = np.zeros(self.config["rec_buffer_size"]) # Input audio buffer
         self._in_overlap = np.ndarray(0) # Input audio overlap window
 
         # Playback data
@@ -164,7 +166,7 @@ class AudioStreamHandler(QObject):
 
         # Metronome data
         self.metronome = {
-            "audio_data": librosa.load("./assets/audio/metronome.wav", sr=config["rate"])[0],
+            "audio_data": librosa.load("./assets/audio/metronome.wav", sr=self.config["rate"])[0],
             "count_in_enabled": True,
             "count": 0,
             "interval": int(1000 / (self.song.bpm / 60))
@@ -172,11 +174,11 @@ class AudioStreamHandler(QObject):
 
         # I/O Stream
         self._stream = sd.Stream(
-            samplerate=config["rate"],
-            device=(config["input_device_index"], None),
-            channels=config["channels"],
+            samplerate=self.config["rate"],
+            device=(self.config["input_device_index"], None),
+            channels=self.config["channels"],
             callback=self._callback,
-            dtype=config["dtype"],
+            dtype=self.config["dtype"],
             latency="low",
         )
         in_lat, out_lat = self._stream.latency
@@ -184,19 +186,6 @@ class AudioStreamHandler(QObject):
             f"Input Latency: {in_lat*1000:.1f}ms\n"
             f"Output Latency: {out_lat*1000:.1f}ms"
         )
-
-    def find_audio_devices(self) -> None:
-        """Return two lists of user audio input and output devices."""
-        devices = sd.query_devices()
-        input_devs = []
-        output_devs = []
-        for d in devices:
-            if d["hostapi"] == 0:
-                if d["max_input_channels"] > 0:
-                    input_devs.append(d)
-                if d["max_output_channels"] > 0:
-                    output_devs.append(d)
-        return input_devs, output_devs
 
     @property
     def position(self) -> int:
@@ -227,11 +216,11 @@ class AudioStreamHandler(QObject):
 
     def seek(self, position: float) -> None:
         """Set the position to a new time in seconds."""
-        if not 0 <= int(position * config["rate"]) <= int(self.song.duration * config["rate"]):
+        if not 0 <= int(position * self.config["rate"]) <= int(self.song.duration * self.config["rate"]):
             raise ValueError("Position must be between 0 and song duration.")
         if self._ended:
             self._ended = False
-        self._position = int(position * config["rate"])
+        self._position = int(position * self.config["rate"])
 
     def start(self) -> None:
         """Play or unpause audio stream."""
@@ -249,7 +238,7 @@ class AudioStreamHandler(QObject):
             self._paused = True
         self._stream.stop()
         # Reset buffers when streaming ends
-        self._in_buffer = np.zeros(config["rec_buffer_size"])
+        self._in_buffer = np.zeros(self.config["rec_buffer_size"])
         self._in_overlap = np.ndarray(0)
 
     def _callback(self, indata, outdata, frames, time, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
@@ -263,8 +252,8 @@ class AudioStreamHandler(QObject):
             self._in_overlap, indata.copy()
         )
 
-        if self._in_overlap.size >= config["rec_overlap_window_size"]:
-            overlap_size = config["rec_overlap_window_size"]
+        if self._in_overlap.size >= self.config["rec_overlap_window_size"]:
+            overlap_size = self.config["rec_overlap_window_size"]
             # Add new overlap buffered data to main buffer, and push main
             # buffer to the left by rec_overlap_window_size
             self._in_buffer = np.append(
@@ -281,16 +270,16 @@ class AudioStreamHandler(QObject):
             # impacting user accuracy
             if not np.any(self._in_buffer[:overlap_size]):
                 print("first half empty")
-                slice_start = (self._position-overlap_size)/config["rate"]
+                slice_start = (self._position-overlap_size)/self.config["rate"]
             else:
-                slice_start = (self._position-config["rec_buffer_size"])/config["rate"]
+                slice_start = (self._position-self.config["rec_buffer_size"])/self.config["rate"]
 
             # Send audio buffer data, position, and song pitches to
             # connected function in main file to be
             pitches = preprocess_pitch_data(
                 self.song.pitches,
                 slice_start=slice_start,
-                slice_end=self._position/config["rate"],
+                slice_end=self._position/self.config["rate"],
             )
             self.send_buffer.emit((self._in_buffer.copy(), self._position, pitches))
 
@@ -355,7 +344,7 @@ class AudioStreamHandler(QObject):
             self.metronome["count"] = 0
             return True # Start song
 
-        sd.play(self.metronome["audio_data"], samplerate=config["rate"])
+        sd.play(self.metronome["audio_data"], samplerate=self.config["rate"])
         return False # Keep counting
 
     def in_loop_bounds(self) -> bool:

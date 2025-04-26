@@ -3,6 +3,11 @@ QWidget {
     font-size: 20px;
 }
 
+QLabel#app_title {
+    color: #0070df;
+    font-size: 36px;
+}
+
 QSlider::groove::horizontal {
     background: rgb(0,0,0);
     height: 22px;
@@ -42,6 +47,11 @@ QPushButton {
     background-color: #0070df;
     border-radius: 16px;
     padding: 8px 0px;
+}
+
+QPushButton#select_song {
+    border-radius: 20px;
+    padding: 8px 20px;
 }
 
 QPushButton#loop_button {

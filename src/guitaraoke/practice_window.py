@@ -320,11 +320,6 @@ class PracticeWindow(QWidget):
         layout.addLayout(controls_layout)
         self.setLayout(layout)
 
-        # Container for main layout
-        # container = QWidget()
-        # container.setLayout(layout)
-        # self.setCentralWidget(container)
-
         return {
             "artist_label": artist_label, 
             "title_label": title_label,

@@ -6,6 +6,9 @@ Functions
 read_config(section)
     Get Audio or GUI variables from the config file.
 
+find_audio_devices()
+    Get lists of user audio input and output devices.
+
 time_format(time)
     Return a time in MM:SS.CC format.
 
@@ -28,6 +31,7 @@ import math
 from pathlib import Path
 from configparser import ConfigParser
 import pandas as pd
+import sounddevice as sd
 
 
 def read_config(section: str) -> dict[str]:
@@ -59,6 +63,19 @@ def read_config(section: str) -> dict[str]:
             "inactive_colour": parser.get(section, "inactive_colour")
         }
     return config_vals
+
+def find_audio_devices() -> tuple[list, list]:
+    """Return two lists of user audio input and output devices."""
+    devices = sd.query_devices()
+    input_devs = []
+    output_devs = []
+    for d in devices:
+        if d["hostapi"] == 0:
+            if d["max_input_channels"] > 0:
+                input_devs.append(d)
+            if d["max_output_channels"] > 0:
+                output_devs.append(d)
+    return input_devs, output_devs
 
 def time_format(time: float) -> str:
     """Take a time in seconds and return it in MM:SS.CC format."""

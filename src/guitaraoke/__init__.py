@@ -9,6 +9,9 @@ audio_streaming
 playback_controls
     Provides a class for GUI audio playback control functionality.
 
+practice_window
+    Provides a GUI practice mode window QWidget subclass.
+
 preload
     Preloads the Basic Pitch model and updates config latency 
     variables.
@@ -24,6 +27,9 @@ scoring_system
 separate_guitar
     Provides a function that abstracts guitar separation from an audio 
     file.
+
+setup_window
+    Provides a GUI setup window QWidget subclass.
 
 utils
     Provides miscellaneous utility functions used across the 

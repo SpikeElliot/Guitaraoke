@@ -37,8 +37,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.window_stack)
 
     def create_practice_window(self, audio: AudioStreamHandler) -> None:
-        """Called when signal received from SetupWindow indicating a
-        song has been selected"""
+        """
+        Initialises the PracticeWindow when selected song received from
+        the SetupWindow.
+        """
         self.practice_window = PracticeWindow(audio, self.scorer)
         self.window_stack.addWidget(self.practice_window)
         self.window_stack.setCurrentWidget(self.practice_window)
