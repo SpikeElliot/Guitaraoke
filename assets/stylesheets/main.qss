@@ -1,5 +1,4 @@
 QWidget {
-    background-color: rgb(255,255,255);
     color: rgb(0,0,0);
     font-size: 20px;
 }
@@ -40,14 +39,11 @@ QWidget#left_marker_img, QLabel#right_marker_img {
 
 QPushButton {
     color: rgb(255,255,255);
+    background-color: #0070df;
     border-radius: 16px;
     padding: 8px 0px;
 }
 
-QPushButton#play_button, QPushButton#pause_button, QPushButton#count_in_button, QPushButton#skip_back_button, QPushButton#skip_forward_button {
-    background-color: #0070df
-}
-
 QPushButton#loop_button {
-    background-color: #4e759c
+    background-color: #4e759c;
 }
