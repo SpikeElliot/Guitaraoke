@@ -22,15 +22,11 @@ class PracticeWindow(QWidget):
         audio: AudioStreamHandler,
         scorer: ScoringSystem
     ) -> None:
-        """The constructor for the MainWindow class."""
+        """The constructor for the PracticeWindow class."""
         super().__init__()
 
         self.audio = audio
         self.scorer = scorer
-
-        self.setWindowTitle("Guitaraoke")
-
-        self.setFixedSize(gui_config["width"], gui_config["height"])
 
         self.widgets = self.set_components()
 
@@ -41,7 +37,7 @@ class PracticeWindow(QWidget):
         self.set_connections()
 
     def set_components(self) -> dict[str]:
-        """Initialises all widgets and adds them to the main window."""
+        """Initialises all widgets and adds them to the window."""
         # Song Information Labels
 
         song_info_layout = QVBoxLayout()
@@ -346,7 +342,7 @@ class PracticeWindow(QWidget):
         }
 
     def set_styles(self) -> dict[str]:
-        """Sets the CSS styling of window and widgets."""
+        """Sets the CSS styling of the window and widgets."""
         with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
             # Read main stylesheet and set main window style
             _style = f.read()

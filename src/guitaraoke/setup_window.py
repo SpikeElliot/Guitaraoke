@@ -23,10 +23,6 @@ class SetupWindow(QWidget):
 
         os.makedirs("./assets/audio", exist_ok=True)
 
-        self.setWindowTitle("Guitaraoke")
-
-        self.setFixedSize(gui_config["width"], gui_config["height"])
-
         self.in_devices = find_audio_devices()[0]
 
         self.widgets = self.set_components()
@@ -36,7 +32,7 @@ class SetupWindow(QWidget):
         self.set_styles()
 
     def set_components(self) -> dict[str]:
-        """Initialises all widgets and adds them to the main window."""
+        """Initialises all widgets and adds them to the window."""
         title_label = QLabel("Guitaraoke")
         title_label.setObjectName("app_title")
 
@@ -95,7 +91,7 @@ class SetupWindow(QWidget):
         }
 
     def set_styles(self) -> dict[str]:
-        """Sets the CSS styling of the main window and widgets."""
+        """Sets the CSS styling of the window and widgets."""
         with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
             # Read main stylesheet and set main window style
             _style = f.read()

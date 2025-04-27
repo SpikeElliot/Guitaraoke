@@ -216,7 +216,8 @@ class AudioStreamHandler(QObject):
 
     def seek(self, position: float) -> None:
         """Set the position to a new time in seconds."""
-        if not 0 <= int(position * self.config["rate"]) <= int(self.song.duration * self.config["rate"]):
+        if not (0 <= int(position * self.config["rate"])
+                <= int(self.song.duration * self.config["rate"])):
             raise ValueError("Position must be between 0 and song duration.")
         if self._ended:
             self._ended = False

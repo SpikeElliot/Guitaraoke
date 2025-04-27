@@ -115,7 +115,7 @@ def preprocess_pitch_data(
 ) -> dict[int, list]:
     """
     Take a pitches DataFrame and perform pre-processing, returning a
-    2D array containg note onset times for all 128 MIDI pitches.
+    2D array containing note onset times for all 128 MIDI pitches.
 
     Parameters
     ----------
