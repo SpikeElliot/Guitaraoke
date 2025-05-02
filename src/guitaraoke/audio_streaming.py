@@ -15,7 +15,7 @@ import librosa
 import numpy as np
 import pandas as pd
 import sounddevice as sd
-from PyQt5.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import (
@@ -242,7 +242,7 @@ class AudioStreamHandler(QObject):
         self._in_buffer = np.zeros(self.config["rec_buffer_size"])
         self._in_overlap = np.ndarray(0)
 
-    def _callback(self, indata, outdata, frames, time, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
+    def _callback(self, indata, outdata, frames, t, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
         """Callback function for the sounddevice Stream."""
         if status: # Print callback flags if any
             print(f"Stream callback flags: {status}", flush=True)
@@ -270,7 +270,6 @@ class AudioStreamHandler(QObject):
             # of data currently in the buffer to avoid negatively
             # impacting user accuracy
             if not np.any(self._in_buffer[:overlap_size]):
-                print("first half empty")
                 slice_start = (self._position-overlap_size)/self.config["rate"]
             else:
                 slice_start = (self._position-self.config["rec_buffer_size"])/self.config["rate"]

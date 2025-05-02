@@ -8,7 +8,7 @@ version = "0.1"
 dependencies = [
     "numpy", 
     "pandas", 
-    "PyQt5", 
+    "PyQt6", 
     "pyqtgraph", 
     "sounddevice", 
     "librosa", 

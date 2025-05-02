@@ -1,6 +1,11 @@
+QMainWindow {
+    background-color: rgb(255,255,255);
+}
+
 QWidget {
     color: rgb(0,0,0);
     font-size: 20px;
+    font-family: Roboto-Regular, sans-serif;
 }
 
 QLabel#app_title {
@@ -46,7 +51,6 @@ QPushButton {
     color: rgb(255,255,255);
     background-color: #0070df;
     border-radius: 16px;
-    padding: 8px 0px;
 }
 
 QPushButton#select_song {
@@ -56,4 +60,28 @@ QPushButton#select_song {
 
 QPushButton#loop_button {
     background-color: #4e759c;
+QComboBox {
+    background-color: #bbbbbb;
+    border-radius: 4px;
+    padding-left: 10px;
+}
+
+QComboBox::drop-down {
+    border: none;
+}
+
+QComboBox::down-arrow {
+    image: url("./assets/images/dropdown_arrow.png");
+    width: 12px;
+    height: 12px;
+    margin-right: 20px;
+}
+
+QComboBox QListView {
+    background-color: #bbbbbb;
+}
+
+QComboBox QListView::item::hover {
+    background-color: #0070df;
+    color: #ffffff
 }

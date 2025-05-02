@@ -1,9 +1,10 @@
 """The main file of the application."""
 
 import sys
-from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
+from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QApplication, QMainWindow, QStackedWidget
 )
+from PyQt6.QtGui import QFontDatabase # pylint: disable=no-name-in-module
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.practice_window import PracticeWindow
 from guitaraoke.setup_window import SetupWindow
@@ -36,6 +37,15 @@ class MainWindow(QMainWindow):
         self.window_stack.setCurrentWidget(self.setup_window)
         self.setCentralWidget(self.window_stack)
 
+        self.set_styles()
+
+    def set_styles(self) -> dict[str]:
+        """Sets the CSS styling of the window and widgets."""
+        with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
+            # Read main stylesheet and set main window style
+            _style = f.read()
+            self.setStyleSheet(_style)
+
     def create_practice_window(self, audio: AudioStreamHandler) -> None:
         """
         Initialises the PracticeWindow when selected song received from
@@ -49,6 +59,7 @@ class MainWindow(QMainWindow):
 def main() -> None:
     """Run the application."""
     app = QApplication(sys.argv)
+    QFontDatabase.addApplicationFont("./assets/fonts/Roboto-Regular.ttf")
     main_window = MainWindow()
     main_window.show()
     sys.exit(app_exec(app, main_window))

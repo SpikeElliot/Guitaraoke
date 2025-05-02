@@ -27,7 +27,7 @@ import tempfile
 import concurrent.futures
 from collections import defaultdict
 import numpy as np
-from PyQt5.QtCore import QObject, pyqtSignal # pylint: disable=no-name-in-module
+from PyQt6.QtCore import QObject, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
 from guitaraoke.save_pitches import save_pitches
 from guitaraoke.utils import (
@@ -110,7 +110,7 @@ class ScoringSystem(QObject):
         score, notes_hit, total_notes = future.result()
         # Scores currently divided by 2 as workaround to user notes
         # being counted twice
-        self._score += round(score/2, ndigits=-1)
+        self._score += int(round(score/2, ndigits=-1))
         self._notes_hit += round(notes_hit/2)
         self._total_notes += round(total_notes/2)
         if self._total_notes != 0: # Avoid divide by zero error

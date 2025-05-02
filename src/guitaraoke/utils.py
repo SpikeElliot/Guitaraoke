@@ -141,7 +141,7 @@ def preprocess_pitch_data(
         ]
 
     if offset_latency:
-        latency = config["in_latency"] + config["out_latency"] + 0.15
+        latency = config["in_latency"] + config["out_latency"]
         new_pitches["start_time_s"] -= latency
 
     pitch_sequences = {k: [] for k in range(128)}

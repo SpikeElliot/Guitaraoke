@@ -3,8 +3,8 @@
 import os
 from configparser import ConfigParser
 from pathlib import Path
-from PyQt5.QtCore import Qt, pyqtSignal # pylint: disable=no-name-in-module
-from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
+from PyQt6.QtCore import Qt, pyqtSignal # pylint: disable=no-name-in-module
+from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QVBoxLayout, QPushButton, QFileDialog, QComboBox, QLabel
 )
 from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler
@@ -39,6 +39,7 @@ class SetupWindow(QWidget):
         combobox_label = QLabel("Input Device:")
 
         input_devices_combobox = QComboBox()
+        input_devices_combobox.setFixedSize(int(gui_config["width"]*0.25), 26)
         for dev in self.in_devices:
             input_devices_combobox.addItem(dev["name"])
         input_devices_combobox.setCurrentIndex(
@@ -55,28 +56,28 @@ class SetupWindow(QWidget):
 
         layout.addWidget(
             title_label,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
             )
 
         layout.addStretch(1)
 
         layout.addWidget(
             combobox_label,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         layout.addSpacing(int(gui_config["height"] * 0.02))
 
         layout.addWidget(
             input_devices_combobox,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         layout.addStretch(2)
 
         layout.addWidget(
             select_song_button,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         layout.addSpacing(int(gui_config["height"] * 0.1))

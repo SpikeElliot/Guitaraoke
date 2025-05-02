@@ -1,7 +1,7 @@
 """Provides a class for GUI audio playback control functionality."""
 
 import numpy as np
-from PyQt5.QtCore import Qt, pyqtSignal, QObject # pylint: disable=no-name-in-module
+from PyQt6.QtCore import Qt, pyqtSignal, QObject # pylint: disable=no-name-in-module
 from guitaraoke.audio_streaming import AudioStreamHandler
 from guitaraoke.utils import time_format, read_config
 
@@ -187,15 +187,15 @@ class PlaybackControls(QObject):
         mods = mouse_event.modifiers()
 
         # Case: shift button held
-        if mods == Qt.ShiftModifier:
+        if mods == Qt.KeyboardModifier.ShiftModifier:
             self.loop_marker_set(x_pos, button)
             return
 
         # Case: only left mouse button pressed
-        if button == 1:
+        if button == Qt.MouseButton.LeftButton:
             self.skip_song_position(x_pos)
 
-    def loop_marker_set(self, x_pos: int, button: int) -> None:
+    def loop_marker_set(self, x_pos: int, button) -> None:
         """
         Sets a new time position (in frames) for the left or right loop
         marker. When both markers have values set, song looping
@@ -212,7 +212,7 @@ class PlaybackControls(QObject):
         time_constraint = 2 * audio_config["rate"] # Minimum loop time of 2 secs
 
         # Update left marker when left mouse pressed
-        if button == 1:
+        if button == Qt.MouseButton.LeftButton:
             if right_marker is None:
                 left_marker = marker_pos
                 self.widgets["left_marker_img"].move(x_pos-12, 2)
@@ -234,7 +234,7 @@ class PlaybackControls(QObject):
             self.widgets["left_marker_img"].show() # Show marker when set
 
         # Update right marker when right mouse pressed
-        elif button == 2:
+        elif button == Qt.MouseButton.RightButton:
             if left_marker is None:
                 right_marker = marker_pos
                 self.widgets["right_marker_img"].move(x_pos-12, 2)

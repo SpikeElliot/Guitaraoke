@@ -1,8 +1,9 @@
 """Provides a GUI practice mode window QWidget subclass."""
 
+import time
 import numpy as np
-from PyQt5.QtCore import Qt, QTimer # pylint: disable=no-name-in-module
-from PyQt5.QtWidgets import ( # pylint: disable=no-name-in-module
+from PyQt6.QtCore import Qt, QTimer # pylint: disable=no-name-in-module
+from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QSlider
 )
@@ -61,53 +62,57 @@ class PracticeWindow(QWidget):
             f" / {time_format(self.audio.song.duration)}"
         )
 
-        score_label = QLabel()
-        score_label.setText("Score: 0")
-
         accuracy_label = QLabel()
-        accuracy_label.setText("Accuracy: 0%")
+        accuracy_label.setText(
+            f"Accuracy <font color='{gui_config['theme_colour']}'>0%</font>"
+        )
+
+        score_label = QLabel()
+        score_label.setText(
+            f"Score <font color='{gui_config['theme_colour']}'>0</font>"
+        )
 
         gamemode_label = QLabel()
-        gamemode_label.setText("PRACTICE")
+        gamemode_label.setText("Practice Mode")
 
         # Top row
 
-        song_info_top_row.addSpacing(int(gui_config["width"]*0.05))
+        song_info_top_row.addSpacing(int(gui_config["width"]*0.1))
 
         song_info_top_row.addWidget(
             gamemode_label,
-            alignment=Qt.AlignLeft
+            alignment=Qt.AlignmentFlag.AlignLeft
         )
 
         song_info_top_row.addWidget(
             artist_label,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         song_info_top_row.addWidget(
-            score_label,
-            alignment=Qt.AlignRight
+            accuracy_label,
+            alignment=Qt.AlignmentFlag.AlignRight
         )
 
-        song_info_top_row.addSpacing(int(gui_config["width"]*0.05))
+        song_info_top_row.addSpacing(int(gui_config["width"]*0.1))
 
         # Middle row
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.05))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.115))
 
         song_info_middle_row.addWidget(QLabel()) # Temporary
 
         song_info_middle_row.addWidget(
             title_label,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         song_info_middle_row.addWidget(
-            accuracy_label,
-            alignment=Qt.AlignRight
+            score_label,
+            alignment=Qt.AlignmentFlag.AlignRight
         )
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.05))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.115))
 
         # Bottom row
 
@@ -115,7 +120,7 @@ class PracticeWindow(QWidget):
 
         song_info_bottom_row.addWidget(
             duration_label,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         song_info_bottom_row.addStretch(1)
@@ -139,25 +144,33 @@ class PracticeWindow(QWidget):
         playhead.setObjectName("playhead")
         playhead.setFixedSize(3, waveform.height-4)
         playhead.move(0, 2)
-        playhead.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        playhead.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+        )
 
         # Loop overlay
         loop_overlay = QWidget(waveform)
         loop_overlay.setObjectName("loop_overlay")
-        loop_overlay.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        loop_overlay.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+        )
         loop_overlay.hide()
 
         # Left loop marker
         left_marker_img = QWidget(waveform)
         left_marker_img.setObjectName("left_marker_img")
-        left_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        left_marker_img.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+        )
         left_marker_img.resize(24, 24)
         left_marker_img.hide()
 
         # Right loop marker
         right_marker_img = QWidget(waveform)
         right_marker_img.setObjectName("right_marker_img")
-        right_marker_img.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        right_marker_img.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+        )
         right_marker_img.resize(24, 24)
         right_marker_img.hide()
 
@@ -177,7 +190,7 @@ class PracticeWindow(QWidget):
         guitar_vol_label.setText("Guitar Volume")
 
         # Guitar volume slider
-        guitar_vol_slider = QSlider(orientation=Qt.Horizontal)
+        guitar_vol_slider = QSlider(orientation=Qt.Orientation.Horizontal)
         guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
         guitar_vol_slider.setFixedWidth(int(waveform.width/2))
         guitar_vol_slider.setRange(0, 100)
@@ -245,21 +258,21 @@ class PracticeWindow(QWidget):
 
         controls_layout_top_row.addWidget( # "Guitar Volume" text label
             guitar_vol_label,
-            alignment=Qt.AlignRight
+            alignment=Qt.AlignmentFlag.AlignRight
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume slider
             guitar_vol_slider,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
         controls_layout_top_row.addSpacing(10)
 
         controls_layout_top_row.addWidget( # Guitar volume value label
             guitar_vol_val_label,
-            alignment=Qt.AlignLeft
+            alignment=Qt.AlignmentFlag.AlignLeft
         )
 
         # Bottom row
@@ -267,7 +280,7 @@ class PracticeWindow(QWidget):
         controls_layout_bottom_row.addWidget( # Count-in button
             count_in_button,
             0, 0,
-            alignment=Qt.AlignRight
+            alignment=Qt.AlignmentFlag.AlignRight
         )
 
         controls_layout_bottom_row.addWidget( # Count-in button
@@ -293,7 +306,7 @@ class PracticeWindow(QWidget):
         controls_layout_bottom_row.addWidget( # Loop button
             loop_button,
             0, 4,
-            alignment=Qt.AlignLeft
+            alignment=Qt.AlignmentFlag.AlignLeft
         )
 
         controls_layout_bottom_row.setHorizontalSpacing(20)
@@ -311,7 +324,7 @@ class PracticeWindow(QWidget):
         layout.addLayout(song_info_layout)
         layout.addWidget(
             waveform,
-            alignment=Qt.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
         layout.addLayout(controls_layout)
         self.setLayout(layout)
@@ -437,5 +450,9 @@ class PracticeWindow(QWidget):
     ) -> None:
         """Update GUI score information with new score data."""
         score, accuracy = data
-        self.widgets["score_label"].setText(f"Score: {score}")
-        self.widgets["accuracy_label"].setText(f"Accuracy: {accuracy:.1f}%")
+        self.widgets["score_label"].setText(
+            f"Score <font color='{gui_config['theme_colour']}'>{score}</font>"
+        )
+        self.widgets["accuracy_label"].setText(
+            f"Accuracy <font color='{gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
+        )
