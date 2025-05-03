@@ -1,17 +1,76 @@
 """Provides a GUI setup window QWidget subclass."""
 
 import os
+import csv
 from configparser import ConfigParser
-from pathlib import Path
 from PyQt6.QtCore import Qt, pyqtSignal # pylint: disable=no-name-in-module
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
-    QWidget, QVBoxLayout, QPushButton, QFileDialog, QComboBox, QLabel
+    QWidget, QDialog, QDialogButtonBox, QVBoxLayout, QPushButton, QLabel,
+    QFileDialog, QComboBox, QFormLayout, QLineEdit, QGroupBox
 )
 from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler
 from guitaraoke.utils import read_config, find_audio_devices
 
 gui_config = read_config("GUI")
 audio_config = read_config("Audio")
+
+class PopupWindow(QDialog):
+    """
+    A popup window that appears if a selected song does not have any
+    saved data.
+    """
+    send_set_song_data = pyqtSignal(tuple)
+    def __init__(self):
+        """The constructor for the PopupWindow class."""
+        super().__init__()
+
+        self.setWindowTitle("Set a song title and artist")
+        self.setFixedSize(300, 400)
+
+        self.widgets = self.set_components()
+
+    def set_components(self) -> None:
+        """Initialises all widgets and adds them to the window."""
+        form_group_box = QGroupBox("Set a song title and artist")
+        artist_line_edit = QLineEdit()
+        title_line_edit = QLineEdit()
+
+        form_layout = QFormLayout()
+        form_layout.addRow(QLabel("Title"), title_line_edit)
+        form_layout.addRow(QLabel("Artist"), artist_line_edit)
+        form_group_box.setLayout(form_layout)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.form_accepted)
+        button_box.rejected.connect(self.form_rejected)
+
+        layout = QVBoxLayout()
+        layout.addWidget(form_group_box)
+        layout.addWidget(button_box)
+        self.setLayout(layout)
+
+        return {
+            "form_group_box": form_group_box,
+            "title_line_edit": title_line_edit,
+            "artist_line_edit": artist_line_edit,
+            "button_box": button_box
+        }
+
+    def form_accepted(self) -> None:
+        """Send new title and artist to the setup window."""
+        title = self.widgets["title_line_edit"].text()
+        artist = self.widgets["artist_line_edit"].text()
+        self.send_set_song_data.emit((title, artist))
+        self.close()
+
+    def form_rejected(self) -> None:
+        """Send placeholder title and artist to the setup window."""
+        self.send_set_song_data.emit(("Set a song title", "Set an artist"))
+        self.close()
+
 
 class SetupWindow(QWidget):
     """The user setup window of the GUI application."""
@@ -20,6 +79,8 @@ class SetupWindow(QWidget):
     def __init__(self) -> None:
         """The constructor for the SetupWindow class."""
         super().__init__()
+        self.popup_window = None
+        self.song_filepath = None
 
         os.makedirs("./assets/audio", exist_ok=True)
 
@@ -111,20 +172,59 @@ class SetupWindow(QWidget):
             directory="./assets/audio",
             filter="WAV files (*.wav)"
         )[0]
-        if file_path:
-            self.load_audio(Path(file_path))
+        if not file_path:
+            return
 
-    def load_audio(self, audio_path: Path) -> None:
+        title, artist = None, None
+        self.song_filepath = file_path
+        with open("./data/saved_songs.csv", "r", encoding="utf-8") as data:
+            for song in csv.DictReader(data):
+                if song["path"] == self.song_filepath:
+                    title, artist = song["title"], song["artist"]
+                    break
+
+        # Check the song's artist and title already saved
+        if not None in (title, artist):
+            self.load_audio(title, artist)
+        else:
+            # Open popup window that allows the user to set the values
+            self.create_popup_window()
+
+    def create_popup_window(self) -> None:
+        """
+        Spawn a popup window when the user selects a song that has
+        no saved data.
+        """
+        self.popup_window = PopupWindow()
+        self.popup_window.show()
+        self.popup_window.send_set_song_data.connect(self.save_song_data)
+
+    def save_song_data(self, data: tuple[str, str]) -> None:
+        """
+        Write the submitted song title and artist from the popup
+        window to the saved_songs CSV file.
+        """
+        title, artist = data
+        print(title)
+        print(artist)
+        with open("./data/saved_songs.csv", "a", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=["path", "title", "artist"])
+            writer.writerow(
+                {"path": self.song_filepath, "title": title, "artist": artist}
+            )
+        self.load_audio(title, artist)
+
+    def load_audio(self, title: str, artist: str) -> None:
         """
         Initialise the AudioStreamHandler used in the practice mode
         from the selected audio file path.
         """
-        print(f"Loading '{audio_path}'...")
+        print(f"Loading '{self.song_filepath}'...")
         audio = AudioStreamHandler(
             LoadedAudio(
-                path=audio_path,
-                title="temp",
-                artist="temp"
+                path=self.song_filepath,
+                title=title,
+                artist=artist
             )
         )
         self.send_set_practice_window_signal.emit(audio)

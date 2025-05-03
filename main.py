@@ -34,7 +34,6 @@ class MainWindow(QMainWindow):
         self.setup_window.send_set_practice_window_signal.connect(
             self.create_practice_window
         )
-        self.window_stack.setCurrentWidget(self.setup_window)
         self.setCentralWidget(self.window_stack)
 
         self.set_styles()
