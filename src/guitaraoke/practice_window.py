@@ -64,7 +64,7 @@ class PracticeWindow(QWidget):
 
         accuracy_label = QLabel()
         accuracy_label.setText(
-            f"Accuracy <font color='{gui_config['theme_colour']}'>0%</font>"
+            f"Accuracy <font color='{gui_config['theme_colour']}'>0.0%</font>"
         )
 
         score_label = QLabel()
@@ -81,49 +81,62 @@ class PracticeWindow(QWidget):
 
         song_info_top_row.addWidget(
             gamemode_label,
-            alignment=Qt.AlignmentFlag.AlignLeft
+            alignment=Qt.AlignmentFlag.AlignRight
         )
+
+        song_info_top_row.addStretch()
 
         song_info_top_row.addWidget(
             artist_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
+        song_info_top_row.addStretch()
+
         song_info_top_row.addWidget(
             accuracy_label,
-            alignment=Qt.AlignmentFlag.AlignRight
+            alignment=Qt.AlignmentFlag.AlignLeft
         )
 
         song_info_top_row.addSpacing(int(gui_config["width"]*0.1))
 
         # Middle row
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.115))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.127))
 
-        song_info_middle_row.addWidget(QLabel()) # Temporary
+        song_info_middle_row.addWidget( # Temporary
+            QLabel(),
+            alignment=Qt.AlignmentFlag.AlignRight
+            )
+
+        song_info_middle_row.addStretch()
+
+        song_info_middle_row.addSpacing(50)
 
         song_info_middle_row.addWidget(
             title_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
+        song_info_middle_row.addStretch()
+
         song_info_middle_row.addWidget(
             score_label,
-            alignment=Qt.AlignmentFlag.AlignRight
+            alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.115))
+        song_info_middle_row.addSpacing(int(gui_config["width"]*0.127))
 
         # Bottom row
 
-        song_info_bottom_row.addStretch(1)
+        song_info_bottom_row.addStretch()
 
         song_info_bottom_row.addWidget(
             duration_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        song_info_bottom_row.addStretch(1)
+        song_info_bottom_row.addStretch()
 
         song_info_layout.addLayout(song_info_top_row)
         song_info_layout.addLayout(song_info_middle_row)
@@ -180,36 +193,39 @@ class PracticeWindow(QWidget):
 
         # Audio Playback Controls
 
-        # Layouts
-        controls_layout = QVBoxLayout()
-        controls_layout_top_row = QHBoxLayout()
-        controls_layout_bottom_row = QGridLayout()
-
         # Guitar volume label
         guitar_vol_label = QLabel()
-        guitar_vol_label.setText("Guitar Volume")
+        guitar_vol_label.setObjectName("guitar_vol_label")
+        guitar_vol_label.setText("Guitar Track")
+
+        # Volume symbol
+        volume_image = QWidget()
+        volume_image.setObjectName("volume_image")
+        volume_image.setFixedSize(24, 24)
 
         # Guitar volume slider
         guitar_vol_slider = QSlider(orientation=Qt.Orientation.Horizontal)
+        guitar_vol_slider.setObjectName("guitar_vol_slider")
         guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
-        guitar_vol_slider.setFixedWidth(int(waveform.width/2))
+        guitar_vol_slider.setFixedWidth(400)
         guitar_vol_slider.setRange(0, 100)
         guitar_vol_slider.setPageStep(5)
         guitar_vol_slider.setSliderPosition(100)
 
         # Guitar volume value label
         guitar_vol_val_label = QLabel()
+        guitar_vol_val_label.setObjectName("guitar_vol_val_label")
         guitar_vol_val_label.setText("100%")
 
         # Buttons
-        button_width = 100
+        button_width = 80
+        button_height = 64
 
         # Count-in toggle button
         count_in_button = QPushButton()
         count_in_button.setObjectName("count_in_button")
-        count_in_button.setText("Count-in")
         count_in_button.setToolTip("Toggle metronome count-in.")
-        count_in_button.setFixedWidth(button_width)
+        count_in_button.setFixedSize(button_width, button_height)
 
         # Song count-in timer
         count_in_timer = QTimer()
@@ -217,42 +233,42 @@ class PracticeWindow(QWidget):
         # Skip back button
         skip_back_button = QPushButton()
         skip_back_button.setObjectName("skip_back_button")
-        skip_back_button.setText("Skip back")
         skip_back_button.setToolTip("Skip back 5 seconds.")
-        skip_back_button.setFixedWidth(button_width)
+        skip_back_button.setFixedSize(button_width, button_height)
 
         # Play button
         play_button = QPushButton()
         play_button.setObjectName("play_button")
-        play_button.setText("Play")
         play_button.setToolTip("Start or resume song playback.")
-        play_button.setFixedWidth(button_width)
+        play_button.setFixedSize(button_width, button_height)
 
         # Pause button
         pause_button = QPushButton()
         pause_button.setObjectName("pause_button")
-        pause_button.setText("Pause")
         pause_button.setToolTip("Pause song playback.")
         pause_button.hide()
-        pause_button.setFixedWidth(button_width)
+        pause_button.setFixedSize(button_width, button_height)
 
         # Skip forward button
         skip_forward_button = QPushButton()
         skip_forward_button.setObjectName("skip_forward_button")
-        skip_forward_button.setText("Skip forward")
         skip_forward_button.setToolTip("Skip forward 5 seconds.")
-        skip_forward_button.setFixedWidth(button_width)
+        skip_forward_button.setFixedSize(button_width, button_height)
 
         # Loop toggle button
         loop_button = QPushButton()
         loop_button.setObjectName("loop_button")
-        loop_button.setText("Loop")
         loop_button.setToolTip(
             "Toggle section looping.<br><br> \
             <b>shift+mouse1</b> sets the left loop marker.<br> \
             <b>shift+mouse2</b> sets the right loop marker."
         )
-        loop_button.setFixedWidth(button_width)
+        loop_button.setFixedSize(button_width, button_height)
+
+        # Layouts
+        controls_layout = QVBoxLayout()
+        controls_layout_top_row = QHBoxLayout()
+        controls_layout_bottom_row = QGridLayout()
 
         # Top row
 
@@ -261,19 +277,19 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignRight
         )
 
-        controls_layout_top_row.addSpacing(10)
+        controls_layout_top_row.addWidget(volume_image) # Volume symbol
 
         controls_layout_top_row.addWidget( # Guitar volume slider
             guitar_vol_slider,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        controls_layout_top_row.addSpacing(10)
-
         controls_layout_top_row.addWidget( # Guitar volume value label
             guitar_vol_val_label,
             alignment=Qt.AlignmentFlag.AlignLeft
         )
+
+        controls_layout_top_row.addSpacing(30)
 
         # Bottom row
 
@@ -283,7 +299,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignRight
         )
 
-        controls_layout_bottom_row.addWidget( # Count-in button
+        controls_layout_bottom_row.addWidget( # Skip back button
             skip_back_button,
             0, 1
         )
@@ -298,7 +314,7 @@ class PracticeWindow(QWidget):
             0, 2
         )
 
-        controls_layout_bottom_row.addWidget( # Count-in button
+        controls_layout_bottom_row.addWidget( # Skip forward button
             skip_forward_button,
             0, 3
         )
@@ -309,7 +325,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        controls_layout_bottom_row.setHorizontalSpacing(20)
+        controls_layout_bottom_row.setHorizontalSpacing(0)
         controls_layout_bottom_row.setContentsMargins(
             int(gui_config["width"]*0.05), int(gui_config["height"]*0.05),
             int(gui_config["width"]*0.05), int(gui_config["height"]*0.05)
@@ -355,14 +371,25 @@ class PracticeWindow(QWidget):
         }
 
     def set_styles(self) -> dict[str]:
-        """Sets the CSS styling of the window and widgets."""
-        with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
-            # Read main stylesheet and set main window style
-            _style = f.read()
-            self.setStyleSheet(_style)
+        """Create active and inactive styles for widgets."""
 
-        active_button_style = f"background-color: {gui_config['theme_colour']};"
-        inactive_button_style = f"background-color: {gui_config['inactive_colour']};"
+        active_loop_button_style = """
+            border-image: url('./assets/images/loop_button.png');
+            background-color: transparent;
+            """
+        inactive_loop_button_style = """
+            border-image: url('./assets/images/loop_button_inactive.png');
+            background-color: transparent;
+            """
+
+        active_count_in_button_style = """
+            border-image: url('./assets/images/count_in_button.png');
+            background-color: transparent;
+            """
+        inactive_count_in_button_style = """
+            border-image: url('./assets/images/count_in_button_inactive.png');
+            background-color: transparent;
+            """
 
         active_marker_style = """
             border-image: url('./assets/images/loop_marker.png');
@@ -374,8 +401,10 @@ class PracticeWindow(QWidget):
             """
 
         return {
-            "active_button": active_button_style,
-            "inactive_button": inactive_button_style,
+            "active_loop_button": active_loop_button_style,
+            "inactive_loop_button": inactive_loop_button_style,
+            "active_count_in_button": active_count_in_button_style,
+            "inactive_count_in_button": inactive_count_in_button_style,
             "active_marker": active_marker_style,
             "inactive_marker": inactive_marker_style
         }

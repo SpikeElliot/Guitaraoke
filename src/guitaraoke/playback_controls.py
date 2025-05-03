@@ -90,9 +90,9 @@ class PlaybackControls(QObject):
         self.audio.metronome["count_in_enabled"] = (
             not self.audio.metronome["count_in_enabled"])
         if self.audio.metronome["count_in_enabled"]:
-            self.widgets["count_in_button"].setStyleSheet(self.styles["active_button"])
+            self.widgets["count_in_button"].setStyleSheet(self.styles["active_count_in_button"])
         else:
-            self.widgets["count_in_button"].setStyleSheet(self.styles["inactive_button"])
+            self.widgets["count_in_button"].setStyleSheet(self.styles["inactive_count_in_button"])
 
     def count_in(self) -> None:
         """Starts audio processes when count-in timer finished."""
@@ -167,12 +167,12 @@ class PlaybackControls(QObject):
         self.audio.looping = not self.audio.looping
         if self.audio.looping:
             self.widgets["loop_overlay"].show()
-            self.widgets["loop_button"].setStyleSheet(self.styles["active_button"])
+            self.widgets["loop_button"].setStyleSheet(self.styles["active_loop_button"])
             self.widgets["left_marker_img"].setStyleSheet(self.styles["active_marker"])
             self.widgets["right_marker_img"].setStyleSheet(self.styles["active_marker"])
         else:
             self.widgets["loop_overlay"].hide()
-            self.widgets["loop_button"].setStyleSheet(self.styles["inactive_button"])
+            self.widgets["loop_button"].setStyleSheet(self.styles["inactive_loop_button"])
             self.widgets["left_marker_img"].setStyleSheet(self.styles["inactive_marker"])
             self.widgets["right_marker_img"].setStyleSheet(self.styles["inactive_marker"])
 
@@ -209,7 +209,7 @@ class PlaybackControls(QObject):
             * self.audio.song.duration
             * audio_config["rate"]
         ))
-        time_constraint = 2 * audio_config["rate"] # Minimum loop time of 2 secs
+        time_constraint = 1 * audio_config["rate"] # Minimum loop time of 1 sec
 
         # Update left marker when left mouse pressed
         if button == Qt.MouseButton.LeftButton:
@@ -270,7 +270,7 @@ class PlaybackControls(QObject):
         # Set active styles for loop markers and button
         self.widgets["left_marker_img"].setStyleSheet(self.styles["active_marker"])
         self.widgets["right_marker_img"].setStyleSheet(self.styles["active_marker"])
-        self.widgets["loop_button"].setStyleSheet(self.styles["active_button"])
+        self.widgets["loop_button"].setStyleSheet(self.styles["active_loop_button"])
 
         # Show the loop overlay widget when its area has been created by
         # the left and right markers

@@ -29,8 +29,6 @@ class SetupWindow(QWidget):
 
         self.set_connections()
 
-        self.set_styles()
-
     def set_components(self) -> dict[str]:
         """Initialises all widgets and adds them to the window."""
         title_label = QLabel("Guitaraoke")
@@ -90,13 +88,6 @@ class SetupWindow(QWidget):
             "input_devices_combobox": input_devices_combobox,
             "select_song_button": select_song_button,
         }
-
-    def set_styles(self) -> dict[str]:
-        """Sets the CSS styling of the window and widgets."""
-        with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
-            # Read main stylesheet and set main window style
-            _style = f.read()
-            self.setStyleSheet(_style)
 
     def set_connections(self) -> None:
         """

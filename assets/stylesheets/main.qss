@@ -13,14 +13,27 @@ QLabel#app_title {
     font-size: 36px;
 }
 
+QLabel#guitar_vol_label, QLabel#guitar_vol_val_label {
+    padding-bottom: 4px;
+}
+
+QLabel#guitar_vol_val_label {
+    margin-right: 50px;
+}
+
+QWidget#volume_image {
+    border-image: url("./assets/images/volume_symbol.png");
+    background-color: transparent;
+}
+
 QSlider::groove::horizontal {
-    background: rgb(0,0,0);
+    background-color: rgb(0,0,0);
     height: 22px;
     border-radius: 10px;
 }
 
 QSlider::handle::horizontal {
-    background: rgb(255,255,255);
+    background-color: rgb(255,255,255);
     width: 20px;
     height: 20px;
     border-radius: 10px;
@@ -50,7 +63,6 @@ QWidget#left_marker_img, QLabel#right_marker_img {
 QPushButton {
     color: rgb(255,255,255);
     background-color: #0070df;
-    border-radius: 16px;
 }
 
 QPushButton#select_song {
@@ -58,8 +70,35 @@ QPushButton#select_song {
     padding: 8px 20px;
 }
 
+QPushButton#count_in_button {
+    border-image: url("./assets/images/count_in_button.png");
+    background-color: transparent;
+}
+
+QPushButton#skip_back_button {
+    border-image: url("./assets/images/skip_back_button.png");
+    background-color: transparent;
+}
+
+QPushButton#play_button {
+    border-image: url("./assets/images/play_button.png");
+    background-color: transparent;
+}
+
+QPushButton#pause_button {
+    border-image: url("./assets/images/pause_button.png");
+    background-color: transparent;
+}
+
+QPushButton#skip_forward_button {
+    border-image: url("./assets/images/skip_forward_button.png");
+}
+
 QPushButton#loop_button {
-    background-color: #4e759c;
+    border-image: url("./assets/images/loop_button_inactive.png");
+    background-color: transparent;
+}
+
 QComboBox {
     background-color: #bbbbbb;
     border-radius: 4px;
