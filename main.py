@@ -2,9 +2,9 @@
 
 import sys
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
-    QApplication, QMainWindow, QStackedWidget
+    QApplication, QMainWindow, QStackedWidget, QSplashScreen
 )
-from PyQt6.QtGui import QFontDatabase # pylint: disable=no-name-in-module
+from PyQt6.QtGui import QFontDatabase, QIcon, QPixmap # pylint: disable=no-name-in-module
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.practice_window import PracticeWindow
 from guitaraoke.setup_window import SetupWindow
@@ -21,6 +21,8 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.scorer = ScoringSystem()
+
+        self.setWindowIcon(QIcon("./assets/images/guitar_pick.png"))
 
         self.setWindowTitle("Guitaraoke")
 
@@ -59,8 +61,15 @@ def main() -> None:
     """Run the application."""
     app = QApplication(sys.argv)
     QFontDatabase.addApplicationFont("./assets/fonts/Roboto-Regular.ttf")
+
+    splash_pixmap = QPixmap("./assets/images/splash_screen.png")
+    splash_screen = QSplashScreen(splash_pixmap)
+    splash_screen.show()
+
     main_window = MainWindow()
     main_window.show()
+
+    splash_screen.finish(main_window)
     sys.exit(app_exec(app, main_window))
 
 

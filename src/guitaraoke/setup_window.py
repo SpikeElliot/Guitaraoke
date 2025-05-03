@@ -6,7 +6,7 @@ from configparser import ConfigParser
 from PyQt6.QtCore import Qt, pyqtSignal # pylint: disable=no-name-in-module
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QDialog, QDialogButtonBox, QVBoxLayout, QPushButton, QLabel,
-    QFileDialog, QComboBox, QFormLayout, QLineEdit, QGroupBox
+    QFileDialog, QComboBox, QFormLayout, QLineEdit, QGroupBox, QHBoxLayout
 )
 from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler
 from guitaraoke.utils import read_config, find_audio_devices
@@ -93,7 +93,11 @@ class SetupWindow(QWidget):
     def set_components(self) -> dict[str]:
         """Initialises all widgets and adds them to the window."""
         title_label = QLabel("Guitaraoke")
-        title_label.setObjectName("app_title")
+        title_label.setObjectName("setupscreen_title")
+
+        logo = QWidget()
+        logo.setObjectName("setupscreen_icon")
+        logo.setFixedSize(36, 36)
 
         combobox_label = QLabel("Input Device:")
 
@@ -113,10 +117,23 @@ class SetupWindow(QWidget):
 
         layout.addSpacing(int(gui_config["height"] * 0.1))
 
-        layout.addWidget(
+        logo_layout = QHBoxLayout()
+
+        logo_layout.addStretch()
+
+        logo_layout.addWidget(
+            logo,
+            alignment=Qt.AlignmentFlag.AlignRight
+        )
+
+        logo_layout.addWidget(
             title_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
+            alignment=Qt.AlignmentFlag.AlignLeft
             )
+
+        logo_layout.addStretch()
+
+        layout.addLayout(logo_layout)
 
         layout.addStretch(1)
 

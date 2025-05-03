@@ -8,9 +8,14 @@ QWidget {
     font-family: Roboto-Regular, sans-serif;
 }
 
-QLabel#app_title {
+QWidget#setupscreen_icon {
+    border-image: url("./assets/images/guitar_pick_small.png");
+    background-color: transparent;
+}
+
+QLabel#setupscreen_title {
     color: #0070df;
-    font-size: 36px;
+    font-size: 42px;
 }
 
 QLabel#guitar_vol_label, QLabel#guitar_vol_val_label {
