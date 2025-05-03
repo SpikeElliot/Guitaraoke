@@ -28,6 +28,7 @@ class PracticeWindow(QWidget):
 
         self.audio = audio
         self.scorer = scorer
+        self.perf_time_start = None
 
         self.widgets = self.set_components()
 
@@ -464,13 +465,13 @@ class PracticeWindow(QWidget):
 
     def receive_new_input_audio(
         self,
-        data: tuple[np.ndarray, int, dict[int, list]]
+        data: tuple[np.ndarray, int, dict[int, list], float]
     ) -> None:
         """
         Schedule the process_recording method to be called when a new
         audio input buffer received.
         """
-        buffer, position, pitches = data
+        buffer, position, pitches, self.perf_time_start = data
         self.scorer.submit_process_recording(buffer, position, pitches)
 
     def receive_new_score_data(
@@ -485,3 +486,5 @@ class PracticeWindow(QWidget):
         self.widgets["accuracy_label"].setText(
             f"Accuracy <font color='{gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
         )
+        perf_time_end = time.perf_counter()
+        print(f"\033[92mElapsed scoring time: {perf_time_end-self.perf_time_start}\033[0m")

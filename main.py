@@ -66,6 +66,8 @@ def main() -> None:
 
 def app_exec(app: QApplication, window: MainWindow) -> None:
     """End all processes when the application's window is closed."""
+    if window.practice_window:
+        window.practice_window.audio.abort_stream()
     app.exec()
     window.scorer.shutdown_processes()
 

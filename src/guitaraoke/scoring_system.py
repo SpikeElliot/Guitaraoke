@@ -308,15 +308,15 @@ def process_recording(
         )
 
         # TESTING
-        print("USER PITCHES:\n")
-        for k, v in user_pitches.items():
-            if v:
-                print(f"{k}: {v}")
+        # print("USER PITCHES:\n")
+        # for k, v in user_pitches.items():
+        #     if v:
+        #         print(f"{k}: {v}")
 
-        print("\nSONG PITCHES:\n")
-        for k, v in preprocessed_song_pitches.items():
-            if v:
-                print(f"{k}: {v}")
+        # print("\nSONG PITCHES:\n")
+        # for k, v in preprocessed_song_pitches.items():
+        #     if v:
+        #         print(f"{k}: {v}")
 
         # Perform scoring
         score_data = compare_pitches(

@@ -10,6 +10,7 @@ AudioStreamHandler()
     Handle audio I/O streaming and playback functionality.
 """
 
+import time
 from pathlib import Path
 import librosa
 import numpy as np
@@ -222,6 +223,8 @@ class AudioStreamHandler(QObject):
         if self._ended:
             self._ended = False
         self._position = int(position * self.config["rate"])
+        # Reset buffers when audio skipped
+        self.zero_buffers()
 
     def start(self) -> None:
         """Play or unpause audio stream."""
@@ -231,6 +234,8 @@ class AudioStreamHandler(QObject):
             self._ended = False
         self._paused = False
         self._stream.start()
+        # Reset buffers when audio started
+        self.zero_buffers()
 
     def stop(self) -> None:
         """Pause audio stream."""
@@ -238,9 +243,10 @@ class AudioStreamHandler(QObject):
         if not self._paused:
             self._paused = True
         self._stream.stop()
-        # Reset buffers when streaming ends
-        self._in_buffer = np.zeros(self.config["rec_buffer_size"])
-        self._in_overlap = np.ndarray(0)
+
+    def abort_stream(self) -> None:
+        """Immediately terminate audio processing."""
+        self._stream.abort()
 
     def _callback(self, indata, outdata, frames, t, status) -> None: # pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
         """Callback function for the sounddevice Stream."""
@@ -254,6 +260,7 @@ class AudioStreamHandler(QObject):
         )
 
         if self._in_overlap.size >= self.config["rec_overlap_window_size"]:
+            perf_time_start = time.perf_counter()
             overlap_size = self.config["rec_overlap_window_size"]
             # Add new overlap buffered data to main buffer, and push main
             # buffer to the left by rec_overlap_window_size
@@ -281,7 +288,9 @@ class AudioStreamHandler(QObject):
                 slice_start=slice_start,
                 slice_end=self._position/self.config["rate"],
             )
-            self.send_buffer.emit((self._in_buffer.copy(), self._position, pitches))
+            self.send_buffer.emit(
+                (self._in_buffer.copy(), self._position, pitches, perf_time_start)
+            )
 
         # OUTPUT HANDLING
 
@@ -354,3 +363,8 @@ class AudioStreamHandler(QObject):
             and self._position < self.loop_markers[1])):
             return True
         return False
+
+    def zero_buffers(self) -> None:
+        """Reset buffers when audio is restarted or skipped."""
+        self._in_buffer = np.zeros(self.config["rec_buffer_size"])
+        self._in_overlap = np.ndarray(0)
