@@ -7,7 +7,7 @@ import librosa
 import numpy as np
 import pyqtgraph as pg
 from guitaraoke.utils import read_config
-from guitaraoke.audio_streaming import LoadedAudio
+from guitaraoke.audio_streaming import LoadedAudio # pylint: disable=no-name-in-module
 
 config = read_config("Audio")
 

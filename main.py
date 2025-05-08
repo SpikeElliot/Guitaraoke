@@ -1,18 +1,22 @@
 """The main file of the application."""
 
 import sys
+import multiprocessing
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
-    QApplication, QMainWindow, QStackedWidget, QSplashScreen
+    QApplication, QMainWindow, QStackedWidget
 )
-from PyQt6.QtGui import QFontDatabase, QIcon, QPixmap # pylint: disable=no-name-in-module
+from PyQt6.QtGui import QFontDatabase, QIcon # pylint: disable=no-name-in-module
+from PyQt6.QtCore import QDir # pylint: disable=no-name-in-module
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.practice_window import PracticeWindow
 from guitaraoke.setup_window import SetupWindow
 from guitaraoke.audio_streaming import AudioStreamHandler
 from guitaraoke.utils import read_config
+from guitaraoke.preload import preload
 
+preload() # Perform preloading
 gui_config = read_config("GUI")
-audio_config = read_config("Audio")
+dir_config = read_config("Directories")
 
 class MainWindow(QMainWindow):
     """The main window of the GUI application."""
@@ -22,7 +26,7 @@ class MainWindow(QMainWindow):
 
         self.scorer = ScoringSystem()
 
-        self.setWindowIcon(QIcon("./assets/images/guitar_pick.png"))
+        self.setWindowIcon(QIcon(f"{dir_config['assets_dir']}/images/guitar_pick.png"))
 
         self.setWindowTitle("Guitaraoke")
 
@@ -42,7 +46,7 @@ class MainWindow(QMainWindow):
 
     def set_styles(self) -> dict[str]:
         """Sets the CSS styling of the window and widgets."""
-        with open("./assets/stylesheets/main.qss", "r", encoding="utf-8") as f:
+        with open(f"{dir_config['assets_dir']}/stylesheets/main.qss", "r", encoding="utf-8") as f:
             # Read main stylesheet and set main window style
             _style = f.read()
             self.setStyleSheet(_style)
@@ -59,17 +63,24 @@ class MainWindow(QMainWindow):
 
 def main() -> None:
     """Run the application."""
-    app = QApplication(sys.argv)
-    QFontDatabase.addApplicationFont("./assets/fonts/Roboto-Regular.ttf")
 
-    splash_pixmap = QPixmap("./assets/images/splash_screen.png")
-    splash_screen = QSplashScreen(splash_pixmap)
-    splash_screen.show()
+    # Add path to find images in stylesheet
+    QDir.addSearchPath("images", f"{dir_config['assets_dir']}/images")
+
+    # Initialise the application and add the font
+    app = QApplication(sys.argv)
+    QFontDatabase.addApplicationFont(f"{dir_config['assets_dir']}/fonts/Roboto-Regular.ttf")
 
     main_window = MainWindow()
     main_window.show()
 
-    splash_screen.finish(main_window)
+    # If running as an executable, close splash screen when GUI loaded
+    try:
+        import pyi_splash # pylint: disable=import-outside-toplevel
+        pyi_splash.close()
+    except ImportError:
+        pass
+
     sys.exit(app_exec(app, main_window))
 
 
@@ -82,4 +93,6 @@ def app_exec(app: QApplication, window: MainWindow) -> None:
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support() # Pyinstaller fix
+
     main()

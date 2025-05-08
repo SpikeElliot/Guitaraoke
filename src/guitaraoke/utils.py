@@ -36,31 +36,36 @@ import sounddevice as sd
 
 def read_config(section: str) -> dict[str]:
     """Get Audio or GUI config variables."""
-    if section not in ("Audio", "GUI"):
-        raise ValueError("Only config sections are: Audio, GUI")
+    if section not in ("Audio", "GUI", "Directories"):
+        raise ValueError("Only config sections are: Audio, GUI, Directories")
 
     parser = ConfigParser()
-    parser.read("./config.ini")
+    parser.read("config.ini")
 
     if section == "Audio":
         config_vals = {
             "channels": parser.getint(section, "channels"),
             "rate": parser.getint(section, "rate"),
             "dtype": parser.get(section, "dtype"),
-            "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
-            "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
             "rec_buffer_size": parser.getint(section, "rec_buffer_size"),
             "rec_overlap_window_size": parser.getint(section, "rec_overlap_window_size"),
             "input_device_index": parser.getint(section, "input_device_index"),
             "in_latency": parser.getfloat(section, "in_latency"),
             "out_latency": parser.getfloat(section, "out_latency")
         }
-    else:
+    elif section == "GUI":
         config_vals = {
             "width": parser.getint(section, "width"),
             "height": parser.getint(section, "height"),
             "theme_colour": parser.get(section, "theme_colour"),
             "inactive_colour": parser.get(section, "inactive_colour")
+        }
+    else:
+        config_vals = {
+            "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
+            "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
+            "assets_dir": parser.get(section, "assets_dir"),
+            "data_dir": parser.get(section, "data_dir"),
         }
     return config_vals
 

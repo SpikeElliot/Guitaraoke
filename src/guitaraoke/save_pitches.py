@@ -8,7 +8,7 @@ from basic_pitch.inference import predict_and_save
 from guitaraoke.utils import read_config
 from guitaraoke.preload import PITCH_MODEL
 
-config = read_config("Audio")
+config = read_config("Directories")
 
 def save_pitches(
     path: str | Path,

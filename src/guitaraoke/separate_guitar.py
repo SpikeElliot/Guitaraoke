@@ -7,7 +7,7 @@ from pathlib import Path
 import demucs.separate
 from guitaraoke.utils import read_config
 
-config = read_config("Audio")
+config = read_config("Directories")
 
 def separate_guitar(path: str | Path) -> tuple[Path, Path]:
     """

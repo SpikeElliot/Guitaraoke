@@ -15,6 +15,7 @@ from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
 gui_config = read_config("GUI")
 audio_config = read_config("Audio")
+dir_config = read_config("Directories")
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
@@ -375,29 +376,30 @@ class PracticeWindow(QWidget):
         """Create active and inactive styles for widgets."""
 
         active_loop_button_style = """
-            border-image: url('./assets/images/loop_button.png');
+            border-image: url('images:loop_button.png');
             background-color: transparent;
             """
+        print(active_loop_button_style)
         inactive_loop_button_style = """
-            border-image: url('./assets/images/loop_button_inactive.png');
+            border-image: url('images:loop_button_inactive.png');
             background-color: transparent;
             """
 
         active_count_in_button_style = """
-            border-image: url('./assets/images/count_in_button.png');
+            border-image: url('images:count_in_button.png');
             background-color: transparent;
             """
         inactive_count_in_button_style = """
-            border-image: url('./assets/images/count_in_button_inactive.png');
+            border-image: url('images:count_in_button_inactive.png');
             background-color: transparent;
             """
 
         active_marker_style = """
-            border-image: url('./assets/images/loop_marker.png');
+            border-image: url('images:loop_marker.png');
             background-color: transparent;
             """
         inactive_marker_style = """
-            border-image: url('./assets/images/loop_marker_inactive.png');
+            border-image: url('images:loop_marker_inactive.png');
             background-color: transparent;
             """
 

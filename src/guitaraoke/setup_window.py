@@ -8,11 +8,12 @@ from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QDialog, QDialogButtonBox, QVBoxLayout, QPushButton, QLabel,
     QFileDialog, QComboBox, QFormLayout, QLineEdit, QGroupBox, QHBoxLayout
 )
-from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler
+from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler # pylint: disable=no-name-in-module
 from guitaraoke.utils import read_config, find_audio_devices
 
 gui_config = read_config("GUI")
 audio_config = read_config("Audio")
+dir_config = read_config("Directories")
 
 class PopupWindow(QDialog):
     """
@@ -81,8 +82,6 @@ class SetupWindow(QWidget):
         super().__init__()
         self.popup_window = None
         self.song_filepath = None
-
-        os.makedirs("./assets/audio", exist_ok=True)
 
         self.in_devices = find_audio_devices()[0]
 
@@ -186,7 +185,7 @@ class SetupWindow(QWidget):
         file_path = QFileDialog.getOpenFileName(
             parent=self,
             caption="Select Audio File",
-            directory="./assets/audio",
+            directory=os.path.abspath(os.sep),
             filter="WAV files (*.wav)"
         )[0]
         if not file_path:
@@ -194,7 +193,7 @@ class SetupWindow(QWidget):
 
         title, artist = None, None
         self.song_filepath = file_path
-        with open("./data/saved_songs.csv", "r", encoding="utf-8") as data:
+        with open(f"{dir_config['data_dir']}/saved_songs.csv", "r", encoding="utf-8") as data:
             for song in csv.DictReader(data):
                 if song["path"] == self.song_filepath:
                     title, artist = song["title"], song["artist"]
@@ -224,7 +223,7 @@ class SetupWindow(QWidget):
         title, artist = data
         print(title)
         print(artist)
-        with open("./data/saved_songs.csv", "a", encoding="utf-8") as file:
+        with open(f"{dir_config['data_dir']}/saved_songs.csv", "a", encoding="utf-8") as file:
             writer = csv.DictWriter(file, fieldnames=["path", "title", "artist"])
             writer.writerow(
                 {"path": self.song_filepath, "title": title, "artist": artist}

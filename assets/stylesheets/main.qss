@@ -9,7 +9,7 @@ QWidget {
 }
 
 QWidget#setupscreen_icon {
-    border-image: url("./assets/images/guitar_pick_small.png");
+    border-image: url(images:guitar_pick_small.png);
     background-color: transparent;
 }
 
@@ -27,7 +27,7 @@ QLabel#guitar_vol_val_label {
 }
 
 QWidget#volume_image {
-    border-image: url("./assets/images/volume_symbol.png");
+    border-image: url(images:volume_symbol.png);
     background-color: transparent;
 }
 
@@ -61,7 +61,7 @@ QWidget#loop_overlay {
 }
 
 QWidget#left_marker_img, QLabel#right_marker_img {
-    border-image: url("./assets/images/loop_marker_inactive.png");
+    border-image: url(images:loop_marker_inactive.png);
     background-color: transparent;
 }
 
@@ -76,31 +76,31 @@ QPushButton#select_song {
 }
 
 QPushButton#count_in_button {
-    border-image: url("./assets/images/count_in_button.png");
+    border-image: url(images:count_in_button.png);
     background-color: transparent;
 }
 
 QPushButton#skip_back_button {
-    border-image: url("./assets/images/skip_back_button.png");
+    border-image: url(images:skip_back_button.png);
     background-color: transparent;
 }
 
 QPushButton#play_button {
-    border-image: url("./assets/images/play_button.png");
+    border-image: url(images:play_button.png);
     background-color: transparent;
 }
 
 QPushButton#pause_button {
-    border-image: url("./assets/images/pause_button.png");
+    border-image: url(images:pause_button.png);
     background-color: transparent;
 }
 
 QPushButton#skip_forward_button {
-    border-image: url("./assets/images/skip_forward_button.png");
+    border-image: url(images:skip_forward_button.png);
 }
 
 QPushButton#loop_button {
-    border-image: url("./assets/images/loop_button_inactive.png");
+    border-image: url(images:loop_button_inactive.png);
     background-color: transparent;
 }
 
@@ -115,7 +115,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-    image: url("./assets/images/dropdown_arrow.png");
+    image: url(images:dropdown_arrow.png);
     width: 12px;
     height: 12px;
     margin-right: 20px;

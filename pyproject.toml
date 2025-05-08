@@ -13,10 +13,13 @@ dependencies = [
     "sounddevice", 
     "librosa", 
     "demucs", 
-    "basic_pitch", 
+    "torch==2.1.2+cu118",
+    "torchaudio==2.1.2+cu118",
+    "tensorflow==2.15.0",
+    "basic-pitch[tf]", 
     "scipy"
 ]
-requires-python = "==3.11.11"
+requires-python = "==3.11.12"
 description = "A guitar karaoke app with real-time performance feedback to help users learn to play new songs."
 authors = [{name = "Spike Elliot"}]
 license = {text = "MIT"}

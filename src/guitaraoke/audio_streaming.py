@@ -43,7 +43,8 @@ class LoadedAudio():
     duration : float
         The length of the song in seconds.
     """
-    config = read_config("Audio")
+    audio_config = read_config("Audio")
+    dir_config = read_config("Directories")
 
     def __init__(
         self,
@@ -74,7 +75,7 @@ class LoadedAudio():
         (self.pitches, self.guitar_data,
          self.no_guitar_data) = self._get_audio_data(path)
         self.bpm, self.first_beat = self._get_tempo_data()
-        self.duration = len(self.guitar_data) / self.config["rate"] # In secs
+        self.duration = len(self.guitar_data) / self.audio_config["rate"] # In secs
 
     def _get_audio_data(
         self,
@@ -84,7 +85,7 @@ class LoadedAudio():
         Load a song's predicted pitches DataFrame and its separated
         audio time series (guitar_data and no_guitar_data).
         """
-        audio_dir = Path(self.config["sep_tracks_dir"]) / self.metadata["filename"]
+        audio_dir = Path(self.dir_config["sep_tracks_dir"]) / self.metadata["filename"]
         guitar_path = audio_dir / "guitar.wav"
         no_guitar_path = audio_dir / "no_guitar.wav"
 
@@ -96,8 +97,8 @@ class LoadedAudio():
         pitches = csv_to_pitches_dataframe(pitches_path)
 
         # Get guitar and no_guitar tracks' audio time series
-        guitar_data = librosa.load(guitar_path, sr=self.config["rate"])[0]
-        no_guitar_data = librosa.load(no_guitar_path, sr=self.config["rate"])[0]
+        guitar_data = librosa.load(guitar_path, sr=self.audio_config["rate"])[0]
+        no_guitar_data = librosa.load(no_guitar_path, sr=self.audio_config["rate"])[0]
 
         return pitches, guitar_data, no_guitar_data
 
@@ -108,7 +109,7 @@ class LoadedAudio():
         """
         tempo, beats = librosa.beat.beat_track(
             y=self.guitar_data + self.no_guitar_data, # Full mix
-            sr=self.config["rate"]
+            sr=self.audio_config["rate"]
         )
         bpm = tempo[0]
         first_beat = librosa.frames_to_time(beats[0]) * 1000 # In ms
@@ -144,7 +145,8 @@ class AudioStreamHandler(QObject):
         The user's performance data: score, notes hit, total notes, and
         accuracy.
     """
-    config = read_config("Audio")
+    audio_config = read_config("Audio")
+    dir_config = read_config("Directories")
 
     send_buffer = pyqtSignal(tuple)
 
@@ -154,7 +156,7 @@ class AudioStreamHandler(QObject):
         self.song = song
 
         # Input variables
-        self._in_buffer = np.zeros(self.config["rec_buffer_size"]) # Input audio buffer
+        self._in_buffer = np.zeros(self.audio_config["rec_buffer_size"]) # Input audio buffer
         self._in_overlap = np.ndarray(0) # Input audio overlap window
 
         # Playback data
@@ -167,7 +169,10 @@ class AudioStreamHandler(QObject):
 
         # Metronome data
         self.metronome = {
-            "audio_data": librosa.load("./assets/audio/metronome.wav", sr=self.config["rate"])[0],
+            "audio_data": librosa.load(
+                f"{self.dir_config['assets_dir']}/audio/metronome.wav",
+                sr=self.audio_config["rate"]
+            )[0],
             "count_in_enabled": True,
             "count": 0,
             "interval": int(1000 / (self.song.bpm / 60))
@@ -175,11 +180,11 @@ class AudioStreamHandler(QObject):
 
         # I/O Stream
         self._stream = sd.Stream(
-            samplerate=self.config["rate"],
-            device=(self.config["input_device_index"], None),
-            channels=self.config["channels"],
+            samplerate=self.audio_config["rate"],
+            device=(self.audio_config["input_device_index"], None),
+            channels=self.audio_config["channels"],
             callback=self._callback,
-            dtype=self.config["dtype"],
+            dtype=self.audio_config["dtype"],
             latency="low",
         )
         in_lat, out_lat = self._stream.latency
@@ -217,12 +222,12 @@ class AudioStreamHandler(QObject):
 
     def seek(self, position: float) -> None:
         """Set the position to a new time in seconds."""
-        if not (0 <= int(position * self.config["rate"])
-                <= int(self.song.duration * self.config["rate"])):
+        if not (0 <= int(position * self.audio_config["rate"])
+                <= int(self.song.duration * self.audio_config["rate"])):
             raise ValueError("Position must be between 0 and song duration.")
         if self._ended:
             self._ended = False
-        self._position = int(position * self.config["rate"])
+        self._position = int(position * self.audio_config["rate"])
         # Reset buffers when audio skipped
         self.zero_buffers()
 
@@ -259,9 +264,9 @@ class AudioStreamHandler(QObject):
             self._in_overlap, indata.copy()
         )
 
-        if self._in_overlap.size >= self.config["rec_overlap_window_size"]:
+        if self._in_overlap.size >= self.audio_config["rec_overlap_window_size"]:
             perf_time_start = time.perf_counter()
-            overlap_size = self.config["rec_overlap_window_size"]
+            overlap_size = self.audio_config["rec_overlap_window_size"]
             # Add new overlap buffered data to main buffer, and push main
             # buffer to the left by rec_overlap_window_size
             self._in_buffer = np.append(
@@ -277,16 +282,16 @@ class AudioStreamHandler(QObject):
             # of data currently in the buffer to avoid negatively
             # impacting user accuracy
             if not np.any(self._in_buffer[:overlap_size]):
-                slice_start = (self._position-overlap_size)/self.config["rate"]
+                slice_start = (self._position-overlap_size)/self.audio_config["rate"]
             else:
-                slice_start = (self._position-self.config["rec_buffer_size"])/self.config["rate"]
+                slice_start = (self._position-self.audio_config["rec_buffer_size"])/self.audio_config["rate"]
 
             # Send audio buffer data, position, and song pitches to
             # connected function in main file to be
             pitches = preprocess_pitch_data(
                 self.song.pitches,
                 slice_start=slice_start,
-                slice_end=self._position/self.config["rate"],
+                slice_end=self._position/self.audio_config["rate"],
             )
             self.send_buffer.emit(
                 (self._in_buffer.copy(), self._position, pitches, perf_time_start)
@@ -353,7 +358,7 @@ class AudioStreamHandler(QObject):
             self.metronome["count"] = 0
             return True # Start song
 
-        sd.play(self.metronome["audio_data"], samplerate=self.config["rate"])
+        sd.play(self.metronome["audio_data"], samplerate=self.audio_config["rate"])
         return False # Keep counting
 
     def in_loop_bounds(self) -> bool:
@@ -366,5 +371,5 @@ class AudioStreamHandler(QObject):
 
     def zero_buffers(self) -> None:
         """Reset buffers when audio is restarted or skipped."""
-        self._in_buffer = np.zeros(self.config["rec_buffer_size"])
+        self._in_buffer = np.zeros(self.audio_config["rec_buffer_size"])
         self._in_overlap = np.ndarray(0)
