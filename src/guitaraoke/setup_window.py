@@ -32,11 +32,11 @@ class PopupWindow(QDialog):
 
         self.set_styles()
 
-    def set_components(self) -> None:
+    def set_components(self) -> dict[str]:
         """Initialises all widgets and adds them to the window."""
         form_group_box = QGroupBox("Set a song title and artist:")
-        artist_line_edit = QLineEdit()
         title_line_edit = QLineEdit()
+        artist_line_edit = QLineEdit()
 
         form_layout = QFormLayout()
         form_layout.setSpacing(20)
@@ -98,6 +98,7 @@ class SetupWindow(QWidget):
         self.in_devices = find_audio_devices()[0]
 
         self.widgets = self.set_components()
+        print(self.widgets)
 
         self.set_connections()
 
@@ -108,12 +109,18 @@ class SetupWindow(QWidget):
 
         logo = QWidget()
         logo.setObjectName("setupscreen_icon")
-        logo.setFixedSize(36, 36)
+        logo.setFixedSize(
+            int(gui_config["min_width"]*0.025),
+            int(gui_config["min_width"]*0.025)
+        )
 
         combobox_label = QLabel("Input Device:")
 
         input_devices_combobox = QComboBox()
-        input_devices_combobox.setFixedSize(int(gui_config["min_width"]*0.25), 30)
+        input_devices_combobox.setFixedSize(
+            int(gui_config["min_width"]*0.25),
+            int(gui_config["min_height"]*0.06)
+        )
         for dev in self.in_devices:
             input_devices_combobox.addItem(dev["name"])
         input_devices_combobox.setCurrentIndex(

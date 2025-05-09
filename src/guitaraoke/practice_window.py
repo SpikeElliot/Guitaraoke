@@ -113,7 +113,7 @@ class PracticeWindow(QWidget):
 
         song_info_middle_row.addStretch()
 
-        song_info_middle_row.addSpacing(50)
+        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.035))
 
         song_info_middle_row.addWidget(
             title_label,
@@ -148,7 +148,7 @@ class PracticeWindow(QWidget):
 
         waveform = WaveformPlot(
             width=int(gui_config["min_width"]*0.9),
-            height=100,
+            height=int(gui_config["min_height"]*0.2),
             colour=hex_to_rgb(gui_config["theme_colour"])
         )
         waveform.setObjectName("waveform")
@@ -177,7 +177,10 @@ class PracticeWindow(QWidget):
         left_marker_img.setAttribute(
             Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
         )
-        left_marker_img.resize(24, 24)
+        left_marker_img.resize(
+            int(gui_config["min_width"]*0.017),
+            int(gui_config["min_width"]*0.017)
+        )
         left_marker_img.hide()
 
         # Right loop marker
@@ -186,7 +189,10 @@ class PracticeWindow(QWidget):
         right_marker_img.setAttribute(
             Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
         )
-        right_marker_img.resize(24, 24)
+        right_marker_img.resize(
+            int(gui_config["min_width"]*0.017),
+            int(gui_config["min_width"]*0.017)
+        )
         right_marker_img.hide()
 
         # Song time position timer
@@ -203,13 +209,16 @@ class PracticeWindow(QWidget):
         # Volume symbol
         volume_image = QWidget()
         volume_image.setObjectName("volume_image")
-        volume_image.setFixedSize(24, 24)
+        volume_image.setFixedSize(
+            int(gui_config["min_width"]*0.017),
+            int(gui_config["min_width"]*0.017)
+        )
 
         # Guitar volume slider
         guitar_vol_slider = QSlider(orientation=Qt.Orientation.Horizontal)
         guitar_vol_slider.setObjectName("guitar_vol_slider")
         guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
-        guitar_vol_slider.setFixedWidth(400)
+        guitar_vol_slider.setFixedWidth(int(gui_config["min_width"]*0.278))
         guitar_vol_slider.setRange(0, 100)
         guitar_vol_slider.setPageStep(5)
         guitar_vol_slider.setSliderPosition(100)
@@ -220,8 +229,8 @@ class PracticeWindow(QWidget):
         guitar_vol_val_label.setText("100%")
 
         # Buttons
-        button_width = 80
-        button_height = 64
+        button_width = int(gui_config["min_width"]*0.05)
+        button_height = int(gui_config["min_height"]*0.11)
 
         # Count-in toggle button
         count_in_button = QPushButton()
@@ -291,7 +300,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        controls_layout_top_row.addSpacing(30)
+        controls_layout_top_row.addSpacing(int(gui_config["min_width"]*0.021))
 
         # Bottom row
 

@@ -49,6 +49,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\assets\\images\\guitar_pick.ico',
 )
 
 import shutil
