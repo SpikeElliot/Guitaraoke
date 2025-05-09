@@ -55,8 +55,8 @@ def read_config(section: str) -> dict[str]:
         }
     elif section == "GUI":
         config_vals = {
-            "width": parser.getint(section, "width"),
-            "height": parser.getint(section, "height"),
+            "min_width": parser.getint(section, "min_width"),
+            "min_height": parser.getint(section, "min_height"),
             "theme_colour": parser.get(section, "theme_colour"),
             "inactive_colour": parser.get(section, "inactive_colour")
         }
@@ -64,8 +64,8 @@ def read_config(section: str) -> dict[str]:
         config_vals = {
             "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
             "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
-            "assets_dir": parser.get(section, "assets_dir"),
             "data_dir": parser.get(section, "data_dir"),
+            "assets_dir": parser.get(section, "assets_dir")
         }
     return config_vals
 
@@ -110,8 +110,6 @@ def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
         columns=["end_time_s", "velocity", "pitch_bend"]
     ).sort_values("start_time_s")
 
-config = read_config("Audio")
-
 def preprocess_pitch_data(
     pitches: pd.DataFrame,
     slice_start: float | None = None,
@@ -138,6 +136,7 @@ def preprocess_pitch_data(
         onsets for every possible MIDI pitch (0-127).
     """
     new_pitches = pitches.copy()
+    config = read_config("Audio")
 
     if slice_start and slice_end:
         new_pitches = pitches[

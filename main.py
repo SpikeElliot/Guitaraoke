@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Guitaraoke")
 
-        self.setFixedSize(gui_config["width"], gui_config["height"])
+        self.setMinimumSize(gui_config["min_width"], gui_config["min_height"])
 
         self.setup_window = SetupWindow()
         self.practice_window = None

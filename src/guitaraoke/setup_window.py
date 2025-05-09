@@ -25,18 +25,22 @@ class PopupWindow(QDialog):
         """The constructor for the PopupWindow class."""
         super().__init__()
 
-        self.setWindowTitle("Set a song title and artist")
-        self.setFixedSize(300, 400)
+        self.setWindowTitle("Guitaraoke")
+        self.setFixedSize(400, 200)
 
         self.widgets = self.set_components()
 
+        self.set_styles()
+
     def set_components(self) -> None:
         """Initialises all widgets and adds them to the window."""
-        form_group_box = QGroupBox("Set a song title and artist")
+        form_group_box = QGroupBox("Set a song title and artist:")
         artist_line_edit = QLineEdit()
         title_line_edit = QLineEdit()
 
         form_layout = QFormLayout()
+        form_layout.setSpacing(20)
+        form_layout.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
         form_layout.addRow(QLabel("Title"), title_line_edit)
         form_layout.addRow(QLabel("Artist"), artist_line_edit)
         form_group_box.setLayout(form_layout)
@@ -49,8 +53,8 @@ class PopupWindow(QDialog):
         button_box.rejected.connect(self.form_rejected)
 
         layout = QVBoxLayout()
-        layout.addWidget(form_group_box)
-        layout.addWidget(button_box)
+        layout.addWidget(form_group_box, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(button_box, alignment=Qt.AlignmentFlag.AlignCenter)
         self.setLayout(layout)
 
         return {
@@ -60,16 +64,22 @@ class PopupWindow(QDialog):
             "button_box": button_box
         }
 
+    def set_styles(self) -> dict[str]:
+        """Sets the CSS styling of the window and widgets."""
+        with open(f"{dir_config['assets_dir']}/stylesheets/main.qss", "r", encoding="utf-8") as f:
+            # Read main stylesheet and set main window style
+            _style = f.read()
+            self.setStyleSheet(_style)
+
     def form_accepted(self) -> None:
         """Send new title and artist to the setup window."""
         title = self.widgets["title_line_edit"].text()
         artist = self.widgets["artist_line_edit"].text()
-        self.send_set_song_data.emit((title, artist))
         self.close()
+        self.send_set_song_data.emit((title, artist))
 
     def form_rejected(self) -> None:
-        """Send placeholder title and artist to the setup window."""
-        self.send_set_song_data.emit(("Set a song title", "Set an artist"))
+        """Close popup window."""
         self.close()
 
 
@@ -82,6 +92,8 @@ class SetupWindow(QWidget):
         super().__init__()
         self.popup_window = None
         self.song_filepath = None
+
+        os.makedirs("songs", exist_ok=True)
 
         self.in_devices = find_audio_devices()[0]
 
@@ -101,7 +113,7 @@ class SetupWindow(QWidget):
         combobox_label = QLabel("Input Device:")
 
         input_devices_combobox = QComboBox()
-        input_devices_combobox.setFixedSize(int(gui_config["width"]*0.25), 26)
+        input_devices_combobox.setFixedSize(int(gui_config["min_width"]*0.25), 30)
         for dev in self.in_devices:
             input_devices_combobox.addItem(dev["name"])
         input_devices_combobox.setCurrentIndex(
@@ -114,7 +126,7 @@ class SetupWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        layout.addSpacing(int(gui_config["height"] * 0.1))
+        layout.addSpacing(int(gui_config["min_height"] * 0.1))
 
         logo_layout = QHBoxLayout()
 
@@ -141,7 +153,7 @@ class SetupWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        layout.addSpacing(int(gui_config["height"] * 0.02))
+        layout.addSpacing(int(gui_config["min_height"] * 0.02))
 
         layout.addWidget(
             input_devices_combobox,
@@ -155,7 +167,7 @@ class SetupWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        layout.addSpacing(int(gui_config["height"] * 0.1))
+        layout.addSpacing(int(gui_config["min_height"] * 0.1))
 
         self.setLayout(layout)
 
@@ -185,7 +197,7 @@ class SetupWindow(QWidget):
         file_path = QFileDialog.getOpenFileName(
             parent=self,
             caption="Select Audio File",
-            directory=os.path.abspath(os.sep),
+            directory="songs",
             filter="WAV files (*.wav)"
         )[0]
         if not file_path:
@@ -221,8 +233,6 @@ class SetupWindow(QWidget):
         window to the saved_songs CSV file.
         """
         title, artist = data
-        print(title)
-        print(artist)
         with open(f"{dir_config['data_dir']}/saved_songs.csv", "a", encoding="utf-8") as file:
             writer = csv.DictWriter(file, fieldnames=["path", "title", "artist"])
             writer.writerow(

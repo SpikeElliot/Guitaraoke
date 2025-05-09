@@ -79,7 +79,7 @@ class PracticeWindow(QWidget):
 
         # Top row
 
-        song_info_top_row.addSpacing(int(gui_config["width"]*0.1))
+        song_info_top_row.addSpacing(int(gui_config["min_width"]*0.1))
 
         song_info_top_row.addWidget(
             gamemode_label,
@@ -100,11 +100,11 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        song_info_top_row.addSpacing(int(gui_config["width"]*0.1))
+        song_info_top_row.addSpacing(int(gui_config["min_width"]*0.1))
 
         # Middle row
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.127))
+        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.127))
 
         song_info_middle_row.addWidget( # Temporary
             QLabel(),
@@ -127,7 +127,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        song_info_middle_row.addSpacing(int(gui_config["width"]*0.127))
+        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.127))
 
         # Bottom row
 
@@ -147,7 +147,7 @@ class PracticeWindow(QWidget):
         # Waveform Plot
 
         waveform = WaveformPlot(
-            width=int(gui_config["width"]*0.9),
+            width=int(gui_config["min_width"]*0.9),
             height=100,
             colour=hex_to_rgb(gui_config["theme_colour"])
         )
@@ -329,8 +329,8 @@ class PracticeWindow(QWidget):
 
         controls_layout_bottom_row.setHorizontalSpacing(0)
         controls_layout_bottom_row.setContentsMargins(
-            int(gui_config["width"]*0.05), int(gui_config["height"]*0.05),
-            int(gui_config["width"]*0.05), int(gui_config["height"]*0.05)
+            int(gui_config["min_width"]*0.05), int(gui_config["min_height"]*0.05),
+            int(gui_config["min_width"]*0.05), int(gui_config["min_height"]*0.05)
         )
 
         controls_layout.addLayout(controls_layout_top_row)
@@ -379,7 +379,6 @@ class PracticeWindow(QWidget):
             border-image: url('images:loop_button.png');
             background-color: transparent;
             """
-        print(active_loop_button_style)
         inactive_loop_button_style = """
             border-image: url('images:loop_button_inactive.png');
             background-color: transparent;

@@ -11,6 +11,7 @@ AudioStreamHandler()
 """
 
 import time
+from configparser import ConfigParser
 from pathlib import Path
 import librosa
 import numpy as np
@@ -187,11 +188,23 @@ class AudioStreamHandler(QObject):
             dtype=self.audio_config["dtype"],
             latency="low",
         )
+
         in_lat, out_lat = self._stream.latency
         print(
             f"Input Latency: {in_lat*1000:.1f}ms\n"
             f"Output Latency: {out_lat*1000:.1f}ms"
         )
+
+        # Update config file
+        parser = ConfigParser()
+        parser.read("config.ini")
+
+        # Write current stream latency values to config
+        parser.set("Audio", "in_latency", str(in_lat))
+        parser.set("Audio", "out_latency", str(out_lat))
+
+        with open("config.ini", "w", encoding="utf-8") as configfile:
+            parser.write(configfile)
 
     @property
     def position(self) -> int:
