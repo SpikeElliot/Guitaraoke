@@ -11,9 +11,6 @@ from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
 from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler # pylint: disable=no-name-in-module
 from guitaraoke.utils import read_config, find_audio_devices
 
-gui_config = read_config("GUI")
-audio_config = read_config("Audio")
-dir_config = read_config("Directories")
 
 class PopupWindow(QDialog):
     """
@@ -21,6 +18,7 @@ class PopupWindow(QDialog):
     saved data.
     """
     send_set_song_data = pyqtSignal(tuple)
+
     def __init__(self):
         """The constructor for the PopupWindow class."""
         super().__init__()
@@ -66,7 +64,9 @@ class PopupWindow(QDialog):
 
     def set_styles(self) -> dict[str]:
         """Sets the CSS styling of the window and widgets."""
-        with open(f"{dir_config['assets_dir']}/stylesheets/main.qss", "r", encoding="utf-8") as f:
+        with open(
+            f"{os.environ['assets_dir']}\\stylesheets\\main.qss", "r", encoding="utf-8"
+        ) as f:
             # Read main stylesheet and set main window style
             _style = f.read()
             self.setStyleSheet(_style)
@@ -86,6 +86,8 @@ class PopupWindow(QDialog):
 class SetupWindow(QWidget):
     """The user setup window of the GUI application."""
     send_set_practice_window_signal = pyqtSignal(AudioStreamHandler)
+    gui_config = read_config("GUI")
+    audio_config = read_config("Audio")
 
     def __init__(self) -> None:
         """The constructor for the SetupWindow class."""
@@ -110,21 +112,21 @@ class SetupWindow(QWidget):
         logo = QWidget()
         logo.setObjectName("setupscreen_icon")
         logo.setFixedSize(
-            int(gui_config["min_width"]*0.025),
-            int(gui_config["min_width"]*0.025)
+            int(self.gui_config["min_width"]*0.025),
+            int(self.gui_config["min_width"]*0.025)
         )
 
         combobox_label = QLabel("Input Device:")
 
         input_devices_combobox = QComboBox()
         input_devices_combobox.setFixedSize(
-            int(gui_config["min_width"]*0.25),
-            int(gui_config["min_height"]*0.06)
+            int(self.gui_config["min_width"]*0.25),
+            int(self.gui_config["min_height"]*0.06)
         )
         for dev in self.in_devices:
             input_devices_combobox.addItem(dev["name"])
         input_devices_combobox.setCurrentIndex(
-            audio_config["input_device_index"]
+            self.audio_config["input_device_index"]
         )
 
         select_song_button = QPushButton()
@@ -133,7 +135,7 @@ class SetupWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        layout.addSpacing(int(gui_config["min_height"] * 0.1))
+        layout.addSpacing(int(self.gui_config["min_height"] * 0.1))
 
         logo_layout = QHBoxLayout()
 
@@ -160,7 +162,7 @@ class SetupWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        layout.addSpacing(int(gui_config["min_height"] * 0.02))
+        layout.addSpacing(int(self.gui_config["min_height"] * 0.02))
 
         layout.addWidget(
             input_devices_combobox,
@@ -174,7 +176,7 @@ class SetupWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        layout.addSpacing(int(gui_config["min_height"] * 0.1))
+        layout.addSpacing(int(self.gui_config["min_height"] * 0.1))
 
         self.setLayout(layout)
 
@@ -212,7 +214,7 @@ class SetupWindow(QWidget):
 
         title, artist = None, None
         self.song_filepath = file_path
-        with open(f"{dir_config['data_dir']}/saved_songs.csv", "r", encoding="utf-8") as data:
+        with open("data\\saved_songs.csv", "r", encoding="utf-8") as data:
             for song in csv.DictReader(data):
                 if song["path"] == self.song_filepath:
                     title, artist = song["title"], song["artist"]
@@ -240,7 +242,7 @@ class SetupWindow(QWidget):
         window to the saved_songs CSV file.
         """
         title, artist = data
-        with open(f"{dir_config['data_dir']}/saved_songs.csv", "a", encoding="utf-8") as file:
+        with open("data\\saved_songs.csv", "a", encoding="utf-8") as file:
             writer = csv.DictWriter(file, fieldnames=["path", "title", "artist"])
             writer.writerow(
                 {"path": self.song_filepath, "title": title, "artist": artist}
@@ -265,7 +267,7 @@ class SetupWindow(QWidget):
     def set_input_device(self, idx) -> None:
         """Update config file with new input device index."""
         parser = ConfigParser()
-        parser.read("config.ini")
+        parser.read("data\\config.ini")
         parser.set("Audio", "input_device_index", str(idx))
-        with open("config.ini", "w", encoding="utf-8") as configfile:
+        with open("data\\config.ini", "w", encoding="utf-8") as configfile:
             parser.write(configfile)

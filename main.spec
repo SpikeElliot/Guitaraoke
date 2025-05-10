@@ -8,6 +8,9 @@ a = Analysis(
     datas=[
         ('C:\\Users\\spike\\anaconda3\\envs\\ProjectFinal\\Lib\\site-packages\\basic_pitch\\saved_models', 'basic_pitch\\saved_models'),
         ('C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\assets', 'assets'),
+        ('C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\demucs_models', 'demucs_models'),
+        ('C:\\Users\\spike\\anaconda3\\envs\\ProjectFinal\\Library\\share\\ffmpeg', 'ffmpeg'),
+        ('C:\\Users\\spike\\anaconda3\\envs\\ProjectFinal\\Library\\bin\\SDL3.dll', '.')
     ],
     hiddenimports=[],
     hookspath=[],
@@ -31,27 +34,32 @@ splash = Splash(
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     splash,
-    splash.binaries,
     [('v', None, 'OPTION')],
+    exclude_binaries=True,
     name='Guitaraoke',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\assets\\images\\guitar_pick.ico',
+    icon=['assets\\images\\guitar_pick.ico'],
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    splash.binaries,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='Guitaraoke',
 )
 
 import shutil
-shutil.copyfile('C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\config.ini', '{0}\\config.ini'.format(DISTPATH))
-shutil.copytree('C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\data', '{0}\\data'.format(DISTPATH), dirs_exist_ok=True)
+shutil.copytree('C:\\Users\\spike\\Documents\\GitHub\\Guitaraoke\\data', '{0}\\Guitaraoke\\data'.format(DISTPATH), dirs_exist_ok=True)

@@ -36,11 +36,11 @@ import sounddevice as sd
 
 def read_config(section: str) -> dict[str]:
     """Get Audio or GUI config variables."""
-    if section not in ("Audio", "GUI", "Directories"):
-        raise ValueError("Only config sections are: Audio, GUI, Directories")
+    if section not in ("Audio", "GUI"):
+        raise ValueError("Only config sections are: Audio, GUI")
 
     parser = ConfigParser()
-    parser.read("config.ini")
+    parser.read("data\\config.ini")
 
     if section == "Audio":
         config_vals = {
@@ -53,19 +53,12 @@ def read_config(section: str) -> dict[str]:
             "in_latency": parser.getfloat(section, "in_latency"),
             "out_latency": parser.getfloat(section, "out_latency")
         }
-    elif section == "GUI":
+    else:
         config_vals = {
             "min_width": parser.getint(section, "min_width"),
             "min_height": parser.getint(section, "min_height"),
             "theme_colour": parser.get(section, "theme_colour"),
             "inactive_colour": parser.get(section, "inactive_colour")
-        }
-    else:
-        config_vals = {
-            "sep_tracks_dir": parser.get(section, "sep_tracks_dir"),
-            "saved_pitches_dir": parser.get(section, "saved_pitches_dir"),
-            "data_dir": parser.get(section, "data_dir"),
-            "assets_dir": parser.get(section, "assets_dir")
         }
     return config_vals
 

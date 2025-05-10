@@ -34,7 +34,6 @@ from guitaraoke.utils import (
     preprocess_pitch_data, csv_to_pitches_dataframe, read_config
 )
 
-config = read_config("Audio")
 # 100ms tolerance to account for swing and variance in predictions
 NOTE_HIT_WINDOW = 0.1
 # Amount to deduct from note score for inaccurate timing
@@ -278,6 +277,8 @@ def process_recording(
     assert isinstance(buffer, np.ndarray), "Audio buffer must be an ndarray."
     assert isinstance(position, int), "Position must be an int."
     assert isinstance(preprocessed_song_pitches, dict), "Song pitches must be a dictionary."
+
+    config = read_config("Audio")
 
     # Offset user note times by size of data currently in the buffer
     time_offset = config["rec_buffer_size"]

@@ -13,12 +13,11 @@ from guitaraoke.audio_streaming import AudioStreamHandler
 from guitaraoke.scoring_system import ScoringSystem
 from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
-gui_config = read_config("GUI")
-audio_config = read_config("Audio")
-dir_config = read_config("Directories")
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
+    gui_config = read_config("GUI")
+
     def __init__(
         self,
         audio: AudioStreamHandler,
@@ -60,18 +59,18 @@ class PracticeWindow(QWidget):
 
         duration_label = QLabel()
         duration_label.setText(
-            f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
+            f"<font color='{self.gui_config['theme_colour']}'>00:00.00</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 
         accuracy_label = QLabel()
         accuracy_label.setText(
-            f"Accuracy <font color='{gui_config['theme_colour']}'>0.0%</font>"
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%</font>"
         )
 
         score_label = QLabel()
         score_label.setText(
-            f"Score <font color='{gui_config['theme_colour']}'>0</font>"
+            f"Score <font color='{self.gui_config['theme_colour']}'>0</font>"
         )
 
         gamemode_label = QLabel()
@@ -79,7 +78,7 @@ class PracticeWindow(QWidget):
 
         # Top row
 
-        song_info_top_row.addSpacing(int(gui_config["min_width"]*0.1))
+        song_info_top_row.addSpacing(int(self.gui_config["min_width"]*0.1))
 
         song_info_top_row.addWidget(
             gamemode_label,
@@ -100,11 +99,11 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        song_info_top_row.addSpacing(int(gui_config["min_width"]*0.1))
+        song_info_top_row.addSpacing(int(self.gui_config["min_width"]*0.1))
 
         # Middle row
 
-        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.127))
+        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.127))
 
         song_info_middle_row.addWidget( # Temporary
             QLabel(),
@@ -113,7 +112,7 @@ class PracticeWindow(QWidget):
 
         song_info_middle_row.addStretch()
 
-        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.035))
+        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.035))
 
         song_info_middle_row.addWidget(
             title_label,
@@ -127,7 +126,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        song_info_middle_row.addSpacing(int(gui_config["min_width"]*0.127))
+        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.127))
 
         # Bottom row
 
@@ -147,9 +146,9 @@ class PracticeWindow(QWidget):
         # Waveform Plot
 
         waveform = WaveformPlot(
-            width=int(gui_config["min_width"]*0.9),
-            height=int(gui_config["min_height"]*0.2),
-            colour=hex_to_rgb(gui_config["theme_colour"])
+            width=int(self.gui_config["min_width"]*0.9),
+            height=int(self.gui_config["min_height"]*0.2),
+            colour=hex_to_rgb(self.gui_config["theme_colour"])
         )
         waveform.setObjectName("waveform")
         waveform.draw_plot(self.audio.song)
@@ -178,8 +177,8 @@ class PracticeWindow(QWidget):
             Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
         )
         left_marker_img.resize(
-            int(gui_config["min_width"]*0.017),
-            int(gui_config["min_width"]*0.017)
+            int(self.gui_config["min_width"]*0.017),
+            int(self.gui_config["min_width"]*0.017)
         )
         left_marker_img.hide()
 
@@ -190,8 +189,8 @@ class PracticeWindow(QWidget):
             Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
         )
         right_marker_img.resize(
-            int(gui_config["min_width"]*0.017),
-            int(gui_config["min_width"]*0.017)
+            int(self.gui_config["min_width"]*0.017),
+            int(self.gui_config["min_width"]*0.017)
         )
         right_marker_img.hide()
 
@@ -210,15 +209,15 @@ class PracticeWindow(QWidget):
         volume_image = QWidget()
         volume_image.setObjectName("volume_image")
         volume_image.setFixedSize(
-            int(gui_config["min_width"]*0.017),
-            int(gui_config["min_width"]*0.017)
+            int(self.gui_config["min_width"]*0.017),
+            int(self.gui_config["min_width"]*0.017)
         )
 
         # Guitar volume slider
         guitar_vol_slider = QSlider(orientation=Qt.Orientation.Horizontal)
         guitar_vol_slider.setObjectName("guitar_vol_slider")
         guitar_vol_slider.setToolTip("Change guitar track volume in mix.")
-        guitar_vol_slider.setFixedWidth(int(gui_config["min_width"]*0.278))
+        guitar_vol_slider.setFixedWidth(int(self.gui_config["min_width"]*0.278))
         guitar_vol_slider.setRange(0, 100)
         guitar_vol_slider.setPageStep(5)
         guitar_vol_slider.setSliderPosition(100)
@@ -229,8 +228,8 @@ class PracticeWindow(QWidget):
         guitar_vol_val_label.setText("100%")
 
         # Buttons
-        button_width = int(gui_config["min_width"]*0.05)
-        button_height = int(gui_config["min_height"]*0.11)
+        button_width = int(self.gui_config["min_width"]*0.05)
+        button_height = int(self.gui_config["min_height"]*0.11)
 
         # Count-in toggle button
         count_in_button = QPushButton()
@@ -300,7 +299,7 @@ class PracticeWindow(QWidget):
             alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        controls_layout_top_row.addSpacing(int(gui_config["min_width"]*0.021))
+        controls_layout_top_row.addSpacing(int(self.gui_config["min_width"]*0.021))
 
         # Bottom row
 
@@ -338,8 +337,8 @@ class PracticeWindow(QWidget):
 
         controls_layout_bottom_row.setHorizontalSpacing(0)
         controls_layout_bottom_row.setContentsMargins(
-            int(gui_config["min_width"]*0.05), int(gui_config["min_height"]*0.05),
-            int(gui_config["min_width"]*0.05), int(gui_config["min_height"]*0.05)
+            int(self.gui_config["min_width"]*0.05), int(self.gui_config["min_height"]*0.05),
+            int(self.gui_config["min_width"]*0.05), int(self.gui_config["min_height"]*0.05)
         )
 
         controls_layout.addLayout(controls_layout_top_row)
@@ -491,10 +490,10 @@ class PracticeWindow(QWidget):
         """Update GUI score information with new score data."""
         score, accuracy = data
         self.widgets["score_label"].setText(
-            f"Score <font color='{gui_config['theme_colour']}'>{score}</font>"
+            f"Score <font color='{self.gui_config['theme_colour']}'>{score}</font>"
         )
         self.widgets["accuracy_label"].setText(
-            f"Accuracy <font color='{gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
         )
         perf_time_end = time.perf_counter()
         print(f"\033[92mElapsed scoring time: {perf_time_end-self.perf_time_start}\033[0m")

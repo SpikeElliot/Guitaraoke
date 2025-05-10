@@ -1,45 +1,27 @@
 """
-Preloads the Basic Pitch model and updates config directory values.
+Preloads the Basic Pitch model and provides a function for preloading
+the paths of necessary directories.
 """
 
 import os
 import sys
-from pathlib import Path
-from configparser import ConfigParser
 from basic_pitch.inference import Model
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
 # Preload the Basic Pitch model
 PITCH_MODEL = Model(ICASSP_2022_MODEL_PATH)
 
-def preload():
+def preload_directories() -> None:
     """Perform necessary preloading steps for the application."""
 
-    # Update config file
-    parser = ConfigParser()
-    parser.read("config.ini")
+    os.environ["sep_tracks_dir"] = "data\\separated_tracks\\htdemucs_6s"
+    os.environ["saved_pitches_dir"] = "data\\pitch_predictions"
 
-    # Write directory paths
-    parser.set("Directories", "sep_tracks_dir",
-            (str(Path(os.getcwd()) / "data" / "separated_tracks" / "htdemucs_6s"))
-    )
-
-    parser.set("Directories", "saved_pitches_dir",
-            (str(Path(os.getcwd()) / "data" / "pitch_predictions"))
-    )
-
-    parser.set("Directories", "data_dir",
-            (str(Path(os.getcwd()) / "data"))
-    )
-
-    # Set assets path to temp directory if being run as an executable
+    # Set paths to _internal directory if being run as an executable
     if getattr(sys, "frozen", False):
-        assets_path = Path(sys._MEIPASS) # pylint: disable=protected-access
+        os.environ["assets_dir"] = f"{sys._MEIPASS}\\assets" # pylint: disable=protected-access
+        os.environ["model_repo"] = f"{sys._MEIPASS}\\demucs_models" # pylint: disable=protected-access
+        os.environ["PATH"] = f"{sys._MEIPASS}/ffmpeg" + os.pathsep + os.environ["PATH"] # pylint: disable=protected-access
     else:
-        assets_path = Path(os.getcwd())
-    parser.set("Directories", "assets_dir",
-            (str(assets_path / "assets"))
-    )
-
-    with open("config.ini", "w", encoding="utf-8") as configfile:
-        parser.write(configfile)
+        os.environ["assets_dir"] = "assets"
+        os.environ["model_repo"] = "demucs_models"

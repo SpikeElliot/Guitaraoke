@@ -10,6 +10,7 @@ AudioStreamHandler()
     Handle audio I/O streaming and playback functionality.
 """
 
+import os
 import time
 from configparser import ConfigParser
 from pathlib import Path
@@ -45,7 +46,6 @@ class LoadedAudio():
         The length of the song in seconds.
     """
     audio_config = read_config("Audio")
-    dir_config = read_config("Directories")
 
     def __init__(
         self,
@@ -86,7 +86,7 @@ class LoadedAudio():
         Load a song's predicted pitches DataFrame and its separated
         audio time series (guitar_data and no_guitar_data).
         """
-        audio_dir = Path(self.dir_config["sep_tracks_dir"]) / self.metadata["filename"]
+        audio_dir = Path(f"{os.environ['sep_tracks_dir']}\\{self.metadata['filename']}")
         guitar_path = audio_dir / "guitar.wav"
         no_guitar_path = audio_dir / "no_guitar.wav"
 
@@ -146,10 +146,8 @@ class AudioStreamHandler(QObject):
         The user's performance data: score, notes hit, total notes, and
         accuracy.
     """
-    audio_config = read_config("Audio")
-    dir_config = read_config("Directories")
-
     send_buffer = pyqtSignal(tuple)
+    audio_config = read_config("Audio")
 
     def __init__(self, song: LoadedAudio) -> None:
         super().__init__()
@@ -171,7 +169,7 @@ class AudioStreamHandler(QObject):
         # Metronome data
         self.metronome = {
             "audio_data": librosa.load(
-                f"{self.dir_config['assets_dir']}/audio/metronome.wav",
+                f"{os.environ['assets_dir']}\\audio\\metronome.wav",
                 sr=self.audio_config["rate"]
             )[0],
             "count_in_enabled": True,
@@ -183,7 +181,7 @@ class AudioStreamHandler(QObject):
         self._stream = sd.Stream(
             samplerate=self.audio_config["rate"],
             device=(self.audio_config["input_device_index"], None),
-            channels=self.audio_config["channels"],
+            channels=(self.audio_config["channels"], self.audio_config["channels"]),
             callback=self._callback,
             dtype=self.audio_config["dtype"],
             latency="low",
@@ -197,13 +195,13 @@ class AudioStreamHandler(QObject):
 
         # Update config file
         parser = ConfigParser()
-        parser.read("config.ini")
+        parser.read("data\\config.ini")
 
         # Write current stream latency values to config
         parser.set("Audio", "in_latency", str(in_lat))
         parser.set("Audio", "out_latency", str(out_lat))
 
-        with open("config.ini", "w", encoding="utf-8") as configfile:
+        with open("data\\config.ini", "w", encoding="utf-8") as configfile:
             parser.write(configfile)
 
     @property
@@ -297,7 +295,8 @@ class AudioStreamHandler(QObject):
             if not np.any(self._in_buffer[:overlap_size]):
                 slice_start = (self._position-overlap_size)/self.audio_config["rate"]
             else:
-                slice_start = (self._position-self.audio_config["rec_buffer_size"])/self.audio_config["rate"]
+                slice_start = ((self._position-self.audio_config["rec_buffer_size"])
+                               /self.audio_config["rate"])
 
             # Send audio buffer data, position, and song pitches to
             # connected function in main file to be

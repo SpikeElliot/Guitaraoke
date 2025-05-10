@@ -5,8 +5,6 @@ from PyQt6.QtCore import Qt, pyqtSignal, QObject # pylint: disable=no-name-in-mo
 from guitaraoke.audio_streaming import AudioStreamHandler
 from guitaraoke.utils import time_format, read_config
 
-gui_config = read_config("GUI")
-audio_config = read_config("Audio")
 
 class PlaybackControls(QObject):
     """
@@ -27,6 +25,8 @@ class PlaybackControls(QObject):
         The GUI widget styles stored in a dictionary.
     """
     send_reset_score_signal = pyqtSignal()
+    gui_config = read_config("GUI")
+    audio_config = read_config("Audio")
 
     def __init__(
         self,
@@ -48,14 +48,14 @@ class PlaybackControls(QObject):
 
             # Reset song time display to 0
             self.widgets["duration_label"].setText(
-                f"<font color='{gui_config['theme_colour']}'>00:00.00</font>"
+                f"<font color='{self.gui_config['theme_colour']}'>00:00.00</font>"
                 f" / {time_format(self.audio.song.duration)}"
             )
         else:
             # Update the song duration label with new time
             self.widgets["duration_label"].setText(
-                f"<font color='{gui_config['theme_colour']}'>"
-                f"{time_format(self.audio.position/audio_config['rate'])}</font>"
+                f"<font color='{self.gui_config['theme_colour']}'>"
+                f"{time_format(self.audio.position/self.audio_config['rate'])}</font>"
                 f" / {time_format(self.audio.song.duration)}"
             )
         self.update_playhead_pos()
@@ -65,7 +65,7 @@ class PlaybackControls(QObject):
         Set playhead position relative to current song playback 
         position.
         """
-        song_pos_in_s = self.audio.position/audio_config["rate"]
+        song_pos_in_s = self.audio.position/self.audio_config["rate"]
         head_pos = int((song_pos_in_s/self.audio.song.duration)
                         * self.widgets["waveform"].width)
         self.widgets["playhead"].move(head_pos, 2)
@@ -129,8 +129,8 @@ class PlaybackControls(QObject):
         # Prevent position from running over end of loop or end of song
         end = self.audio.song.duration
         if self.audio.in_loop_bounds():
-            end = self.audio.loop_markers[1]/audio_config["rate"]
-        pos_in_s = self.audio.position/audio_config["rate"]
+            end = self.audio.loop_markers[1]/self.audio_config["rate"]
+        pos_in_s = self.audio.position/self.audio_config["rate"]
 
         if pos_in_s + 5 < end:
             self.audio.seek(pos_in_s + 5)
@@ -145,8 +145,8 @@ class PlaybackControls(QObject):
         # Prevent position from falling behind start of loop or start of song
         start = 0
         if self.audio.in_loop_bounds():
-            start = self.audio.loop_markers[0]/audio_config["rate"]
-        pos_in_s = self.audio.position/audio_config["rate"]
+            start = self.audio.loop_markers[0]/self.audio_config["rate"]
+        pos_in_s = self.audio.position/self.audio_config["rate"]
 
         if pos_in_s - 5 > start:
             self.audio.seek(pos_in_s - 5)
@@ -207,9 +207,9 @@ class PlaybackControls(QObject):
         marker_pos = round(( # Marker time position in frames
             (x_pos/self.widgets["waveform"].width)
             * self.audio.song.duration
-            * audio_config["rate"]
+            * self.audio_config["rate"]
         ))
-        time_constraint = 1 * audio_config["rate"] # Minimum loop time of 1 sec
+        time_constraint = 1 * self.audio_config["rate"] # Minimum loop time of 1 sec
 
         # Update left marker when left mouse pressed
         if button == Qt.MouseButton.LeftButton:
@@ -294,7 +294,7 @@ class PlaybackControls(QObject):
         self.send_reset_score_signal.emit() # Send signal to GUI to reset score
 
         self.widgets["duration_label"].setText( # Update song time display
-            f"<font color='{gui_config['theme_colour']}'>{time_format(song_pos)}</font>"
+            f"<font color='{self.gui_config['theme_colour']}'>{time_format(song_pos)}</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 
