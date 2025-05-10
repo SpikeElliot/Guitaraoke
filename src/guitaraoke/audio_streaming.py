@@ -376,10 +376,10 @@ class AudioStreamHandler(QObject):
 
     def in_loop_bounds(self) -> bool:
         """Check playback is looping and within loop marker bounds."""
-        if (self.looping
-            and (self._position > self.loop_markers[0]
-            and self._position < self.loop_markers[1])):
-            return True
+        if self.looping:
+            if (self._position > self.loop_markers[0]
+            and self._position < self.loop_markers[1]):
+                return True
         return False
 
     def zero_buffers(self) -> None:

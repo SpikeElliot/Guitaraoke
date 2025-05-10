@@ -216,7 +216,7 @@ class PlaybackControls(QObject):
         if button == Qt.MouseButton.LeftButton:
             if right_marker is None:
                 left_marker = marker_pos
-                self.widgets["left_marker_img"].move(x_pos-12, 2)
+                self.widgets["left_marker_img"].move(x_pos-9, 2)
             elif np.abs(right_marker - marker_pos) >= time_constraint:
                 # Looping set to true when both markers set
                 self.audio.looping = True
@@ -228,17 +228,17 @@ class PlaybackControls(QObject):
                     )
 
                     right_marker = marker_pos
-                    self.widgets["right_marker_img"].move(x_pos-12, 2)
+                    self.widgets["right_marker_img"].move(x_pos-9, 2)
                 else: # Otherwise, set left marker to new position
                     left_marker = marker_pos
-                    self.widgets["left_marker_img"].move(x_pos-12, 2)
+                    self.widgets["left_marker_img"].move(x_pos-9, 2)
             self.widgets["left_marker_img"].show() # Show marker when set
 
         # Update right marker when right mouse pressed
         elif button == Qt.MouseButton.RightButton:
             if left_marker is None:
                 right_marker = marker_pos
-                self.widgets["right_marker_img"].move(x_pos-12, 2)
+                self.widgets["right_marker_img"].move(x_pos-9, 2)
             elif np.abs(marker_pos - left_marker) >= time_constraint:
                 # Looping set to true when both markers set
                 self.audio.looping = True
@@ -275,11 +275,11 @@ class PlaybackControls(QObject):
 
         # Show the loop overlay widget when its area has been created by
         # the left and right markers
-        left_x = self.widgets["left_marker_img"].x() + 12
-        right_x = self.widgets["right_marker_img"].x() + 12
+        left_x = self.widgets["left_marker_img"].x() + 9
+        right_x = self.widgets["right_marker_img"].x() + 9
         self.widgets["loop_overlay"].move(left_x, 2)
         self.widgets["loop_overlay"].resize(
-            np.abs(right_x - left_x), self.widgets["waveform"].height - 4
+            np.abs(right_x - left_x), self.widgets["waveform"].height - 3
         )
         self.widgets["loop_overlay"].show()
 
