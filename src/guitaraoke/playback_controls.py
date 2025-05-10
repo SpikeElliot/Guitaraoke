@@ -25,8 +25,6 @@ class PlaybackControls(QObject):
         The GUI widget styles stored in a dictionary.
     """
     send_reset_score_signal = pyqtSignal()
-    gui_config = read_config("GUI")
-    audio_config = read_config("Audio")
 
     def __init__(
         self,
@@ -35,6 +33,9 @@ class PlaybackControls(QObject):
         styles: dict[str]
     ) -> None:
         super().__init__()
+
+        self.gui_config = read_config("GUI")
+        self.audio_config = read_config("Audio")
 
         self.audio = audio
         self.widgets = widgets

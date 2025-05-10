@@ -45,8 +45,6 @@ class LoadedAudio():
     duration : float
         The length of the song in seconds.
     """
-    audio_config = read_config("Audio")
-
     def __init__(
         self,
         path: str | Path,
@@ -68,13 +66,15 @@ class LoadedAudio():
         assert isinstance(path, (Path, str)), "File path should be a string or pathlib Path"
         path = Path(path)
         assert path.exists(), "File does not exist"
+
+        self.audio_config = read_config("Audio")
+
         self.metadata = {
             "title": title,
             "artist": artist,
             "filename": path.stem
         }
-        (self.pitches, self.guitar_data,
-         self.no_guitar_data) = self._get_audio_data(path)
+        self.pitches, self.guitar_data, self.no_guitar_data = self._get_audio_data(path)
         self.bpm, self.first_beat = self._get_tempo_data()
         self.duration = len(self.guitar_data) / self.audio_config["rate"] # In secs
 
@@ -147,12 +147,13 @@ class AudioStreamHandler(QObject):
         accuracy.
     """
     send_buffer = pyqtSignal(tuple)
-    audio_config = read_config("Audio")
 
     def __init__(self, song: LoadedAudio) -> None:
         super().__init__()
         # Audio data
         self.song = song
+
+        self.audio_config = read_config("Audio")
 
         # Input variables
         self._in_buffer = np.zeros(self.audio_config["rec_buffer_size"]) # Input audio buffer

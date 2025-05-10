@@ -9,7 +9,6 @@ import pyqtgraph as pg
 from guitaraoke.utils import read_config
 from guitaraoke.audio_streaming import LoadedAudio # pylint: disable=no-name-in-module
 
-config = read_config("Audio")
 
 class WaveformPlot(pg.PlotWidget):
     """
@@ -50,6 +49,8 @@ class WaveformPlot(pg.PlotWidget):
         """
         super().__init__()
 
+        self.config = read_config("Audio")
+
         self.width, self.height = width, height
         self.bg_colour, self.colour = bg_colour, colour
         self.setBackground(self.bg_colour)
@@ -81,8 +82,8 @@ class WaveformPlot(pg.PlotWidget):
         # Downsampling for better performance when plotting waveform
         plot_frames = librosa.resample(
             y=song.guitar_data + song.no_guitar_data, # Sum to get full mix
-            orig_sr=config["rate"],
-            target_sr=config["rate"]/16
+            orig_sr=self.config["rate"],
+            target_sr=self.config["rate"]/16
         )
         w_size = int(len(plot_frames) / num_points)
         x_vals = np.arange(0, num_points)

@@ -16,7 +16,6 @@ from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
-    gui_config = read_config("GUI")
 
     def __init__(
         self,
@@ -25,6 +24,8 @@ class PracticeWindow(QWidget):
     ) -> None:
         """The constructor for the PracticeWindow class."""
         super().__init__()
+
+        self.gui_config = read_config("GUI")
 
         self.audio = audio
         self.scorer = scorer

@@ -86,14 +86,15 @@ class PopupWindow(QDialog):
 class SetupWindow(QWidget):
     """The user setup window of the GUI application."""
     send_set_practice_window_signal = pyqtSignal(AudioStreamHandler)
-    gui_config = read_config("GUI")
-    audio_config = read_config("Audio")
 
     def __init__(self) -> None:
         """The constructor for the SetupWindow class."""
         super().__init__()
         self.popup_window = None
         self.song_filepath = None
+
+        self.gui_config = read_config("GUI")
+        self.audio_config = read_config("Audio")
 
         os.makedirs("songs", exist_ok=True)
 
@@ -269,5 +270,8 @@ class SetupWindow(QWidget):
         parser = ConfigParser()
         parser.read("data\\config.ini")
         parser.set("Audio", "input_device_index", str(idx))
-        with open("data\\config.ini", "w", encoding="utf-8") as configfile:
+
+        with open("data\\config.ini", "w+", encoding="utf-8") as configfile:
             parser.write(configfile)
+
+        print("Input device index changed to:", idx)

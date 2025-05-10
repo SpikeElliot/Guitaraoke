@@ -18,11 +18,11 @@ from guitaraoke.preload import preload_directories
 
 class MainWindow(QMainWindow):
     """The main window of the GUI application."""
-    gui_config = read_config("GUI")
-
     def __init__(self) -> None:
         """The constructor for the MainWindow class."""
         super().__init__()
+
+        self.gui_config = read_config("GUI")
 
         self.scorer = ScoringSystem()
 
