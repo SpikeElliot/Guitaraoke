@@ -218,8 +218,6 @@ class PlaybackControls(QObject):
                 left_marker = marker_pos
                 self.widgets["left_marker_img"].move(x_pos-9, 2)
             elif np.abs(right_marker - marker_pos) >= time_constraint:
-                # Looping set to true when both markers set
-                self.audio.looping = True
                 # Invert markers if new left marker > right marker
                 if marker_pos > right_marker:
                     left_marker = right_marker
@@ -232,6 +230,7 @@ class PlaybackControls(QObject):
                 else: # Otherwise, set left marker to new position
                     left_marker = marker_pos
                     self.widgets["left_marker_img"].move(x_pos-9, 2)
+                self.display_looping()
             self.widgets["left_marker_img"].show() # Show marker when set
 
         # Update right marker when right mouse pressed
@@ -240,8 +239,6 @@ class PlaybackControls(QObject):
                 right_marker = marker_pos
                 self.widgets["right_marker_img"].move(x_pos-9, 2)
             elif np.abs(marker_pos - left_marker) >= time_constraint:
-                # Looping set to true when both markers set
-                self.audio.looping = True
                 # Invert markers if new right marker < left marker
                 if marker_pos < left_marker:
                     right_marker = left_marker
@@ -250,18 +247,21 @@ class PlaybackControls(QObject):
                     )
 
                     left_marker = marker_pos
-                    self.widgets["left_marker_img"].move(x_pos-12, 2)
+                    self.widgets["left_marker_img"].move(x_pos-9, 2)
                 else: # Otherwise, set right marker to new position
                     right_marker = marker_pos
-                    self.widgets["right_marker_img"].move(x_pos-12, 2)
+                    self.widgets["right_marker_img"].move(x_pos-9, 2)
+                self.display_looping()
             self.widgets["right_marker_img"].show() # Show marker when set
-
-        if self.audio.looping:
-            self.display_looping()
 
         # Update playback loop markers (in frames)
         self.audio.loop_markers[0] = left_marker
         self.audio.loop_markers[1] = right_marker
+
+        if (not None in (self.audio.loop_markers[0], self.audio.loop_markers[1])
+            and not self.audio.looping):
+            # Looping set to true when both markers set
+            self.audio.looping = True
 
     def display_looping(self) -> None:
         """
