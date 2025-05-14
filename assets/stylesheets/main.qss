@@ -20,6 +20,10 @@ QDialog > QDialogButtonBox > QPushButton::hover {
     background-color: #005ab4
 }
 
+QLabel#score_label, QLabel#accuracy_label, QLabel#gamemode_label {
+    font-size: 20px;
+}
+
 QLineEdit {
     background-color: #bbbbbb;
     border-radius: 6px;

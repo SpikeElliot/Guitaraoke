@@ -43,10 +43,26 @@ class PracticeWindow(QWidget):
         """Initialises all widgets and adds them to the window."""
         # Song Information Labels
 
-        song_info_layout = QVBoxLayout()
-        song_info_top_row = QHBoxLayout()
-        song_info_middle_row = QHBoxLayout()
-        song_info_bottom_row = QHBoxLayout()
+        song_info_layout = QHBoxLayout()
+        song_info_left_col = QVBoxLayout()
+        song_info_mid_col = QVBoxLayout()
+        song_info_right_col = QVBoxLayout()
+
+        prev_accuracy_label = QLabel()
+        prev_accuracy_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
+        prev_accuracy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        prev_accuracy_label.setText(
+            f"Prev. Accuracy <font color='{self.gui_config['theme_colour']}'>N/A</font>"
+        )
+
+        prev_score_label = QLabel()
+        prev_score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        prev_score_label.setText(
+            f"Prev. Score <font color='{self.gui_config['theme_colour']}'>N/A</font>"
+        )
+
+        swing_label = QLabel()
+        swing_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         artist_label = QLabel()
         artist_label.setText(
@@ -54,95 +70,120 @@ class PracticeWindow(QWidget):
         )
 
         title_label = QLabel()
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setText(
             self.audio.song.metadata["title"]
             )
 
         duration_label = QLabel()
+        duration_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         duration_label.setText(
             f"<font color='{self.gui_config['theme_colour']}'>00:00.00</font>"
             f" / {time_format(self.audio.song.duration)}"
         )
 
         accuracy_label = QLabel()
+        accuracy_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
+        accuracy_label.setObjectName("accuracy_label")
+        accuracy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         accuracy_label.setText(
             f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%</font>"
         )
 
         score_label = QLabel()
+        score_label.setObjectName("score_label")
+        score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         score_label.setText(
             f"Score <font color='{self.gui_config['theme_colour']}'>0</font>"
         )
 
         gamemode_label = QLabel()
+        gamemode_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
+        gamemode_label.setObjectName("gamemode_label")
+        gamemode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         gamemode_label.setText("Practice Mode")
 
-        # Top row
+        # Left column
 
-        song_info_top_row.addSpacing(int(self.gui_config["min_width"]*0.1))
-
-        song_info_top_row.addWidget(
-            gamemode_label,
-            alignment=Qt.AlignmentFlag.AlignRight
-        )
-
-        song_info_top_row.addStretch()
-
-        song_info_top_row.addWidget(
-            artist_label,
+        song_info_left_col.addWidget(
+            prev_accuracy_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        song_info_top_row.addStretch()
+        song_info_left_col.addStretch()
 
-        song_info_top_row.addWidget(
+        # TODO Add prev. score label
+        song_info_left_col.addWidget( # Temporary
+            prev_score_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        song_info_left_col.addStretch()
+
+        song_info_left_col.addWidget( # Temporary
+            swing_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        song_info_left_col.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        # Middle column
+
+        # song_info_mid_col.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        song_info_mid_col.addWidget(
             accuracy_label,
-            alignment=Qt.AlignmentFlag.AlignLeft
-        )
-
-        song_info_top_row.addSpacing(int(self.gui_config["min_width"]*0.1))
-
-        # Middle row
-
-        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.127))
-
-        song_info_middle_row.addWidget( # Temporary
-            QLabel(),
-            alignment=Qt.AlignmentFlag.AlignRight
-            )
-
-        song_info_middle_row.addStretch()
-
-        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.035))
-
-        song_info_middle_row.addWidget(
-            title_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        song_info_middle_row.addStretch()
+        song_info_mid_col.addStretch()
 
-        song_info_middle_row.addWidget(
+        song_info_mid_col.addWidget(
             score_label,
-            alignment=Qt.AlignmentFlag.AlignLeft
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        song_info_middle_row.addSpacing(int(self.gui_config["min_width"]*0.127))
+        song_info_mid_col.addStretch()
 
-        # Bottom row
-
-        song_info_bottom_row.addStretch()
-
-        song_info_bottom_row.addWidget(
+        song_info_mid_col.addWidget(
             duration_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        song_info_bottom_row.addStretch()
+        song_info_mid_col.addSpacing(int(self.gui_config["min_height"]*0.05))
 
-        song_info_layout.addLayout(song_info_top_row)
-        song_info_layout.addLayout(song_info_middle_row)
-        song_info_layout.addLayout(song_info_bottom_row)
+        # Right column
+
+        # song_info_right_col.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        song_info_right_col.addWidget(
+            gamemode_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        song_info_right_col.addStretch()
+
+        song_info_right_col.addWidget(
+            artist_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        song_info_right_col.addStretch()
+
+        song_info_right_col.addWidget(
+            title_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        song_info_right_col.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        song_info_layout.addSpacing(int(self.gui_config["min_width"]*0.05))
+        song_info_layout.addLayout(song_info_left_col)
+        song_info_layout.addStretch()
+        song_info_layout.addLayout(song_info_mid_col)
+        song_info_layout.addStretch()
+        song_info_layout.addLayout(song_info_right_col)
+        song_info_layout.addSpacing(int(self.gui_config["min_width"]*0.05))
 
         # Waveform Plot
 
@@ -348,15 +389,20 @@ class PracticeWindow(QWidget):
         # Main Layout
 
         layout = QVBoxLayout()
+        layout.addSpacing(int(self.gui_config["min_height"]*0.05))
         layout.addLayout(song_info_layout)
         layout.addWidget(
             waveform,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
+        layout.addSpacing(int(self.gui_config["min_height"]*0.05))
         layout.addLayout(controls_layout)
         self.setLayout(layout)
 
         return {
+            "prev_accuracy_label": prev_accuracy_label,
+            "prev_score_label": prev_score_label,
+            "swing_label": swing_label,
             "artist_label": artist_label, 
             "title_label": title_label,
             "duration_label": duration_label, 
@@ -486,15 +532,29 @@ class PracticeWindow(QWidget):
 
     def receive_new_score_data(
         self,
-        data: tuple[int, float]
+        data: tuple[int, float, float]
     ) -> None:
         """Update GUI score information with new score data."""
-        score, accuracy = data
+        score, accuracy, swing = data
+
+        perf_time_end = time.perf_counter()
+        print(f"\033[92mElapsed scoring time: {perf_time_end-self.perf_time_start}\033[0m")
+
         self.widgets["score_label"].setText(
             f"Score <font color='{self.gui_config['theme_colour']}'>{score}</font>"
         )
         self.widgets["accuracy_label"].setText(
             f"Accuracy <font color='{self.gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
         )
-        perf_time_end = time.perf_counter()
-        print(f"\033[92mElapsed scoring time: {perf_time_end-self.perf_time_start}\033[0m")
+
+        swing *= 1000 # In ms
+        print(swing)
+        swing_label_text = ""
+        if -10 <= swing <= 10:
+            swing_label_text = "<font color='#0da000'>Keep it up!</font>"
+        elif swing < -10:
+            swing_label_text = f"Rushing by <font color='ff0000'>~{round(-swing)}ms</font>"
+        else:
+            swing_label_text = f"Dragging by <font color='#ff0000'>~{round(swing)}ms</font>"
+        self.widgets["swing_label"].setText(swing_label_text)
+        self.widgets["swing_label"].show()

@@ -69,6 +69,10 @@ class PlaybackControls(QObject):
         song_pos_in_s = self.audio.position/self.audio_config["rate"]
         head_pos = int((song_pos_in_s/self.audio.song.duration)
                         * self.widgets["waveform"].width)
+        if head_pos < self.widgets["playhead"].x():
+            # Reset score data if looping
+            self.send_reset_score_signal.emit()
+            self.widgets["swing_label"].hide()
         self.widgets["playhead"].move(head_pos, 2)
 
     def play_button_pressed(self) -> None:
@@ -104,6 +108,7 @@ class PlaybackControls(QObject):
     def start_song_processes(self) -> None:
         "Start all I/O streaming processes."
         self.send_reset_score_signal.emit() # Send signal to GUI to reset score
+        self.widgets["swing_label"].hide()
         self.audio.start()
         self.widgets["audiopos_timer"].start()
 
@@ -139,6 +144,7 @@ class PlaybackControls(QObject):
             self.audio.seek(end-0.1)
 
         self.send_reset_score_signal.emit() # Send signal to GUI to reset score
+        self.widgets["swing_label"].hide()
         self.update_songpos()
 
     def skip_back_button_pressed(self) -> None:
@@ -155,6 +161,7 @@ class PlaybackControls(QObject):
             self.audio.seek(start)
 
         self.send_reset_score_signal.emit() # Send signal to GUI to reset score
+        self.widgets["swing_label"].hide()
         self.update_songpos()
 
     def loop_button_pressed(self) -> None:
@@ -293,6 +300,7 @@ class PlaybackControls(QObject):
         song_pos = (x_pos/self.widgets["waveform"].width) * self.audio.song.duration
         self.audio.seek(song_pos) # Update song time position
         self.send_reset_score_signal.emit() # Send signal to GUI to reset score
+        self.widgets["swing_label"].hide()
 
         self.widgets["duration_label"].setText( # Update song time display
             f"<font color='{self.gui_config['theme_colour']}'>{time_format(song_pos)}</font>"

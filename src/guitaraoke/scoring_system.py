@@ -71,6 +71,7 @@ class ScoringSystem(QObject):
         self._notes_hit = 0
         self._total_notes = 0
         self._accuracy = 0
+        self._swing_times = []
 
     @property
     def executor(self):
@@ -100,22 +101,32 @@ class ScoringSystem(QObject):
 
     def _internal_done_callback(
         self,
-        future: concurrent.futures.Future[tuple[int, float]]
+        future: concurrent.futures.Future[tuple[int, float, int, float]]
     ) -> None:
         """
         Called when the future is complete, emits the resultant score
         data to the connected function in the main file.
         """
-        score, notes_hit, total_notes = future.result()
+        score, notes_hit, total_notes, swing_times = future.result()
         # Scores currently divided by 2 as workaround to user notes
         # being counted twice
         self._score += int(round(score/2, ndigits=-1))
         self._notes_hit += round(notes_hit/2)
         self._total_notes += round(total_notes/2)
+
+        # Find average note swing (median taken as times distribution
+        # likely skewed, and to be robust to outliers)
+        self._swing_times += swing_times
+        print(self._swing_times)
+        if not self._swing_times:
+            average_swing = 0
+        else:
+            average_swing = np.median(self._swing_times)
+
         if self._total_notes != 0: # Avoid divide by zero error
             self._accuracy = (self._notes_hit / self.total_notes) * 100
 
-        self.sent_score_data.emit((self._score, self._accuracy))
+        self.sent_score_data.emit((self._score, self._accuracy, average_swing))
 
     @property
     def score(self) -> int:
@@ -137,9 +148,15 @@ class ScoringSystem(QObject):
         """Getter for the accuracy value."""
         return self._accuracy
 
+    @property
+    def swing_times(self) -> int:
+        """Getter for the note swing times array."""
+        return self._swing_times
+
     def zero_score_data(self) -> None:
         """Reset score data (called when song skipped/restarted)."""
-        self._score, self._notes_hit, self._total_notes, self._accuracy = (0,0,0,0)
+        (self._score, self._notes_hit, self._total_notes,
+        self._accuracy, self._swing_times) = (0,0,0,0,[])
 
 
 def preload_basic_pitch_model() -> None:
@@ -150,11 +167,11 @@ def preload_basic_pitch_model() -> None:
 def compare_pitches(
     user_pitches: dict[int, list],
     song_pitches: dict[int, list]
-) -> tuple[int, float, int]:
+) -> tuple[int, float, int, float]:
     """
     Take two pitch dictionaries (user and song), find the shortest 
     unique distances between each user and song note, and return the
-    resultant score information.
+    resultant performance information.
 
     Parameters
     ----------
@@ -165,11 +182,12 @@ def compare_pitches(
     Returns
     -------
     tuple[int, float, int]
-        The user score, number of notes hit by the user, and total 
-        number of notes.
+        The user score, number of notes hit by the user, total number
+        of notes, and average swing.
     """
     total_notes = 0
     notes_hit = 0
+    note_swing_times = []
 
     # Iterate over user and song note events for all 128 MIDI pitches
     for note in range(128):
@@ -211,6 +229,7 @@ def compare_pitches(
             if not notes:
                 continue
 
+            # Absolute distance from note for scoring
             dist = np.abs(notes[0] - song_note_times[i])
 
             # Perform scoring logic
@@ -218,8 +237,14 @@ def compare_pitches(
                 notes_hit += 1
             elif dist <= NOTE_HIT_WINDOW * 2:
                 notes_hit += 1 - CLOSE_HIT_PENALTY
+            else: # If note time outside of tolerance window
+                continue
 
-    return notes_hit*100, notes_hit, total_notes
+            # Positive means dragging, negative means rushing
+            swing = notes[0] - song_note_times[i]
+            note_swing_times.append(swing)
+
+    return notes_hit*100, notes_hit, total_notes, note_swing_times
 
 
 def unique_nearest_notes(
@@ -269,7 +294,7 @@ def process_recording(
     buffer: np.ndarray,
     position: int,
     preprocessed_song_pitches: dict[int, list]
-) -> tuple[int, float]:
+) -> tuple[int, float, int, float]:
     """
     Compare the user input recording's pitches against the song's,
     returning the resultant score data.
