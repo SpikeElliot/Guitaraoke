@@ -16,7 +16,6 @@ from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
-
     def __init__(
         self,
         audio: AudioStreamHandler,
@@ -112,7 +111,6 @@ class PracticeWindow(QWidget):
 
         song_info_left_col.addStretch()
 
-        # TODO Add prev. score label
         song_info_left_col.addWidget( # Temporary
             prev_score_label,
             alignment=Qt.AlignmentFlag.AlignCenter
@@ -513,10 +511,28 @@ class PracticeWindow(QWidget):
 
     def receive_reset_score_signal(self) -> None:
         """
-        Resets the user score to zero when a signal is sent from the
+        Resets user score data to zero when a signal is sent from the
         PlaybackControls object indicating song position has been 
         manually changed.
         """
+        # Set accuracy and score labels to zero
+        self.widgets["accuracy_label"].setText(
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%</font>"
+        )
+        self.widgets["score_label"].setText(
+            f"Score <font color='{self.gui_config['theme_colour']}'>0</font>"
+        )
+        # Set prev. labels to current vals before resetting
+        if self.scorer.score > 0:
+            self.widgets["prev_accuracy_label"].setText(
+                (f"Prev. Accuracy <font color='{self.gui_config['theme_colour']}'>"
+                + f"{self.scorer.accuracy:.1f}%</font>")
+            )
+            self.widgets["prev_score_label"].setText(
+                (f"Prev. Score <font color='{self.gui_config['theme_colour']}'>"
+                + f"{self.scorer.score}</font>")
+            )
+        self.widgets["swing_label"].setText("")
         self.scorer.zero_score_data()
 
     def receive_new_input_audio(
@@ -551,9 +567,10 @@ class PracticeWindow(QWidget):
         print(swing)
         swing_label_text = ""
         if -10 <= swing <= 10:
-            swing_label_text = "<font color='#0da000'>Keep it up!</font>"
+            if self.scorer.score > 0:
+                swing_label_text = "<font color='#0da000'>Keep it up!</font>"
         elif swing < -10:
-            swing_label_text = f"Rushing by <font color='ff0000'>~{round(-swing)}ms</font>"
+            swing_label_text = f"Rushing by <font color='#ff0000'>~{round(-swing)}ms</font>"
         else:
             swing_label_text = f"Dragging by <font color='#ff0000'>~{round(swing)}ms</font>"
         self.widgets["swing_label"].setText(swing_label_text)

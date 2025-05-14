@@ -21,7 +21,7 @@ def preload_directories() -> None:
     if getattr(sys, "frozen", False):
         os.environ["assets_dir"] = f"{sys._MEIPASS}\\assets" # pylint: disable=protected-access
         os.environ["model_repo"] = f"{sys._MEIPASS}\\demucs_models" # pylint: disable=protected-access
-        os.environ["PATH"] = f"{sys._MEIPASS}/ffmpeg" + os.pathsep + os.environ["PATH"] # pylint: disable=protected-access
+        os.environ["PATH"] = f"{sys._MEIPASS}\\ffmpeg" + os.pathsep + os.environ["PATH"] # pylint: disable=protected-access
     else:
         os.environ["assets_dir"] = "assets"
         os.environ["model_repo"] = "demucs_models"

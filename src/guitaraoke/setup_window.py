@@ -101,7 +101,6 @@ class SetupWindow(QWidget):
         self.in_devices = find_audio_devices()[0]
 
         self.widgets = self.set_components()
-        print(self.widgets)
 
         self.set_connections()
 
