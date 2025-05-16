@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 import multiprocessing
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QApplication, QMainWindow, QStackedWidget
@@ -59,8 +60,31 @@ class MainWindow(QMainWindow):
         the SetupWindow.
         """
         self.practice_window = PracticeWindow(audio, self.scorer)
+        self.practice_window.send_back_button_pressed_signal.connect(self.show_setup_window)
         self.window_stack.addWidget(self.practice_window)
         self.window_stack.setCurrentWidget(self.practice_window)
+
+    def show_setup_window(self) -> None:
+        """
+        Destroy current PracticeWindow instance and set current window
+        to SetupWindow when back button pressed in practice screen.
+        """
+        self.destroy_practice_window()
+        self.scorer.zero_score_data()
+        self.window_stack.setCurrentWidget(self.setup_window)
+
+    def destroy_practice_window(self) -> None:
+        """
+        End all running processes of the current PracticeWindow
+        instance before deleting it.
+        """
+        if not hasattr(self, "practice_window"):
+            return
+        self.practice_window.audio.abort_stream()
+        while self.scorer.executor_future is not None:
+            time.sleep(0.01)
+        self.window_stack.removeWidget(self.practice_window)
+        del self.practice_window
 
 
 def main() -> None:
@@ -88,9 +112,8 @@ def main() -> None:
 
 def app_exec(app: QApplication, window: MainWindow) -> None:
     """End all processes when the application's window is closed."""
-    if window.practice_window:
-        window.practice_window.audio.abort_stream()
     app.exec()
+    window.destroy_practice_window()
     window.scorer.shutdown_processes()
 
 

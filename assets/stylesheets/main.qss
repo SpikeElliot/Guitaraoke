@@ -101,6 +101,11 @@ QPushButton::hover {
     background-color: #005ab4;
 }
 
+QPushButton#back_button {
+    border-image: url(images:back_arrow.png);
+    background-color: transparent;
+}
+
 QPushButton#select_song {
     border-radius: 15px;
     padding: 6px 15px;

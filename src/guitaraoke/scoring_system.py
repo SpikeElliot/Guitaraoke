@@ -66,6 +66,7 @@ class ScoringSystem(QObject):
         super().__init__()
         self._executor = concurrent.futures.ProcessPoolExecutor(max_workers=1)
         self._executor.submit(preload_basic_pitch_model)
+        self._executor_future = None
 
         self._score = 0
         self._notes_hit = 0
@@ -77,6 +78,11 @@ class ScoringSystem(QObject):
     def executor(self):
         """Getter for the process pool executor."""
         return self._executor
+
+    @property
+    def executor_future(self):
+        """The current future of the process pool executor."""
+        return self._executor_future
 
     def shutdown_processes(self) -> None:
         """Shut down all worker processes."""
@@ -93,11 +99,11 @@ class ScoringSystem(QObject):
         process, providing a callback function that updates score
         attributes with new data when the future is complete.
         """
-        future = self._executor.submit(
+        self._executor_future = self._executor.submit(
             process_recording,
             buffer, position, pitches,
         )
-        future.add_done_callback(self._internal_done_callback)
+        self._executor_future.add_done_callback(self._internal_done_callback)
 
     def _internal_done_callback(
         self,
@@ -108,6 +114,7 @@ class ScoringSystem(QObject):
         data to the connected function in the main file.
         """
         score, notes_hit, total_notes, swing_times = future.result()
+        self._executor_future = None
         # Scores currently divided by 2 as workaround to user notes
         # being counted twice
         self._score += int(round(score/2, ndigits=-1))

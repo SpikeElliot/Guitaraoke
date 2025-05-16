@@ -2,7 +2,7 @@
 
 import time
 import numpy as np
-from PyQt6.QtCore import Qt, QTimer # pylint: disable=no-name-in-module
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal # pylint: disable=no-name-in-module
 from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QSlider
@@ -16,6 +16,8 @@ from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
+    send_back_button_pressed_signal = pyqtSignal()
+
     def __init__(
         self,
         audio: AudioStreamHandler,
@@ -43,12 +45,15 @@ class PracticeWindow(QWidget):
         # Song Information Labels
 
         song_info_layout = QHBoxLayout()
-        song_info_left_col = QVBoxLayout()
-        song_info_mid_col = QVBoxLayout()
-        song_info_right_col = QVBoxLayout()
+        song_info_col1 = QVBoxLayout()
+        song_info_col2 = QVBoxLayout()
+        song_info_col3 = QVBoxLayout()
+        song_info_col4 = QVBoxLayout()
+
+        # Column 1
 
         prev_accuracy_label = QLabel()
-        prev_accuracy_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
+        prev_accuracy_label.setFixedWidth(int(self.gui_config["min_width"]*0.2))
         prev_accuracy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         prev_accuracy_label.setText(
             f"Prev. Accuracy <font color='{self.gui_config['theme_colour']}'>N/A</font>"
@@ -63,30 +68,32 @@ class PracticeWindow(QWidget):
         swing_label = QLabel()
         swing_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        artist_label = QLabel()
-        artist_label.setText(
-            self.audio.song.metadata["artist"]
-        )
+        # Layout
 
-        title_label = QLabel()
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setText(
-            self.audio.song.metadata["title"]
-            )
-
-        duration_label = QLabel()
-        duration_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        duration_label.setText(
-            f"<font color='{self.gui_config['theme_colour']}'>00:00.00</font>"
-            f" / {time_format(self.audio.song.duration)}"
+        song_info_col1.addWidget(
+            prev_accuracy_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
         )
+        song_info_col1.addStretch()
+        song_info_col1.addWidget(
+            prev_score_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        song_info_col1.addStretch()
+        song_info_col1.addWidget(
+            swing_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        song_info_col1.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        # Column 2
 
         accuracy_label = QLabel()
         accuracy_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
         accuracy_label.setObjectName("accuracy_label")
         accuracy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         accuracy_label.setText(
-            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%</font>"
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%    </font>"
         )
 
         score_label = QLabel()
@@ -96,91 +103,105 @@ class PracticeWindow(QWidget):
             f"Score <font color='{self.gui_config['theme_colour']}'>0</font>"
         )
 
+        duration_label = QLabel()
+        duration_label.setObjectName("duration_label")
+        duration_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        duration_label.setText(
+            f"<font color='{self.gui_config['theme_colour']}'>00:00.00</font>"
+            f" / {time_format(self.audio.song.duration)}"
+        )
+
+        # Layout
+
+        song_info_col2.addWidget(
+            accuracy_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        song_info_col2.addStretch()
+        song_info_col2.addWidget(
+            score_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        song_info_col2.addStretch()
+        song_info_col2.addWidget(
+            duration_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        song_info_col2.addSpacing(int(self.gui_config["min_height"]*0.05))
+
+        # Column 3
+
         gamemode_label = QLabel()
-        gamemode_label.setFixedWidth(int(self.gui_config["min_width"]*0.3))
+        gamemode_label.setFixedWidth(int(self.gui_config["min_width"]*0.25))
         gamemode_label.setObjectName("gamemode_label")
         gamemode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         gamemode_label.setText("Practice Mode")
 
-        # Left column
-
-        song_info_left_col.addWidget(
-            prev_accuracy_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
+        artist_label = QLabel()
+        artist_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        artist_label.setText(
+            f"<font color='{self.gui_config['theme_colour']}'>{self.audio.song.metadata['artist']}"
         )
 
-        song_info_left_col.addStretch()
-
-        song_info_left_col.addWidget( # Temporary
-            prev_score_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
+        title_label = QLabel()
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setText(
+            f"<font color='{self.gui_config['theme_colour']}'>{self.audio.song.metadata['title']}"
         )
 
-        song_info_left_col.addStretch()
+        # Layout
 
-        song_info_left_col.addWidget( # Temporary
-            swing_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
-        )
-
-        song_info_left_col.addSpacing(int(self.gui_config["min_height"]*0.05))
-
-        # Middle column
-
-        # song_info_mid_col.addSpacing(int(self.gui_config["min_height"]*0.05))
-
-        song_info_mid_col.addWidget(
-            accuracy_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
-        )
-
-        song_info_mid_col.addStretch()
-
-        song_info_mid_col.addWidget(
-            score_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
-        )
-
-        song_info_mid_col.addStretch()
-
-        song_info_mid_col.addWidget(
-            duration_label,
-            alignment=Qt.AlignmentFlag.AlignCenter
-        )
-
-        song_info_mid_col.addSpacing(int(self.gui_config["min_height"]*0.05))
-
-        # Right column
-
-        # song_info_right_col.addSpacing(int(self.gui_config["min_height"]*0.05))
-
-        song_info_right_col.addWidget(
+        song_info_col3.addWidget(
             gamemode_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
-
-        song_info_right_col.addStretch()
-
-        song_info_right_col.addWidget(
+        song_info_col3.addStretch()
+        song_info_col3.addWidget(
             artist_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
-
-        song_info_right_col.addStretch()
-
-        song_info_right_col.addWidget(
+        song_info_col3.addStretch()
+        song_info_col3.addWidget(
             title_label,
             alignment=Qt.AlignmentFlag.AlignCenter
         )
+        song_info_col3.addSpacing(int(self.gui_config["min_height"]*0.05))
 
-        song_info_right_col.addSpacing(int(self.gui_config["min_height"]*0.05))
+        # Column 4
 
-        song_info_layout.addSpacing(int(self.gui_config["min_width"]*0.05))
-        song_info_layout.addLayout(song_info_left_col)
+        back_button = QPushButton()
+        back_button.setObjectName("back_button")
+        back_button.setToolTip("Back to song select menu")
+        back_button.setFixedSize(
+            int(self.gui_config["min_width"]*0.022),
+            int(self.gui_config["min_width"]*0.022)
+        )
+
+        col4_positioner_element = QWidget()
+        col4_positioner_element.setFixedSize(int(self.gui_config["min_width"]*0.05), 0)
+
+        # Layout
+
+        song_info_col4.addWidget(
+            back_button,
+            alignment=Qt.AlignmentFlag.AlignRight
+        )
+        song_info_col4.addWidget(
+            col4_positioner_element,
+            alignment=Qt.AlignmentFlag.AlignTop
+        )
+        song_info_col4.addStretch()
+
+        # All Columns Layout
+
+        song_info_layout.addSpacing(int(self.gui_config["min_width"]*0.15))
+        song_info_layout.addLayout(song_info_col1)
         song_info_layout.addStretch()
-        song_info_layout.addLayout(song_info_mid_col)
+        song_info_layout.addLayout(song_info_col2)
         song_info_layout.addStretch()
-        song_info_layout.addLayout(song_info_right_col)
+        song_info_layout.addLayout(song_info_col3)
+        song_info_layout.addStretch()
+        song_info_layout.addLayout(song_info_col4)
         song_info_layout.addSpacing(int(self.gui_config["min_width"]*0.05))
 
         # Waveform Plot
@@ -405,8 +426,9 @@ class PracticeWindow(QWidget):
             "title_label": title_label,
             "duration_label": duration_label, 
             "score_label": score_label,
-            "accuracy_label": accuracy_label, 
+            "accuracy_label": accuracy_label,
             "gamemode_label": gamemode_label,
+            "back_button": back_button,
             "waveform": waveform, 
             "playhead": playhead,
             "loop_overlay": loop_overlay, 
@@ -478,6 +500,9 @@ class PracticeWindow(QWidget):
         self.controls.send_reset_score_signal.connect(
             self.receive_reset_score_signal
         )
+        self.widgets["back_button"].clicked.connect(
+            self.send_back_button_pressed_signal.emit
+        )
         self.widgets["waveform"].clicked_connect(
             self.controls.waveform_pressed
         )
@@ -517,7 +542,7 @@ class PracticeWindow(QWidget):
         """
         # Set accuracy and score labels to zero
         self.widgets["accuracy_label"].setText(
-            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%</font>"
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>0.0%    </font>"
         )
         self.widgets["score_label"].setText(
             f"Score <font color='{self.gui_config['theme_colour']}'>0</font>"
@@ -541,7 +566,7 @@ class PracticeWindow(QWidget):
     ) -> None:
         """
         Schedule the process_recording method to be called when a new
-        audio input buffer received.
+        audio input buffer is received.
         """
         buffer, position, pitches, self.perf_time_start = data
         self.scorer.submit_process_recording(buffer, position, pitches)
@@ -560,11 +585,10 @@ class PracticeWindow(QWidget):
             f"Score <font color='{self.gui_config['theme_colour']}'>{score}</font>"
         )
         self.widgets["accuracy_label"].setText(
-            f"Accuracy <font color='{self.gui_config['theme_colour']}'>{accuracy:.1f}%</font>"
+            f"Accuracy <font color='{self.gui_config['theme_colour']}'>{accuracy:.1f}%    </font>"
         )
 
         swing *= 1000 # In ms
-        print(swing)
         swing_label_text = ""
         if -10 <= swing <= 10:
             if self.scorer.score > 0:
