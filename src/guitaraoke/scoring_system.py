@@ -59,7 +59,7 @@ class ScoringSystem(QObject):
     accuracy : float
         The percentage out of total song notes hit by the user.
     """
-    sent_score_data = pyqtSignal(tuple)
+    new_score_data_signal = pyqtSignal(tuple)
 
     def __init__(self) -> None:
         """The constructor for the ScoringSystem class."""
@@ -133,7 +133,7 @@ class ScoringSystem(QObject):
         if self._total_notes != 0: # Avoid divide by zero error
             self._accuracy = (self._notes_hit / self.total_notes) * 100
 
-        self.sent_score_data.emit((self._score, self._accuracy, average_swing))
+        self.new_score_data_signal.emit((self._score, self._accuracy, average_swing))
 
     @property
     def score(self) -> int:

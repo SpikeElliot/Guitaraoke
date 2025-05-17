@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import ( # pylint: disable=no-name-in-module
     QWidget, QDialog, QDialogButtonBox, QVBoxLayout, QPushButton, QLabel,
     QFileDialog, QComboBox, QFormLayout, QLineEdit, QGroupBox, QHBoxLayout
 )
-from guitaraoke.audio_streaming import LoadedAudio, AudioStreamHandler # pylint: disable=no-name-in-module
 from guitaraoke.utils import read_config, find_audio_devices
 
 
@@ -17,7 +16,7 @@ class PopupWindow(QDialog):
     A popup window that appears if a selected song does not have any
     saved data.
     """
-    send_set_song_data = pyqtSignal(tuple)
+    song_metadata_set_signal = pyqtSignal(tuple)
 
     def __init__(self):
         """The constructor for the PopupWindow class."""
@@ -76,7 +75,7 @@ class PopupWindow(QDialog):
         title = self.widgets["title_line_edit"].text()
         artist = self.widgets["artist_line_edit"].text()
         self.close()
-        self.send_set_song_data.emit((title, artist))
+        self.song_metadata_set_signal.emit((title, artist))
 
     def form_rejected(self) -> None:
         """Close popup window."""
@@ -85,7 +84,7 @@ class PopupWindow(QDialog):
 
 class SetupWindow(QWidget):
     """The user setup window of the GUI application."""
-    send_set_practice_window_signal = pyqtSignal(AudioStreamHandler)
+    load_song_signal = pyqtSignal(tuple)
 
     def __init__(self) -> None:
         """The constructor for the SetupWindow class."""
@@ -222,7 +221,7 @@ class SetupWindow(QWidget):
 
         # Check the song's artist and title already saved
         if not None in (title, artist):
-            self.load_audio(title, artist)
+            self.start_song_loading(title, artist)
         else:
             # Open popup window that allows the user to set the values
             self.create_popup_window()
@@ -234,7 +233,7 @@ class SetupWindow(QWidget):
         """
         self.popup_window = PopupWindow()
         self.popup_window.show()
-        self.popup_window.send_set_song_data.connect(self.save_song_data)
+        self.popup_window.song_metadata_set_signal.connect(self.save_song_data)
 
     def save_song_data(self, data: tuple[str, str]) -> None:
         """
@@ -247,22 +246,15 @@ class SetupWindow(QWidget):
             writer.writerow(
                 {"path": self.song_filepath, "title": title, "artist": artist}
             )
-        self.load_audio(title, artist)
+        self.start_song_loading(title, artist)
 
-    def load_audio(self, title: str, artist: str) -> None:
+    def start_song_loading(self, title: str, artist: str) -> None:
         """
         Initialise the AudioStreamHandler used in the practice mode
         from the selected audio file path.
         """
         print(f"Loading '{self.song_filepath}'...")
-        audio = AudioStreamHandler(
-            LoadedAudio(
-                path=self.song_filepath,
-                title=title,
-                artist=artist
-            )
-        )
-        self.send_set_practice_window_signal.emit(audio)
+        self.load_song_signal.emit((self.song_filepath, title, artist))
 
     def set_input_device(self, idx) -> None:
         """Update config file with new input device index."""

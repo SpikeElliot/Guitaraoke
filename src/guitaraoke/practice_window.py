@@ -16,7 +16,7 @@ from guitaraoke.utils import time_format, hex_to_rgb, read_config
 
 class PracticeWindow(QWidget):
     """The main window of the GUI application."""
-    send_back_button_pressed_signal = pyqtSignal()
+    back_button_pressed_signal = pyqtSignal()
 
     def __init__(
         self,
@@ -491,17 +491,17 @@ class PracticeWindow(QWidget):
         Sets the connections between QObjects and their connected
         functions.
         """
-        self.audio.send_buffer.connect(
+        self.audio.new_input_buffer_signal.connect(
             self.receive_new_input_audio
         )
-        self.scorer.sent_score_data.connect(
+        self.scorer.new_score_data_signal.connect(
             self.receive_new_score_data
         )
-        self.controls.send_reset_score_signal.connect(
+        self.controls.reset_score_signal.connect(
             self.receive_reset_score_signal
         )
         self.widgets["back_button"].clicked.connect(
-            self.send_back_button_pressed_signal.emit
+            self.back_button_pressed_signal.emit
         )
         self.widgets["waveform"].clicked_connect(
             self.controls.waveform_pressed
@@ -592,7 +592,7 @@ class PracticeWindow(QWidget):
         swing_label_text = ""
         if -10 <= swing <= 10:
             if self.scorer.score > 0:
-                swing_label_text = "<font color='#0da000'>Keep it up!</font>"
+                swing_label_text = "<font color='#0da000'>On time!</font>"
         elif swing < -10:
             swing_label_text = f"Rushing by <font color='#ff0000'>~{round(-swing)}ms</font>"
         else:

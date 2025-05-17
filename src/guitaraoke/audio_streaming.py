@@ -146,7 +146,7 @@ class AudioStreamHandler(QObject):
         The user's performance data: score, notes hit, total notes, and
         accuracy.
     """
-    send_buffer = pyqtSignal(tuple)
+    new_input_buffer_signal = pyqtSignal(tuple)
 
     def __init__(self, song: LoadedAudio) -> None:
         super().__init__()
@@ -306,7 +306,7 @@ class AudioStreamHandler(QObject):
                 slice_start=slice_start,
                 slice_end=self._position/self.audio_config["rate"],
             )
-            self.send_buffer.emit(
+            self.new_input_buffer_signal.emit(
                 (self._in_buffer.copy(), self._position, pitches, perf_time_start)
             )
 
