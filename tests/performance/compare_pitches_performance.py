@@ -1,17 +1,17 @@
-"""Performs a performance test of the compare_pitches function."""
+"""Performs a performance test of the compare_notes function."""
 
 import time
-from guitaraoke.scoring_system import compare_pitches
+from guitaraoke.scoring_system import compare_notes
 
-user_pitches = {k: [] for k in range(128)}
-song_pitches = {k: [] for k in range(128)}
+user_notes = {k: [] for k in range(128)}
+song_notes = {k: [] for k in range(128)}
 for i in range(29):
-    user_pitches[20+i].append(i*0.068)
+    user_notes[20+i].append(i*0.068)
 
-    song_pitches[20+i].append(i*0.068)
-    song_pitches[25+i].append(i*0.068)
+    song_notes[20+i].append(i*0.068)
+    song_notes[25+i].append(i*0.068)
 
 time1 = time.perf_counter()
-result = compare_pitches(user_pitches,song_pitches)
+result = compare_notes(user_notes,song_notes)
 time2 = time.perf_counter()
 print("Worst Case Execution Time:", time2-time1)

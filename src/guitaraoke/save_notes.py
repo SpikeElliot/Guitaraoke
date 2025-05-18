@@ -8,7 +8,7 @@ from basic_pitch.inference import predict_and_save
 from guitaraoke.preload import PITCH_MODEL
 
 
-def save_pitches(
+def save_notes(
     path: str | Path,
     sonify: bool = False,
     temp: bool = False
@@ -38,13 +38,13 @@ def save_pitches(
     assert path.exists(), "File does not exist"
 
     parent = path.parent.stem
-    out_folder = Path(os.environ["saved_pitches_dir"])
+    out_folder = Path(os.environ["saved_notes_dir"])
 
     if temp:
-        # Directory for input recording predicted pitches
+        # Directory for input recording predicted notes
         out_folder = out_folder / "temp"
     else:
-        # Directory for song predicted pitches
+        # Directory for song predicted notes
         out_folder = out_folder / "songs" / parent
 
     os.makedirs(out_folder, exist_ok=True)
@@ -52,11 +52,11 @@ def save_pitches(
     filename = path.stem
     paths = [out_folder / f"{filename}_basic_pitch.csv"]
 
-    # Check pitches file does not already exist
+    # Check notes file does not already exist
     if not paths[0].exists():
         predict_and_save(
             audio_path_list=[path], # Input audio path
-            output_directory=out_folder, # Saved pitches directory
+            output_directory=out_folder, # Saved notes directory
             save_midi=False, # Saving MIDI not necessary
             sonify_midi=sonify, # Save WAV file of pred. notes for testing
             save_model_outputs=False, # Saving model outputs not necessary

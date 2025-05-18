@@ -15,7 +15,7 @@ def preload_directories() -> None:
     """Perform necessary preloading steps for the application."""
 
     os.environ["sep_tracks_dir"] = "data\\separated_tracks\\htdemucs_6s"
-    os.environ["saved_pitches_dir"] = "data\\pitch_predictions"
+    os.environ["saved_notes_dir"] = "data\\note_predictions"
 
     # Set paths to _internal directory if being run as an executable
     if getattr(sys, "frozen", False):

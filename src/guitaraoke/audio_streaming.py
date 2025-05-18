@@ -19,10 +19,10 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer # pylint: disable=no-name-in-module
-from guitaraoke.save_pitches import save_pitches
+from guitaraoke.save_notes import save_notes
 from guitaraoke.separate_guitar import separate_guitar
 from guitaraoke.utils import (
-    csv_to_pitches_dataframe, preprocess_pitch_data, read_config
+    csv_to_notes_dataframe, preprocess_note_data, read_config
 )
 
 class LoadedAudio():
@@ -36,7 +36,7 @@ class LoadedAudio():
         The song's title, artist, and filename stored in a dictionary.
     guitar_data, no_guitar_data : ndarray
         The song's separated tracks' audio time series.
-    pitches : DataFrame
+    notes : DataFrame
         The guitar note events predicted from the song in a DataFrame.
     bpm : float
         The song's tempo.
@@ -74,7 +74,7 @@ class LoadedAudio():
             "artist": artist,
             "filename": path.stem
         }
-        self.pitches, self.guitar_data, self.no_guitar_data = self._get_audio_data(path)
+        self.notes, self.guitar_data, self.no_guitar_data = self._get_audio_data(path)
         self.bpm, self.first_beat = self._get_tempo_data()
         self.duration = len(self.guitar_data) / self.audio_config["rate"] # In secs
 
@@ -83,25 +83,25 @@ class LoadedAudio():
         path: Path
     ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         """
-        Load a song's predicted pitches DataFrame and its separated
+        Load a song's predicted notes DataFrame and its separated
         audio time series (guitar_data and no_guitar_data).
         """
         audio_dir = Path(f"{os.environ['sep_tracks_dir']}\\{self.metadata['filename']}")
         guitar_path = audio_dir / "guitar.wav"
         no_guitar_path = audio_dir / "no_guitar.wav"
 
-        # Perform guitar separation and pitch detection
+        # Perform guitar separation and note detection
         guitar_path, no_guitar_data = separate_guitar(path)
-        pitches_path = save_pitches(guitar_path)[0]
+        notes_path = save_notes(guitar_path)[0]
 
-        # Convert pitches CSV to a pandas DataFrame
-        pitches = csv_to_pitches_dataframe(pitches_path)
+        # Convert notes CSV to a pandas DataFrame
+        notes = csv_to_notes_dataframe(notes_path)
 
         # Get guitar and no_guitar tracks' audio time series
         guitar_data = librosa.load(guitar_path, sr=self.audio_config["rate"])[0]
         no_guitar_data = librosa.load(no_guitar_path, sr=self.audio_config["rate"])[0]
 
-        return pitches, guitar_data, no_guitar_data
+        return notes, guitar_data, no_guitar_data
 
     def _get_tempo_data(self) -> tuple[float, float]:
         """
@@ -126,7 +126,7 @@ class AudioStreamHandler(QObject):
     ----------
     song : LoadedAudio
         A LoadedAudio instance containing song data such as its audio
-        time series and pitches DataFrame.
+        time series and notes DataFrame.
     input_audio_buffer : ndarray
         An ndarray containing recorded input audio data that is sent to
         the main file when size has reached the minimum buffer size.
@@ -290,7 +290,7 @@ class AudioStreamHandler(QObject):
             # Remove data added to main buffer from overlap window buffer
             self._in_overlap = self._in_overlap[overlap_size:]
 
-            # Only take pitch data from song time-slice equal to size
+            # Only take note data from song time-slice equal to size
             # of data currently in the buffer to avoid negatively
             # impacting user accuracy
             if not np.any(self._in_buffer[:overlap_size]):
@@ -299,15 +299,15 @@ class AudioStreamHandler(QObject):
                 slice_start = ((self._position-self.audio_config["rec_buffer_size"])
                                /self.audio_config["rate"])
 
-            # Send audio buffer data, position, and song pitches to
+            # Send audio buffer data, position, and song notes to
             # connected function in main file to be
-            pitches = preprocess_pitch_data(
-                self.song.pitches,
+            notes = preprocess_note_data(
+                self.song.notes,
                 slice_start=slice_start,
                 slice_end=self._position/self.audio_config["rate"],
             )
             self.new_input_buffer_signal.emit(
-                (self._in_buffer.copy(), self._position, pitches, perf_time_start)
+                (self._in_buffer.copy(), self._position, notes, perf_time_start)
             )
 
         # OUTPUT HANDLING

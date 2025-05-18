@@ -15,15 +15,15 @@ time_format(time)
 hex_to_rgb(hex_string)
     Get an RGB equivalent from a hex triplet.
 
-csv_to_pitches_dataframe(path)
-    Return sorted Pandas DataFrame converted from a pitches CSV file.
+csv_to_notes_dataframe(path)
+    Return sorted Pandas DataFrame converted from a notes CSV file.
 
-preprocess_pitch_data(
-    pitches, 
+preprocess_note_data(
+    notes, 
     slice_start=None, slice_end=None, 
     offset_latency=False
 )
-    Return a dict of note events for 128 pitches from a pitches 
+    Return a dict of note events for 128 pitches from a notes 
     Dataframe.
 """
 
@@ -91,9 +91,9 @@ def hex_to_rgb(hex_string: str) -> tuple:
     return tuple(int(hex_string.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 
 
-def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
+def csv_to_notes_dataframe(path: Path) -> pd.DataFrame:
     """
-    Return a Pandas DataFrame from a pitches CSV file, dropping
+    Return a Pandas DataFrame from a notes CSV file, dropping
     unnecessary columns and sorting by note onset times.
     """
     return pd.read_csv(
@@ -105,19 +105,19 @@ def csv_to_pitches_dataframe(path: Path) -> pd.DataFrame:
         columns=["end_time_s", "velocity", "pitch_bend"]
     ).sort_values("start_time_s")
 
-def preprocess_pitch_data(
-    pitches: pd.DataFrame,
+def preprocess_note_data(
+    notes: pd.DataFrame,
     slice_start: float | None = None,
     slice_end: float | None = None,
     offset_latency: bool = False
 ) -> dict[int, list]:
     """
-    Take a pitches DataFrame and perform pre-processing, returning a
+    Take a notes DataFrame and perform pre-processing, returning a
     2D array containing note onset times for all 128 MIDI pitches.
 
     Parameters
     ----------
-    pitches : DataFrame
+    notes : DataFrame
         The pandas DataFrame containing note event information.
     slice_start, slice_end : float, optional
         The times in seconds to start and end time-slice.
@@ -126,25 +126,25 @@ def preprocess_pitch_data(
 
     Returns
     -------
-    pitch_sequences : dict[int, list]
+    note_sequences : dict[int, list]
         A dictionary containing lists of the times in seconds of note
         onsets for every possible MIDI pitch (0-127).
     """
-    new_pitches = pitches.copy()
+    new_notes = notes.copy()
     config = read_config("Audio")
 
     if slice_start and slice_end:
-        new_pitches = pitches[
-            (pitches["start_time_s"] >= slice_start)
-            & (pitches["start_time_s"] < slice_end)
+        new_notes = notes[
+            (notes["start_time_s"] >= slice_start)
+            & (notes["start_time_s"] < slice_end)
         ]
 
     if offset_latency:
         latency = config["in_latency"] + config["out_latency"]
-        new_pitches["start_time_s"] -= latency
+        new_notes["start_time_s"] -= latency
 
-    pitch_sequences = {k: [] for k in range(128)}
-    for row in new_pitches.itertuples():
-        pitch_sequences[row.pitch_midi].append(row.start_time_s)
+    note_sequences = {k: [] for k in range(128)}
+    for row in new_notes.itertuples():
+        note_sequences[row.pitch_midi].append(row.start_time_s)
 
-    return pitch_sequences
+    return note_sequences

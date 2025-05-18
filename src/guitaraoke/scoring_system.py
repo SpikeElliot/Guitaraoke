@@ -10,15 +10,15 @@ ScoringSystem(QObject)
 
 Functions
 ---------
-compare_pitches
-    Take two pitch dictionaries (user and song) and return user scores.
+compare_notes
+    Take two note dictionaries (user and song) and return user scores.
 
 unique_nearest_notes
     Get all unique nearest song-user note pairs (used in 
-    compare_pitches).
+    compare_notes).
 
 process_recording
-    Compare the user input recording's pitches against the song's,
+    Compare the user input recording's notes against the song's,
     returning the resultant score data.
 """
 
@@ -29,9 +29,9 @@ import concurrent.futures
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
-from guitaraoke.save_pitches import save_pitches
+from guitaraoke.save_notes import save_notes
 from guitaraoke.utils import (
-    preprocess_pitch_data, csv_to_pitches_dataframe, read_config
+    preprocess_note_data, csv_to_notes_dataframe, read_config
 )
 
 config = read_config("Audio")
@@ -89,7 +89,7 @@ class ScoringSystem(QObject):
         self,
         buffer: np.ndarray,
         position: int,
-        pitches: dict[int, list]
+        notes: dict[int, list]
     ) -> None:
         """
         Schedule the process_recording function to be executed by a 
@@ -98,7 +98,7 @@ class ScoringSystem(QObject):
         """
         self._executor_future = self._executor.submit(
             process_recording,
-            buffer, position, pitches,
+            buffer, position, notes,
         )
         self._executor_future.add_done_callback(self._internal_done_callback)
 
@@ -172,18 +172,18 @@ def preload_basic_pitch_model() -> None:
     from guitaraoke.preload import PITCH_MODEL # pylint: disable=import-outside-toplevel,unused-import
 
 
-def compare_pitches(
-    user_pitches: dict[int, list],
-    song_pitches: dict[int, list]
+def compare_notes(
+    user_notes: dict[int, list],
+    song_notes: dict[int, list]
 ) -> tuple[int, float, int, list]:
     """
-    Take two pitch dictionaries (user and song), find the shortest 
+    Take two note dictionaries (user and song), find the shortest 
     unique distances between each user and song note, and return the
     resultant performance information.
 
     Parameters
     ----------
-    user_pitches, song_pitches : dict[int, list]
+    user_notes, song_notes : dict[int, list]
         Dictionaries containing lists of the times in seconds of note
         onsets for every possible MIDI pitch (0-127).
     
@@ -199,7 +199,7 @@ def compare_pitches(
 
     # Iterate over user and song note events for all 128 MIDI pitches
     for note in range(128):
-        song_note_times, user_note_times = song_pitches[note], user_pitches[note]
+        song_note_times, user_note_times = song_notes[note], user_notes[note]
 
         # Case: No notes in song at this pitch
         if len(song_note_times) == 0:
@@ -304,15 +304,15 @@ def unique_nearest_notes(
 def process_recording(
     buffer: np.ndarray,
     position: int,
-    preprocessed_song_pitches: dict[int, list]
+    preprocessed_song_notes: dict[int, list]
 ) -> tuple[int, float, int, list]:
     """
-    Compare the user input recording's pitches against the song's,
+    Compare the user input recording's notes against the song's,
     returning the resultant score data.
     """
     assert isinstance(buffer, np.ndarray), "Audio buffer must be an ndarray."
     assert isinstance(position, int), "Position must be an int."
-    assert isinstance(preprocessed_song_pitches, dict), "Song pitches must be a dictionary."
+    assert isinstance(preprocessed_song_notes, dict), "Song notes must be a dictionary."
 
     # Offset user note times by size of data currently in the buffer
     time_offset = config["rec_buffer_size"]
@@ -325,40 +325,40 @@ def process_recording(
         write_wav(temp_recording.name, config["rate"], buffer)
         print(f"\nCreated temp file: {temp_recording.name}")
 
-        # Save predicted user pitches to a temp CSV file
-        user_pitches_path = save_pitches(temp_recording.name, temp=True)[0]
+        # Save predicted user notes to a temp CSV file
+        user_notes_path = save_notes(temp_recording.name, temp=True)[0]
 
     score_data = (0,0,0)
     try:
         # Align user note event times to song position
-        user_pitches = csv_to_pitches_dataframe(user_pitches_path)
-        user_pitches["start_time_s"] += (
+        user_notes = csv_to_notes_dataframe(user_notes_path)
+        user_notes["start_time_s"] += (
             (position/config["rate"]) - (time_offset/config["rate"])
         )
 
-        # Convert user pitches to dict of note-onset time lists
-        user_pitches = preprocess_pitch_data(
-            user_pitches,
+        # Convert user notes to dict of note-onset time lists
+        user_notes = preprocess_note_data(
+            user_notes,
             offset_latency=True,
         )
 
         # TESTING
-        # print("USER PITCHES:\n")
-        # for k, v in user_pitches.items():
+        # print("USER notes:\n")
+        # for k, v in user_notes.items():
         #     if v:
         #         print(f"{k}: {v}")
 
-        # print("\nSONG PITCHES:\n")
-        # for k, v in preprocessed_song_pitches.items():
+        # print("\nSONG notes:\n")
+        # for k, v in preprocessed_song_notes.items():
         #     if v:
         #         print(f"{k}: {v}")
 
         # Perform scoring
-        score_data = compare_pitches(
-            user_pitches,
-            preprocessed_song_pitches
+        score_data = compare_notes(
+            user_notes,
+            preprocessed_song_notes
         )
     finally:
         # Clean up
-        os.remove(user_pitches_path)
+        os.remove(user_notes_path)
     return score_data

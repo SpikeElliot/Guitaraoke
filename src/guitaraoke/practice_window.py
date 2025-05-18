@@ -568,8 +568,8 @@ class PracticeWindow(QWidget):
         Schedule the process_recording method to be called when a new
         audio input buffer is received.
         """
-        buffer, position, pitches, self.perf_time_start = data
-        self.scorer.submit_process_recording(buffer, position, pitches)
+        buffer, position, notes, self.perf_time_start = data
+        self.scorer.submit_process_recording(buffer, position, notes)
 
     def receive_new_score_data(
         self,
