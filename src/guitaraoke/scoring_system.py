@@ -23,9 +23,9 @@ process_recording
 """
 
 import os
+from collections import deque, defaultdict
 import tempfile
 import concurrent.futures
-from collections import defaultdict
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal # pylint: disable=no-name-in-module
 from scipy.io.wavfile import write as write_wav
@@ -34,10 +34,7 @@ from guitaraoke.utils import (
     preprocess_pitch_data, csv_to_pitches_dataframe, read_config
 )
 
-# 100ms tolerance to account for swing and variance in predictions
-NOTE_HIT_WINDOW = 0.1
-# Amount to deduct from note score for inaccurate timing
-CLOSE_HIT_PENALTY = 0.5
+config = read_config("Audio")
 
 class ScoringSystem(QObject):
     """
@@ -72,7 +69,7 @@ class ScoringSystem(QObject):
         self._notes_hit = 0
         self._total_notes = 0
         self._accuracy = 0
-        self._swing_times = []
+        self._swing_times = deque(maxlen=5)
 
     @property
     def executor(self):
@@ -107,7 +104,7 @@ class ScoringSystem(QObject):
 
     def _internal_done_callback(
         self,
-        future: concurrent.futures.Future[tuple[int, float, int, float]]
+        future: concurrent.futures.Future[tuple[int, float, int, list]]
     ) -> None:
         """
         Called when the future is complete, emits the resultant score
@@ -123,12 +120,16 @@ class ScoringSystem(QObject):
 
         # Find average note swing (median taken as times distribution
         # likely skewed, and to be robust to outliers)
-        self._swing_times += swing_times
-        print(self._swing_times)
-        if not self._swing_times:
+        self._swing_times.append(swing_times)
+        swing_times_list = [time for i in self._swing_times for time in i]
+        if not swing_times_list:
             average_swing = 0
         else:
-            average_swing = np.median(self._swing_times)
+            average_swing = np.median(swing_times_list)
+
+        # Print swing times for testing
+        for i, times in enumerate(self._swing_times):
+            print(f"{i+1}: {times}")
 
         if self._total_notes != 0: # Avoid divide by zero error
             self._accuracy = (self._notes_hit / self.total_notes) * 100
@@ -163,7 +164,7 @@ class ScoringSystem(QObject):
     def zero_score_data(self) -> None:
         """Reset score data (called when song skipped/restarted)."""
         (self._score, self._notes_hit, self._total_notes,
-        self._accuracy, self._swing_times) = (0,0,0,0,[])
+        self._accuracy, self._swing_times) = (0,0,0,0,deque(maxlen=5))
 
 
 def preload_basic_pitch_model() -> None:
@@ -174,7 +175,7 @@ def preload_basic_pitch_model() -> None:
 def compare_pitches(
     user_pitches: dict[int, list],
     song_pitches: dict[int, list]
-) -> tuple[int, float, int, float]:
+) -> tuple[int, float, int, list]:
     """
     Take two pitch dictionaries (user and song), find the shortest 
     unique distances between each user and song note, and return the
@@ -188,7 +189,7 @@ def compare_pitches(
     
     Returns
     -------
-    tuple[int, float, int]
+    tuple[int, float, int, list]
         The user score, number of notes hit by the user, total number
         of notes, and average swing.
     """
@@ -240,16 +241,19 @@ def compare_pitches(
             dist = np.abs(notes[0] - song_note_times[i])
 
             # Perform scoring logic
-            if dist <= NOTE_HIT_WINDOW:
+
+            # Tolerance to account for swing and variance in preds
+            if dist <= config["note_hit_window"]:
                 notes_hit += 1
-            elif dist <= NOTE_HIT_WINDOW * 2:
-                notes_hit += 1 - CLOSE_HIT_PENALTY
+            elif dist <= config["note_hit_window"] * 2:
+                # Deduct from note score for inaccurate timing
+                notes_hit += 1 - config["close_hit_penalty"]
             else: # If note time outside of tolerance window
                 continue
 
             # Positive means dragging, negative means rushing
-            swing = notes[0] - song_note_times[i]
-            note_swing_times.append(swing)
+            swing_amt = notes[0] - song_note_times[i]
+            note_swing_times.append(swing_amt)
 
     return notes_hit*100, notes_hit, total_notes, note_swing_times
 
@@ -301,7 +305,7 @@ def process_recording(
     buffer: np.ndarray,
     position: int,
     preprocessed_song_pitches: dict[int, list]
-) -> tuple[int, float, int, float]:
+) -> tuple[int, float, int, list]:
     """
     Compare the user input recording's pitches against the song's,
     returning the resultant score data.
@@ -309,8 +313,6 @@ def process_recording(
     assert isinstance(buffer, np.ndarray), "Audio buffer must be an ndarray."
     assert isinstance(position, int), "Position must be an int."
     assert isinstance(preprocessed_song_pitches, dict), "Song pitches must be a dictionary."
-
-    config = read_config("Audio")
 
     # Offset user note times by size of data currently in the buffer
     time_offset = config["rec_buffer_size"]

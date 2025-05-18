@@ -51,7 +51,9 @@ def read_config(section: str) -> dict[str]:
             "rec_overlap_window_size": parser.getint(section, "rec_overlap_window_size"),
             "input_device_index": parser.getint(section, "input_device_index"),
             "in_latency": parser.getfloat(section, "in_latency"),
-            "out_latency": parser.getfloat(section, "out_latency")
+            "out_latency": parser.getfloat(section, "out_latency"),
+            "note_hit_window": parser.getfloat(section, "note_hit_window"),
+            "close_hit_penalty": parser.getfloat(section, "close_hit_penalty")
         }
     else:
         config_vals = {
