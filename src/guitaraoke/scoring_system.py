@@ -198,8 +198,8 @@ def compare_notes(
     note_swing_times = []
 
     # Iterate over user and song note events for all 128 MIDI pitches
-    for note in range(128):
-        song_note_times, user_note_times = song_notes[note], user_notes[note]
+    for pitch in range(128):
+        song_note_times, user_note_times = song_notes[pitch], user_notes[pitch]
 
         # Case: No notes in song at this pitch
         if len(song_note_times) == 0:
@@ -259,8 +259,8 @@ def compare_notes(
 
 
 def unique_nearest_notes(
-    sorted_user_times: list,
-    song_times: list
+    nearest_notes: list,
+    song_notes: list
 ) -> list:
     """
     Get all unique nearest song note - user note pairs by iterating
@@ -269,37 +269,37 @@ def unique_nearest_notes(
     """
     unique_pairs = False
     while not unique_pairs:
-        for i in range(len(sorted_user_times)-1):
-            for j in range(i+1, len(sorted_user_times)):
+        for i in range(len(nearest_notes)-1):
+            for j in range(i+1, len(nearest_notes)):
                 # First song note has been removed
-                if not sorted_user_times[i]:
+                if not nearest_notes[i]:
                     break
                 # Second song note removed or nearest user notes are dissimilar
-                if (not sorted_user_times[j]
-                    or sorted_user_times[i][0] != sorted_user_times[j][0]):
+                if (not nearest_notes[j]
+                    or nearest_notes[i][0] != nearest_notes[j][0]):
                     continue
 
-                i_dist = np.abs(song_times[i] - sorted_user_times[i][0])
-                j_dist = np.abs(song_times[j] - sorted_user_times[j][0])
+                i_dist = np.abs(song_notes[i] - nearest_notes[i][0])
+                j_dist = np.abs(song_notes[j] - nearest_notes[j][0])
 
                 # The song note time with the larger distance has the user
                 # note time deleted from its corresponding array, updating
                 # index 0 to the next closest user note time.
                 if i_dist > j_dist:
-                    del sorted_user_times[i][0]
+                    del nearest_notes[i][0]
                 else:
-                    del sorted_user_times[j][0]
+                    del nearest_notes[j][0]
 
         # Check for duplicates
         freq = defaultdict(int)
-        for t in sorted_user_times:
+        for t in nearest_notes:
             if t:
                 freq[t[0]] += 1
 
         # End loop if no song notes are sharing the same nearest user note
         if not [t for t in freq if freq[t] > 1]:
             unique_pairs = True
-    return sorted_user_times
+    return nearest_notes
 
 def process_recording(
     buffer: np.ndarray,
