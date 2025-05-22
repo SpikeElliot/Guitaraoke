@@ -118,14 +118,13 @@ class ScoringSystem(QObject):
         self._notes_hit += round(notes_hit/2)
         self._total_notes += round(total_notes/2)
 
-        # Find average note swing (median taken as times distribution
-        # likely skewed, and to be robust to outliers)
+        # Find average note swing
         self._swing_times.append(swing_times)
         swing_times_list = [time for i in self._swing_times for time in i]
         if not swing_times_list:
             average_swing = 0
         else:
-            average_swing = np.median(swing_times_list)
+            average_swing = np.mean(swing_times_list)
 
         # Print swing times for testing
         for i, times in enumerate(self._swing_times):
