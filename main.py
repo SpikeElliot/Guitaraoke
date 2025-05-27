@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
 
         self.set_styles()
 
-    def set_styles(self) -> dict[str]:
+    def set_styles(self) -> dict[str, str]:
         """Sets the CSS styling of the window and widgets."""
         with open(
             f"{os.environ['assets_dir']}\\stylesheets\\main.qss", "r", encoding="utf-8"
@@ -148,7 +148,7 @@ class SongLoader(QObject):
     """Worker object that performs song loading."""
     loaded = pyqtSignal(AudioStreamHandler)
 
-    def __init__(self, song_data) -> None:
+    def __init__(self, song_data: tuple[str, str, str]) -> None:
         """The constructor for the SongLoader class."""
         super().__init__()
 

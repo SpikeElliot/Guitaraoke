@@ -131,7 +131,7 @@ class ScoringSystem(QObject):
             print(f"{i+1}: {times}")
 
         if self._total_notes != 0: # Avoid divide by zero error
-            self._accuracy = (self._notes_hit / self.total_notes) * 100
+            self._accuracy = (self._notes_hit / self._total_notes) * 100
 
         self.new_score_data_signal.emit((self._score, self._accuracy, average_swing))
 
@@ -327,7 +327,7 @@ def process_recording(
         # Save predicted user notes to a temp CSV file
         user_notes_path = save_notes(temp_recording.name, temp=True)[0]
 
-    score_data = (0,0,0)
+    score_data = (0,0,0,[])
     try:
         # Align user note event times to song position
         user_notes = csv_to_notes_dataframe(user_notes_path)

@@ -61,7 +61,7 @@ class PopupWindow(QDialog):
             "button_box": button_box
         }
 
-    def set_styles(self) -> dict[str]:
+    def set_styles(self) -> None:
         """Sets the CSS styling of the window and widgets."""
         with open(
             f"{os.environ['assets_dir']}\\stylesheets\\main.qss", "r", encoding="utf-8"
@@ -256,7 +256,7 @@ class SetupWindow(QWidget):
         print(f"Loading '{self.song_filepath}'...")
         self.load_song_signal.emit((self.song_filepath, title, artist))
 
-    def set_input_device(self, idx) -> None:
+    def set_input_device(self, idx: int) -> None:
         """Update config file with new input device index."""
         parser = ConfigParser()
         parser.read("data\\config.ini")

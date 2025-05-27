@@ -21,7 +21,7 @@ class PlaybackControls(QObject):
         data.
     widgets : dict[str]
         The GUI widgets stored in a dictionary.
-    styles : dict[str]
+    styles : dict[str, str]
         The GUI widget styles stored in a dictionary.
     """
     reset_score_signal = pyqtSignal()
@@ -30,7 +30,7 @@ class PlaybackControls(QObject):
         self,
         audio: AudioStreamHandler,
         widgets: dict[str],
-        styles: dict[str]
+        styles: dict[str, str]
     ) -> None:
         super().__init__()
 
@@ -41,7 +41,7 @@ class PlaybackControls(QObject):
         self.widgets = widgets
         self.styles = styles
 
-    def update_songpos(self) -> None:
+    def update_song_pos(self) -> None:
         """Updates song_duration label and moves playhead every 10ms."""
         if self.audio.ended:
             # Stop time progressing when song ends
@@ -142,7 +142,7 @@ class PlaybackControls(QObject):
             self.audio.seek(end-0.1)
 
         self.reset_score_signal.emit() # Send signal to GUI to reset score
-        self.update_songpos()
+        self.update_song_pos()
 
     def skip_back_button_pressed(self) -> None:
         """Skips playback position a maximum of 5 seconds forward."""
@@ -158,7 +158,7 @@ class PlaybackControls(QObject):
             self.audio.seek(start)
 
         self.reset_score_signal.emit() # Send signal to GUI to reset score
-        self.update_songpos()
+        self.update_song_pos()
 
     def loop_button_pressed(self) -> None:
         """

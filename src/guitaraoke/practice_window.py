@@ -447,7 +447,7 @@ class PracticeWindow(QWidget):
             "loop_button": loop_button
         }
 
-    def set_styles(self) -> dict[str]:
+    def set_styles(self) -> dict[str, str]:
         """Create active and inactive styles for widgets."""
 
         active_loop_button_style = """
@@ -507,7 +507,7 @@ class PracticeWindow(QWidget):
             self.controls.waveform_pressed
         )
         self.widgets["audiopos_timer"].timeout.connect(
-            self.controls.update_songpos
+            self.controls.update_song_pos
         )
         self.widgets["guitar_vol_slider"].valueChanged.connect(
             self.controls.guitar_vol_slider_moved

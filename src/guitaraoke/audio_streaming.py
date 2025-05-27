@@ -127,9 +127,12 @@ class AudioStreamHandler(QObject):
     song : LoadedAudio
         A LoadedAudio instance containing song data such as its audio
         time series and notes DataFrame.
-    input_audio_buffer : ndarray
-        An ndarray containing recorded input audio data that is sent to
-        the main file when size has reached the minimum buffer size.
+    rec_buffer : ndarray
+        An ndarray that acts as a circular buffer containing 2 seconds
+        of user audio data sent to the practice window for scoring.
+    rec_overlap_window : ndarray
+        An ndarray that containing recorded input audio data pushed to
+        the rec_buffer when a full second of audio has been added.
     paused, ended : bool
         The current state of audio playback's paused and ended status.
     stream : Stream
@@ -156,8 +159,8 @@ class AudioStreamHandler(QObject):
         self.audio_config = read_config("Audio")
 
         # Input variables
-        self._in_buffer = np.zeros(self.audio_config["rec_buffer_size"]) # Input audio buffer
-        self._in_overlap = np.ndarray(0) # Input audio overlap window
+        self._rec_buffer = np.zeros(self.audio_config["rec_buffer_size"]) # Input audio buffer
+        self._rec_overlap_window = np.ndarray(0) # Input audio overlap window
 
         # Playback data
         self._paused = True
@@ -272,42 +275,42 @@ class AudioStreamHandler(QObject):
 
         # INPUT HANDLING
 
-        self._in_overlap = np.append(
-            self._in_overlap, indata.copy()
+        self._rec_overlap_window = np.append(
+            self._rec_overlap_window, indata.copy()
         )
 
-        if self._in_overlap.size >= self.audio_config["rec_overlap_window_size"]:
+        if self._rec_overlap_window.size >= self.audio_config["rec_overlap_window_size"]:
             perf_time_start = time.perf_counter()
             overlap_size = self.audio_config["rec_overlap_window_size"]
             # Add new overlap buffered data to main buffer, and push main
             # buffer to the left by rec_overlap_window_size
-            self._in_buffer = np.append(
-                self._in_buffer,
-                self._in_overlap[:overlap_size]
+            self._rec_buffer = np.append(
+                self._rec_buffer,
+                self._rec_overlap_window[:overlap_size]
             )
-            self._in_buffer = self._in_buffer[overlap_size:]
+            self._rec_buffer = self._rec_buffer[overlap_size:]
 
             # Remove data added to main buffer from overlap window buffer
-            self._in_overlap = self._in_overlap[overlap_size:]
+            self._rec_overlap_window = self._rec_overlap_window[overlap_size:]
 
             # Only take note data from song time-slice equal to size
             # of data currently in the buffer to avoid negatively
             # impacting user accuracy
-            if not np.any(self._in_buffer[:overlap_size]):
+            if not np.any(self._rec_buffer[:overlap_size]):
                 slice_start = (self._position-overlap_size)/self.audio_config["rate"]
             else:
                 slice_start = ((self._position-self.audio_config["rec_buffer_size"])
                                /self.audio_config["rate"])
 
-            # Send audio buffer data, position, and song notes to
-            # connected function in main file to be
+            # Send audio buffer data, position, and song notes
+            # to connected function in main file for scoring
             notes = preprocess_note_data(
                 self.song.notes,
                 slice_start=slice_start,
                 slice_end=self._position/self.audio_config["rate"],
             )
             self.new_input_buffer_signal.emit(
-                (self._in_buffer.copy(), self._position, notes, perf_time_start)
+                (self._rec_buffer.copy(), self._position, notes, perf_time_start)
             )
 
         # OUTPUT HANDLING
@@ -384,5 +387,5 @@ class AudioStreamHandler(QObject):
 
     def zero_buffers(self) -> None:
         """Reset buffers when audio is restarted or skipped."""
-        self._in_buffer = np.zeros(self.audio_config["rec_buffer_size"])
-        self._in_overlap = np.ndarray(0)
+        self._rec_buffer = np.zeros(self.audio_config["rec_buffer_size"])
+        self._rec_overlap_window = np.ndarray(0)
