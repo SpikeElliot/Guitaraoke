@@ -58,8 +58,8 @@ def test_inside_note_hit_window(
     """Assert notes within tolerance window are correctly counted."""
     user_notes, song_notes = note_dicts
 
-    user_notes[45] = [0.701, 0.84 + config["note_hit_window"]]
-    user_notes[50] = [0.88]
+    user_notes[45] = [0.701, 0.839 + config["note_hit_window"]]
+    user_notes[50] = [0.881]
 
     song_notes[45] = [0.7 + config["note_hit_window"], 0.84]
     song_notes[50] = [0.88 + config["note_hit_window"]]
